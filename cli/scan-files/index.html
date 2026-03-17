@@ -805,6 +805,8 @@
       
         
       
+        
+      
     
     
     
@@ -1042,6 +1044,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#path-canonicalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Path Canonicalization
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rule-loading" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1076,6 +1089,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2358,6 +2399,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#path-canonicalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Path Canonicalization
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rule-loading" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2468,6 +2520,14 @@
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Use custom rules alongside built-ins</span>
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>./aipostex<span class="w"> </span>scan-files<span class="w"> </span>--path<span class="w"> </span>/tmp/loot<span class="w"> </span>--rules-dir<span class="w"> </span>./my-rules
 </code></pre></div>
+<h2 id="path-canonicalization">Path Canonicalization<a class="headerlink" href="#path-canonicalization" title="Permanent link">&para;</a></h2>
+<p>When multiple <code>--path</code> values are provided, they are canonicalized before scanning:</p>
+<ol>
+<li>Paths are cleaned (trailing slashes removed, <code>.</code> resolved)</li>
+<li>Exact duplicates are removed</li>
+<li>Paths that are subdirectories of another provided path are subsumed (e.g., <code>/loot</code> and <code>/loot/subdir</code> becomes just <code>/loot</code>)</li>
+</ol>
+<p>This prevents duplicate findings from overlapping scan roots.</p>
 <h2 id="rule-loading">Rule Loading<a class="headerlink" href="#rule-loading" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Built-in rules are loaded from the embedded <code>embed.FS</code></li>

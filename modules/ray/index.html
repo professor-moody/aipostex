@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2448,6 +2478,7 @@
 <p>Enumerate and exploit Ray dashboard and jobs API.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>The <code>ray</code> module targets Ray cluster dashboards, covering metadata enumeration, job listing, log reads, artifact correlation, guarded proof-job submission, and runtime environment validation. It follows a jobs-to-takeover progression with proof-stage metadata on findings.</p>
+<p>The jobs API client supports both JSON array responses (Ray 2.10+) and object-wrapped formats from older versions. The <code>jobs</code> command extracts <code>runtime_env</code> and <code>env_vars</code> from each job and emits critical-severity findings when credentials or secrets are found in job environment variables.</p>
 <h2 id="subcommands">Subcommands<a class="headerlink" href="#subcommands" title="Permanent link">&para;</a></h2>
 <h3 id="read-only-no-force-exploit-required">Read-Only (no <code>--force-exploit</code> required)<a class="headerlink" href="#read-only-no-force-exploit-required" title="Permanent link">&para;</a></h3>
 <table>

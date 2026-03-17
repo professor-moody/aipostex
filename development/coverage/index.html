@@ -801,6 +801,8 @@
       
         
       
+        
+      
     
     
     
@@ -947,6 +949,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2378,7 +2408,7 @@
 <tbody>
 <tr>
 <td><strong>Ollama</strong></td>
-<td>Enum, prompts, generate, show, running, copy/create/delete/poison</td>
+<td>Enum, prompts (System field + Modelfile parsing), generate, show, running, copy/create/delete/poison</td>
 <td>Better value scoring, model tamper validation</td>
 <td>Weight exfiltration, resource exhaustion</td>
 </tr>
@@ -2390,8 +2420,8 @@
 </tr>
 <tr>
 <td><strong>ChromaDB</strong></td>
-<td>Enum, extract, sensitive search, unauth template</td>
-<td>Better tenant/context awareness</td>
+<td>Enum (tenant/database-aware fallback), extract, sensitive search (27 patterns), unauth template</td>
+<td>Better value scoring</td>
 <td>Mutating abuse, snapshot exports</td>
 </tr>
 <tr>
@@ -2414,19 +2444,19 @@
 </tr>
 <tr>
 <td><strong>MCP</strong></td>
-<td>Analyze, enum, poison (generic/ssrf-cloud/cmd-inject/path-traversal); config variants; capability classification; remote URL correlation; templates and inspector fingerprints</td>
+<td>Analyze, enum, poison (generic/ssrf-cloud/cmd-inject/path-traversal); config variants; capability classification; remote URL correlation; 14 vuln templates covering unauth access, inspector exposure, DNS rebinding, session leakage, SSRF, RCE CVEs (Inspector, Figma, K8s), and server-specific detection (Neo4j, Vet, MS Learn)</td>
 <td>Deeper multi-step poison automation, richer inspector-to-remote exploitation</td>
 <td>Additional transport families, broader exploit automation</td>
 </tr>
 <tr>
 <td><strong>Ray</strong></td>
-<td>Dashboard enum, jobs, job-logs, job-artifacts, submit, runtime-env; unauth templates</td>
+<td>Dashboard enum, jobs (array + object formats, runtime_env/env_vars extraction), job-logs, job-artifacts, submit, runtime-env; unauth templates</td>
 <td>Better cluster-state enrichment, safer takeover proofs</td>
 <td>Broader cluster takeover workflows</td>
 </tr>
 <tr>
 <td><strong>MLflow</strong></td>
-<td>Tracking enum, experiments, runs, registry, model-versions, model-artifacts, artifact-tree, artifact reads; unauth templates</td>
+<td>Tracking enum (root + /health), experiments, runs, registry (GET-first), model-versions, model-artifacts, artifact-tree, artifact reads; unauth templates</td>
 <td>Better artifact sensitivity/value inference, narrowly justified write proofs</td>
 <td>Deeper artifact and registry exploitation</td>
 </tr>
@@ -2455,7 +2485,7 @@
 </tr>
 <tr>
 <td>MCP</td>
-<td>6</td>
+<td>14</td>
 <td>Critical, High, Medium</td>
 </tr>
 <tr>
@@ -2495,7 +2525,7 @@
 </tr>
 <tr>
 <td><strong>Total</strong></td>
-<td><strong>22</strong></td>
+<td><strong>30</strong></td>
 <td></td>
 </tr>
 </tbody>
@@ -2553,6 +2583,11 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>merge</code></td>
+<td><strong>Implemented</strong></td>
+<td>Combine engagement JSON files for unified scoring</td>
+</tr>
 <tr>
 <td><code>scan-all</code></td>
 <td>Deferred</td>

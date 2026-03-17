@@ -919,6 +919,8 @@
       
         
       
+        
+      
     
     
     
@@ -1065,6 +1067,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2370,21 +2400,23 @@
 <p>This guide walks through three core workflows to get you scanning in minutes.</p>
 <h2 id="1-discover-ai-services-on-a-network">1. Discover AI Services on a Network<a class="headerlink" href="#1-discover-ai-services-on-a-network" title="Permanent link">&para;</a></h2>
 <p>Use <code>scan-network</code> to fingerprint AI services across a network range:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/24
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span><span class="m">10</span>.0.0.0/24
 </code></pre></div>
 <p>This probes default AI ports (Ollama 11434, vLLM 8000, Jupyter 8888, etc.) and automatically runs matching vulnerability templates against discovered services.</p>
 <p>Target a specific host with custom ports:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--ports<span class="w"> </span><span class="m">11434</span>,8000,8888
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--ports<span class="w"> </span><span class="m">11434</span>,8000,8888
 </code></pre></div>
+<p>Targets can also be passed via the <code>--targets</code> flag (e.g., <code>--targets 10.0.0.0/24</code>). Positional arguments and flags are merged.</p>
 <p>The output includes discovered services, vulnerability findings, and <strong>Next actions</strong> -- concrete follow-on commands for each discovered service.</p>
 <h2 id="2-scan-a-target-for-vulnerabilities">2. Scan a Target for Vulnerabilities<a class="headerlink" href="#2-scan-a-target-for-vulnerabilities" title="Permanent link">&para;</a></h2>
 <p>Run YAML vulnerability templates against a known target:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:11434
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>http://127.0.0.1:11434
 </code></pre></div>
 <p>Filter by tags or severity:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>--tags<span class="w"> </span>mcp
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8000<span class="w"> </span>--severity<span class="w"> </span>critical
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>--tags<span class="w"> </span>mcp
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>http://127.0.0.1:8000<span class="w"> </span>--severity<span class="w"> </span>critical
 </code></pre></div>
+<p>Targets can also be passed via <code>--target</code> (e.g., <code>--target http://...</code>). Positional arguments and flags are merged.</p>
 <p>View available templates before scanning:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>./aipostex<span class="w"> </span>templates
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>./aipostex<span class="w"> </span>template-info<span class="w"> </span>ollama-auth-001-unauthenticated-api

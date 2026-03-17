@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2496,7 +2526,7 @@
 <tr>
 <td><strong>MLflow</strong></td>
 <td>5000</td>
-<td><code>GET /api/2.0/mlflow/experiments/search</code>, <code>GET /health</code></td>
+<td><code>GET /api/2.0/mlflow/experiments/search</code>, <code>GET /api/2.0/mlflow/registered-models/search</code>, <code>GET /</code> (body: "OK")</td>
 <td>High</td>
 </tr>
 <tr>
@@ -2564,7 +2594,7 @@
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/16<span class="w">     </span><span class="c1"># 65534 hosts</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/8<span class="w">      </span><span class="c1"># too many without --max-hosts 0</span>
 </code></pre></div>
-<p>The <code>--max-hosts</code> guardrail (default 65536) prevents accidentally scanning huge ranges. Set to <code>0</code> to disable.</p>
+<p>The <code>--max-hosts</code> guardrail (default 65536) prevents accidentally scanning huge ranges. Set to <code>0</code> to disable. Large IPv6 CIDRs (63+ host bits) are rejected before expansion to prevent integer overflow. Overlapping CIDRs are deduplicated before the host count is validated.</p>
 <p>Individual hosts and multiple targets are also supported:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.5
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/24<span class="w"> </span>--targets<span class="w"> </span><span class="m">192</span>.168.1.0/24
@@ -2572,11 +2602,12 @@
 <h2 id="auto-scan">Auto-Scan<a class="headerlink" href="#auto-scan" title="Permanent link">&para;</a></h2>
 <p>By default, <code>scan-network</code> runs vulnerability templates against discovered services (<code>--auto-scan=true</code>). This:</p>
 <ol>
-<li>Maps discovered services to relevant template tags</li>
+<li>Maps discovered services to relevant template tags (see table below)</li>
 <li>Loads and filters templates</li>
 <li>Executes matching templates against each discovered service URL</li>
 <li>Deduplicates results</li>
 </ol>
+<p>When <code>--tags</code> is provided, user-specified tags replace the auto-detected service tags entirely. Only templates matching the user-provided tags will run, regardless of which services were discovered.</p>
 <p>To fingerprint only (no template scanning):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/24<span class="w"> </span>--auto-scan<span class="o">=</span><span class="nb">false</span>
 </code></pre></div>
@@ -2656,16 +2687,22 @@
 <p>Fingerprint results are deduplicated per URL+service, keeping the highest-specificity match. This prevents duplicate findings when multiple probes match the same endpoint.</p>
 <p>Vulnerability findings from auto-scan are further deduplicated using the standard finding deduplication (by source, template ID, target, title, severity).</p>
 <h2 id="workflow-output">Workflow Output<a class="headerlink" href="#workflow-output" title="Permanent link">&para;</a></h2>
-<p>For each discovered service, <code>scan-network</code> generates workflow recommendations:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Next actions for http://10.0.0.5:11434 (ollama):
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  [read] aipostex ollama --target http://10.0.0.5:11434 enum
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  [read] aipostex ollama --target http://10.0.0.5:11434 prompts
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  [gated] aipostex ollama --target http://10.0.0.5:11434 poison ...
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>Next actions for http://10.0.0.6:8000 (chromadb):
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>  [read] aipostex vectordb --target http://10.0.0.6:8000 --type chromadb enum
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  [read] aipostex vectordb --target http://10.0.0.6:8000 --type chromadb search-sensitive
+<p>For each discovered service, <code>scan-network</code> generates workflow recommendations grouped by host:port. Read-only commands appear first, followed by gated commands:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>── Next Actions ────────────────────────────────────────────
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  10.0.0.5:11434
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    aipostex ollama --target http://10.0.0.5:11434 enum
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    aipostex ollama --target http://10.0.0.5:11434 prompts
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    aipostex ollama --target http://10.0.0.5:11434 show --model &lt;model&gt;
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  10.0.0.6:8000
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    aipostex vectordb --target http://10.0.0.6:8000 --type chromadb enum
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    aipostex vectordb --target http://10.0.0.6:8000 --type chromadb search-sensitive
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>  Gated (require --force-exploit):
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    aipostex ollama --target http://10.0.0.5:11434 poison ...
 </code></pre></div>
+<p>In console mode, findings are also grouped by host with detected service names in each host header, sorted by severity (critical first). Fingerprint <code>INFO</code> findings are folded into the host header rather than displayed individually.</p>
 <p>These recommendations are also preserved in <code>metadata.workflow</code> on the corresponding findings in JSON/JSONL output.</p>
 
 

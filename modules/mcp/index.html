@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -1426,6 +1456,45 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vulnerability-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vulnerability Templates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Vulnerability Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure-exposure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure Exposure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cves-and-server-specific" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CVEs and Server-Specific
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2614,6 +2683,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#vulnerability-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vulnerability Templates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Vulnerability Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure-exposure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure Exposure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cves-and-server-specific" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CVEs and Server-Specific
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#workflow-progression" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2744,7 +2852,12 @@
 <tr>
 <td><code>--target-alias</code></td>
 <td>For <code>ssrf-cloud</code></td>
-<td>Cloud provider: <code>aws-imds</code>, <code>gcp-metadata</code>, <code>azure-imds</code></td>
+<td>Cloud provider: <code>aws-imds</code>, <code>gcp-metadata</code>, <code>azure-imds</code>. Mutually exclusive with <code>--url</code>.</td>
+</tr>
+<tr>
+<td><code>--url</code></td>
+<td>For <code>ssrf-cloud</code></td>
+<td>Custom SSRF target URL instead of a built-in cloud alias</td>
 </tr>
 <tr>
 <td><code>--command</code></td>
@@ -2840,11 +2953,97 @@
 </tr>
 </tbody>
 </table>
+<h2 id="vulnerability-templates">Vulnerability Templates<a class="headerlink" href="#vulnerability-templates" title="Permanent link">&para;</a></h2>
+<p>aipostex includes 14 MCP-specific vulnerability templates that run automatically during <code>scan</code> and <code>scan-network</code>. These cover infrastructure exposure, CVEs, and server-specific vulnerabilities from the <a href="https://vulnerablemcp.info/">vulnerablemcp</a> database.</p>
+<h3 id="infrastructure-exposure">Infrastructure Exposure<a class="headerlink" href="#infrastructure-exposure" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Template</th>
+<th>What It Detects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mcp-auth-001</code> / <code>002</code></td>
+<td>Unauthenticated SSE and HTTP transports</td>
+</tr>
+<tr>
+<td><code>mcp-auth-003</code> / <code>005</code></td>
+<td>MCP Inspector UI and API exposed without auth</td>
+</tr>
+<tr>
+<td><code>mcp-auth-004</code></td>
+<td>DNS rebinding via Host header trust</td>
+</tr>
+<tr>
+<td><code>mcp-session-001</code></td>
+<td>Session IDs leaked in SSE endpoint URL query parameters</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cves-and-server-specific">CVEs and Server-Specific<a class="headerlink" href="#cves-and-server-specific" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Template</th>
+<th>CVE</th>
+<th>What It Detects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cve-2025-65513</code></td>
+<td>CVE-2025-65513</td>
+<td>Fetch MCP Server SSRF via IP validation bypass</td>
+</tr>
+<tr>
+<td><code>cve-2025-49596</code></td>
+<td>CVE-2025-49596</td>
+<td>MCP Inspector RCE (versions &lt; 0.14.1)</td>
+</tr>
+<tr>
+<td><code>cve-2025-66414</code></td>
+<td>CVE-2025-66414/66416</td>
+<td>Official MCP SDK DNS rebinding (TS &lt; 1.24.0, Python &lt; 1.23.0)</td>
+</tr>
+<tr>
+<td><code>cve-2025-53355</code></td>
+<td>CVE-2025-53355</td>
+<td>Kubernetes MCP server command injection via kubectl tools</td>
+</tr>
+<tr>
+<td><code>cve-2025-53967</code></td>
+<td>CVE-2025-53967</td>
+<td>Framelink Figma MCP server RCE via curl fallback</td>
+</tr>
+<tr>
+<td><code>cve-2025-59163</code></td>
+<td>CVE-2025-59163</td>
+<td>Vet MCP server DNS rebinding</td>
+</tr>
+<tr>
+<td><code>tra-2025-36</code></td>
+<td>TRA-2025-36</td>
+<td>Microsoft Learn MCP server SSRF via docs_fetch tool</td>
+</tr>
+<tr>
+<td><code>mcp-enum-006</code></td>
+<td>CVE-2025-10193</td>
+<td>Neo4j MCP Cypher server exposure and DNS rebinding</td>
+</tr>
+</tbody>
+</table>
+<p>Run templates against an MCP endpoint:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>--tags<span class="w"> </span>mcp
+</code></pre></div>
+<p>See <a href="../../vuln-templates/builtin/">Built-in Templates</a> for the full template reference.</p>
 <h2 id="workflow-progression">Workflow Progression<a class="headerlink" href="#workflow-progression" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>scan-network / scan-files (discovers MCP config or endpoint)
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  → mcp analyze --config &lt;path&gt; (local config analysis)
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  → mcp enum --target &lt;url&gt; (remote tool enumeration)
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    → mcp poison --mode &lt;mode&gt; (exploit validation, gated)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>scan-network / scan-files (discovers MCP config or endpoint)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  → scan --tags mcp (run vulnerability templates)
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  → mcp analyze --config &lt;path&gt; (local config analysis)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  → mcp enum --target &lt;url&gt; (remote tool enumeration)
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    → mcp poison --mode &lt;mode&gt; (exploit validation, gated)
 </code></pre></div>
 
 

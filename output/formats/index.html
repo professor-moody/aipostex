@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -1763,6 +1793,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#grouped-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouped Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#example-output" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2299,6 +2340,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#grouped-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouped Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#example-output" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2397,6 +2449,9 @@
 <li><strong>Tags</strong> -- finding tags</li>
 </ul>
 <p>The decorative ASCII banner is displayed only on interactive TTY sessions.</p>
+<h3 id="grouped-output">Grouped Output<a class="headerlink" href="#grouped-output" title="Permanent link">&para;</a></h3>
+<p>The <code>scan-network</code> command uses a grouped console layout: findings are buffered and displayed grouped by host in the footer, with detected service names in each host header. Within each group, findings are sorted by severity (critical first). Fingerprint-level <code>INFO</code> findings are folded into the host header rather than shown individually.</p>
+<p>This makes multi-host scans easier to read compared to interleaved per-finding output. The <code>scan</code> and <code>scan-files</code> commands use standard flat output (each finding printed as it occurs).</p>
 <h3 id="example-output">Example Output<a class="headerlink" href="#example-output" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a> HIGH  [vulncheck] Ollama Unauthenticated - 3 Models Exposed
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  target: http://127.0.0.1:11434

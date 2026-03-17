@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -1519,6 +1549,34 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="MCP">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure-exposure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure Exposure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cves-and-server-specific-vulnerabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CVEs and Server-Specific Vulnerabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2355,6 +2413,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="MCP">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure-exposure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure Exposure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cves-and-server-specific-vulnerabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CVEs and Server-Specific Vulnerabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2477,7 +2563,7 @@
 
 
 <h1 id="built-in-templates">Built-in Templates<a class="headerlink" href="#built-in-templates" title="Permanent link">&para;</a></h1>
-<p>aipostex ships with 22 embedded vulnerability templates covering AI infrastructure misconfigurations and CVEs.</p>
+<p>aipostex ships with 30 embedded vulnerability templates covering AI infrastructure misconfigurations and CVEs.</p>
 <h2 id="ollama">Ollama<a class="headerlink" href="#ollama" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2504,6 +2590,7 @@
 </tbody>
 </table>
 <h2 id="mcp">MCP<a class="headerlink" href="#mcp" title="Permanent link">&para;</a></h2>
+<h3 id="infrastructure-exposure">Infrastructure Exposure<a class="headerlink" href="#infrastructure-exposure" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -2529,7 +2616,7 @@
 <tr>
 <td><code>mcp-auth-003-inspector-exposed</code></td>
 <td>MCP - Inspector Exposed</td>
-<td>Medium</td>
+<td>High</td>
 <td><code>mcp</code>, <code>inspector</code></td>
 </tr>
 <tr>
@@ -2541,14 +2628,75 @@
 <tr>
 <td><code>mcp-auth-005-inspector-api-exposed</code></td>
 <td>MCP - Inspector API Exposed</td>
-<td>Medium</td>
+<td>High</td>
 <td><code>mcp</code>, <code>inspector</code></td>
 </tr>
+<tr>
+<td><code>mcp-session-001-session-id-in-url</code></td>
+<td>MCP SSE - Session ID Exposed in URL</td>
+<td>Medium</td>
+<td><code>mcp</code>, <code>session-management</code>, <code>sse</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="cves-and-server-specific-vulnerabilities">CVEs and Server-Specific Vulnerabilities<a class="headerlink" href="#cves-and-server-specific-vulnerabilities" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Severity</th>
+<th>Tags</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td><code>cve-2025-65513-fetch-mcp-ssrf</code></td>
 <td>Fetch MCP Server SSRF (CVE-2025-65513)</td>
 <td>Critical</td>
 <td><code>mcp</code>, <code>ssrf</code>, <code>fetch-server</code>, <code>cve-2025</code></td>
+</tr>
+<tr>
+<td><code>cve-2025-49596-inspector-rce</code></td>
+<td>MCP Inspector RCE (CVE-2025-49596)</td>
+<td>Critical</td>
+<td><code>mcp</code>, <code>inspector</code>, <code>cve-2025</code>, <code>rce</code></td>
+</tr>
+<tr>
+<td><code>cve-2025-66414-sdk-dns-rebinding</code></td>
+<td>MCP SDK DNS Rebinding (CVE-2025-66414/66416)</td>
+<td>High</td>
+<td><code>mcp</code>, <code>dns-rebinding</code>, <code>cve-2025</code>, <code>sdk</code></td>
+</tr>
+<tr>
+<td><code>cve-2025-53355-k8s-mcp-command-injection</code></td>
+<td>Kubernetes MCP Command Injection (CVE-2025-53355)</td>
+<td>High</td>
+<td><code>mcp</code>, <code>kubernetes</code>, <code>cve-2025</code>, <code>command-injection</code></td>
+</tr>
+<tr>
+<td><code>cve-2025-53967-figma-mcp-rce</code></td>
+<td>Framelink Figma MCP RCE (CVE-2025-53967)</td>
+<td>High</td>
+<td><code>mcp</code>, <code>figma</code>, <code>cve-2025</code>, <code>rce</code></td>
+</tr>
+<tr>
+<td><code>cve-2025-59163-vet-mcp-dns-rebinding</code></td>
+<td>Vet MCP DNS Rebinding (CVE-2025-59163)</td>
+<td>High</td>
+<td><code>mcp</code>, <code>dns-rebinding</code>, <code>cve-2025</code>, <code>vet</code></td>
+</tr>
+<tr>
+<td><code>tra-2025-36-ms-learn-mcp-ssrf</code></td>
+<td>Microsoft Learn MCP SSRF (TRA-2025-36)</td>
+<td>High</td>
+<td><code>mcp</code>, <code>ssrf</code>, <code>microsoft</code></td>
+</tr>
+<tr>
+<td><code>mcp-enum-006-neo4j-mcp-exposed</code></td>
+<td>Neo4j MCP Cypher Server Exposure (CVE-2025-10193)</td>
+<td>High</td>
+<td><code>mcp</code>, <code>neo4j</code>, <code>cve-2025</code>, <code>database</code></td>
 </tr>
 </tbody>
 </table>

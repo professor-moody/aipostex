@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2420,7 +2450,7 @@
 </tr>
 <tr>
 <td><code>prompts</code></td>
-<td>Extract system prompts from all models</td>
+<td>Extract system prompts from all models (supports both <code>system</code> field and Modelfile parsing)</td>
 </tr>
 <tr>
 <td><code>generate</code></td>
@@ -2451,7 +2481,7 @@
 </tr>
 <tr>
 <td><code>create</code></td>
-<td>Create a model from a Modelfile payload</td>
+<td>Create a model using the Ollama structured API</td>
 </tr>
 <tr>
 <td><code>delete</code></td>
@@ -2506,12 +2536,12 @@
 <tr>
 <td><code>--system-prompt</code></td>
 <td>For <code>poison</code>, <code>create</code></td>
-<td>System prompt to inject</td>
+<td>System prompt to inject. Mutually exclusive with <code>--modelfile</code>.</td>
 </tr>
 <tr>
 <td><code>--modelfile</code></td>
 <td>For <code>create</code></td>
-<td>Raw Modelfile content</td>
+<td>Legacy Modelfile content. Parsed locally to extract <code>FROM</code> and <code>SYSTEM</code> directives. Mutually exclusive with <code>--system-prompt</code>.</td>
 </tr>
 <tr>
 <td><code>--backup-name</code></td>
@@ -2520,6 +2550,14 @@
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">Create and Poison API</p>
+<p>The <code>create</code> and <code>poison</code> subcommands use the Ollama 0.6+ structured API, sending <code>from</code> (base model) and <code>system</code> (system prompt) as separate JSON fields. When <code>--system-prompt</code> is used, <code>--base-model</code> provides the <code>from</code> value. When <code>--modelfile</code> is used, the <code>FROM</code> and <code>SYSTEM</code> directives are parsed locally and sent as structured fields. Exactly one of <code>--system-prompt</code> or <code>--modelfile</code> must be provided.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">System Prompt Extraction</p>
+<p>The <code>prompts</code> command extracts system prompts using two methods. It first checks the top-level <code>system</code> field in the <code>/api/show</code> response (used by Ollama 0.6+ for models created with the structured API). If that field is empty, it falls back to parsing <code>SYSTEM</code> directives from the <code>modelfile</code> string. Requests include <code>verbose: true</code> to ensure all fields are returned.</p>
+</div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Full enumeration</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>./aipostex<span class="w"> </span>ollama<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:11434<span class="w"> </span>enum

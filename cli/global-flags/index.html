@@ -805,6 +805,8 @@
       
         
       
+        
+      
     
     
     
@@ -1054,6 +1056,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2417,7 +2447,7 @@
 <tr>
 <td><code>--concurrency</code></td>
 <td><code>10</code></td>
-<td>Number of parallel workers for scanning and fingerprinting.</td>
+<td>Number of parallel workers for scanning and fingerprinting. Must be &gt;= 1.</td>
 </tr>
 <tr>
 <td><code>--stealth</code></td>
@@ -2427,7 +2457,7 @@
 <tr>
 <td><code>--max-hosts</code></td>
 <td><code>65536</code></td>
-<td>Maximum hosts to scan in <code>scan-network</code> CIDR expansion. Set to <code>0</code> to disable the guardrail.</td>
+<td>Maximum hosts to scan in <code>scan-network</code> CIDR expansion. Set to <code>0</code> to disable the guardrail. Large IPv6 CIDRs (63+ host bits) are rejected before expansion to prevent overflow.</td>
 </tr>
 </tbody>
 </table>

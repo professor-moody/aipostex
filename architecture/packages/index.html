@@ -1169,6 +1169,8 @@
       
         
       
+        
+      
     
     
     
@@ -1315,6 +1317,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2914,6 +2944,10 @@
 <td>Evidence preview, file reference extraction, proof metadata</td>
 </tr>
 <tr>
+<td><code>target_validation.go</code></td>
+<td>Target URL normalization and port-missing warnings</td>
+</tr>
+<tr>
 <td><code>templates.go</code></td>
 <td><code>templates</code> command -- list available templates</td>
 </tr>
@@ -2935,7 +2969,15 @@
 </tr>
 <tr>
 <td><code>mcp.go</code></td>
-<td>MCP subcommands</td>
+<td>MCP parent command and <code>enum</code> subcommand</td>
+</tr>
+<tr>
+<td><code>mcp_analyze.go</code></td>
+<td>MCP <code>analyze</code> subcommand</td>
+</tr>
+<tr>
+<td><code>mcp_poison.go</code></td>
+<td>MCP <code>poison</code> subcommand</td>
 </tr>
 <tr>
 <td><code>openai_compat.go</code></td>
@@ -2952,6 +2994,10 @@
 <tr>
 <td><code>gradio.go</code></td>
 <td>Gradio subcommands</td>
+</tr>
+<tr>
+<td><code>merge.go</code></td>
+<td><code>merge</code> command -- combine engagement JSON files</td>
 </tr>
 </tbody>
 </table>
@@ -2990,6 +3036,7 @@
 <p><strong><code>Scanner</code></strong> -- concurrent host/port scanner.</p>
 <ul>
 <li><code>NewScanner(timeout time.Duration, concurrency int) *Scanner</code></li>
+<li><code>NewScannerWithClient(httpClient *http.Client, timeout time.Duration, concurrency int) *Scanner</code></li>
 <li><code>ScanHost(host string, port int) ([]Result, error)</code> -- probe a single host:port</li>
 <li><code>ScanRange(hosts []string, ports []int) ([]Result, error)</code> -- concurrent multi-host scan</li>
 </ul>
@@ -3051,38 +3098,39 @@
 <p>Shared HTTP helpers used by all exploit clients.</p>
 <ul>
 <li><code>NormalizeTarget(raw string) string</code> -- normalize URL (add scheme, strip trailing slash)</li>
-<li><code>NewHTTPClient(timeout) *http.Client</code> -- create client via <code>runtimehttp</code></li>
-<li><code>NewHTTPClientWithOptions(opts) *http.Client</code> -- with full transport options</li>
-<li><code>ParseHeaderFlags(values []string) map[string]string</code> -- parse <code>Key: Value</code> flag format</li>
+<li><code>NewHTTPClient(timeout) (*http.Client, error)</code> -- create client via <code>runtimehttp</code></li>
+<li><code>NewHTTPClientWithOptions(opts) (*http.Client, error)</code> -- with full transport options</li>
+<li><code>ParseHeaderFlags(values []string) (http.Header, error)</code> -- parse <code>Key: Value</code> flag format</li>
 <li><code>DoJSON(client, req, &amp;result) error</code> -- execute request, decode JSON response</li>
 </ul>
 <h3 id="ollama">ollama<a class="headerlink" href="#ollama" title="Permanent link">&para;</a></h3>
 <p>Ollama LLM API client.</p>
 <ul>
-<li><code>NewClient(baseURL, timeout, headers)</code> / <code>NewClientWithHeaders(...)</code></li>
+<li><code>NewClient(ctx, baseURL, timeout) (*Client, error)</code> / <code>NewClientWithHeaders(ctx, baseURL, timeout, headers) (*Client, error)</code></li>
 <li>Read: <code>Ping</code>, <code>Version</code>, <code>ListModels</code>, <code>ShowModel</code>, <code>ListRunning</code>, <code>Generate</code>, <code>Enumerate</code></li>
 <li>Write: <code>CreateModel</code>, <code>CopyModel</code>, <code>DeleteModel</code></li>
-<li>Utility: <code>ExtractSystemPrompt(modelfile string) string</code></li>
+<li>Utility: <code>ExtractSystemPrompt(modelfile string) string</code>, <code>ShowResponse.SystemPrompt() string</code> (prefers <code>System</code> field over Modelfile parsing)</li>
 </ul>
 <h3 id="vectordb">vectordb<a class="headerlink" href="#vectordb" title="Permanent link">&para;</a></h3>
 <p>Multi-provider vector database client supporting ChromaDB, Weaviate, and Qdrant.</p>
 <ul>
-<li><code>NewProviderClient(provider, target, timeout, headers) (ProviderClient, error)</code></li>
+<li><code>NewProviderClient(ctx, provider, target, timeout, headers) (ProviderClient, error)</code></li>
 <li><strong>ProviderClient interface</strong>: <code>ProviderName</code>, <code>ServiceVersion</code>, <code>ListCollectionsInfo</code>, <code>ExtractDocuments</code></li>
-<li>ChromaDB-specific: <code>SearchSensitive</code>, <code>SearchSensitiveDocuments</code>, <code>DefaultSensitivePatterns</code></li>
+<li>ChromaDB-specific: <code>SearchSensitive</code>, <code>SearchSensitiveDocuments</code>, <code>DefaultSensitivePatterns</code> (27 patterns)</li>
+<li>ChromaDB collection listing: tenant/database-aware fallback for 0.6.x compatibility</li>
 <li>Shared types: <code>Document</code> (ID, Content, Metadata), <code>CollectionInfo</code> (ID, Name, Count)</li>
 </ul>
 <h3 id="jupyter">jupyter<a class="headerlink" href="#jupyter" title="Permanent link">&para;</a></h3>
 <p>Jupyter Notebook API client with WebSocket kernel execution.</p>
 <ul>
-<li><code>NewClient(baseURL, token, timeout, extraHeaders)</code></li>
+<li><code>NewClient(ctx, baseURL, token, timeout, extraHeaders) (*Client, error)</code></li>
 <li>Read: <code>ServerStatus</code>, <code>ListKernels</code>, <code>ListNotebooks</code>, <code>ReadNotebook</code></li>
 <li>Write: <code>Execute(kernelID, code string)</code> -- via WebSocket shell channel</li>
 </ul>
 <h3 id="mcp">mcp<a class="headerlink" href="#mcp" title="Permanent link">&para;</a></h3>
 <p>MCP (Model Context Protocol) JSON-RPC client.</p>
 <ul>
-<li><code>NewClient(baseURL, timeout, headers)</code></li>
+<li><code>NewClient(ctx, baseURL, timeout, headers) (*Client, error)</code></li>
 <li>Remote: <code>Initialize</code>, <code>ListTools</code>, <code>ListPrompts</code>, <code>ListResources</code>, <code>CallTool</code>, <code>Poison</code></li>
 <li>Local: <code>LoadConfig</code>, <code>ExtractCredentialEnv</code>, <code>FindToolCollisions</code>, <code>AnalyzeLocalServer</code></li>
 <li>Classification: <code>ClassifyTool</code>, <code>ClassifyToolDetailed</code>, <code>SelectTool</code>, <code>InferTransport</code></li>
@@ -3091,7 +3139,7 @@
 <h3 id="openaicompat">openaicompat<a class="headerlink" href="#openaicompat" title="Permanent link">&para;</a></h3>
 <p>Generic OpenAI-compatible API client.</p>
 <ul>
-<li><code>NewClient(baseURL, timeout, headers)</code></li>
+<li><code>NewClient(ctx, baseURL, timeout, headers) (*Client, error)</code></li>
 <li>Read: <code>ListModels</code>, <code>ValidateInference</code>, <code>PromptExtract</code>, <code>AuthSweep</code></li>
 <li>Write: <code>Throughput</code>, <code>ProxyTest</code></li>
 <li>Scoring: <code>HighValueModel</code>, <code>ModelValueScore</code>, <code>IsCoherentResponse</code>, <code>ScoreInferenceResponse</code></li>
@@ -3099,21 +3147,22 @@
 <h3 id="ray">ray<a class="headerlink" href="#ray" title="Permanent link">&para;</a></h3>
 <p>Ray Dashboard API client.</p>
 <ul>
-<li><code>NewClient(baseURL, timeout, headers)</code></li>
-<li>Read: <code>DashboardInfo</code>, <code>ListJobs</code>, <code>JobDetails</code></li>
+<li><code>NewClient(ctx, baseURL, timeout, headers) (*Client, error)</code></li>
+<li>Read: <code>DashboardInfo</code>, <code>ListJobs</code> (handles both array and object formats), <code>JobDetails</code></li>
 <li>Write: <code>SubmitJob</code></li>
+<li><code>Job</code> struct includes <code>RuntimeEnv</code> and <code>Metadata</code> for credential extraction from <code>env_vars</code></li>
 <li>Utility: <code>HarmlessRuntimeEnv</code>, <code>ParseRuntimeEnv</code></li>
 </ul>
 <h3 id="mlflow">mlflow<a class="headerlink" href="#mlflow" title="Permanent link">&para;</a></h3>
 <p>MLflow Tracking API client.</p>
 <ul>
-<li><code>NewClient(baseURL, timeout, headers)</code></li>
-<li>Read: <code>ServerInfo</code>, <code>ListExperiments</code>, <code>ListRuns</code>, <code>ListArtifacts</code>, <code>ListRegisteredModels</code>, <code>ListModelVersions</code>, <code>DownloadArtifact</code></li>
+<li><code>NewClient(ctx, baseURL, timeout, headers) (*Client, error)</code></li>
+<li>Read: <code>ServerInfo</code> (root path + <code>/health</code>), <code>ListExperiments</code>, <code>ListRuns</code>, <code>ListArtifacts</code>, <code>ListRegisteredModels</code> (GET-first, POST fallback), <code>ListModelVersions</code>, <code>DownloadArtifact</code></li>
 </ul>
 <h3 id="gradio">gradio<a class="headerlink" href="#gradio" title="Permanent link">&para;</a></h3>
 <p>Gradio API client.</p>
 <ul>
-<li><code>NewClient(baseURL, timeout, headers)</code></li>
+<li><code>NewClient(ctx, baseURL, timeout, headers) (*Client, error)</code></li>
 <li>Read: <code>Config</code>, <code>Predict</code>, <code>DownloadFile</code></li>
 <li>Write: <code>QueueProbe</code>, <code>UploadFile</code>, <code>ServeProbe</code></li>
 </ul>
@@ -3198,6 +3247,7 @@
 <li><code>NewClient(opts) (*http.Client, error)</code></li>
 <li><code>NewTransport(opts) (http.RoundTripper, error)</code></li>
 <li><code>NewWebsocketDialer(opts) (*websocket.Dialer, error)</code></li>
+<li><code>LimitRedirects(max int) func(*http.Request, []*http.Request) error</code> -- reusable redirect policy</li>
 </ul>
 
 

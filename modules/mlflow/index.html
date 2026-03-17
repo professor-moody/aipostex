@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2348,6 +2378,7 @@
 <p>Enumerate and extract data from MLflow tracking servers.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>The <code>mlflow</code> module covers the full MLflow API surface: tracking metadata, experiment and run discovery, artifact inspection, model registry enumeration, model version correlation, and bounded artifact reads. All commands are read-only -- there are no gated actions.</p>
+<p>The client uses GET requests for the model registry search endpoint (MLflow 2.x), with POST fallback for older versions. Health checks try the root path <code>/</code> first (MLflow 2.x returns "OK"), then <code>/health</code>.</p>
 <h2 id="subcommands">Subcommands<a class="headerlink" href="#subcommands" title="Permanent link">&para;</a></h2>
 <p>All subcommands are read-only (no <code>--force-exploit</code> required).</p>
 <table>
@@ -2414,7 +2445,7 @@
 </tr>
 <tr>
 <td><code>--experiment</code></td>
-<td>For <code>runs</code></td>
+<td>For <code>experiments</code>, <code>runs</code></td>
 <td>Experiment name or ID</td>
 </tr>
 <tr>

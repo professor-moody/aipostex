@@ -803,6 +803,8 @@
       
         
       
+        
+      
     
     
     
@@ -949,6 +951,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2392,6 +2422,7 @@
 <p>Enumerate and extract data from vector database instances: ChromaDB, Weaviate, and Qdrant.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>The <code>vectordb</code> module provides a unified interface across three vector database providers. All commands are read-only -- there are no gated actions. The module focuses on collection enumeration, document extraction, and sensitive data pattern matching.</p>
+<p>The ChromaDB client automatically tries multiple API endpoint formats for compatibility across ChromaDB 0.4.x through 0.6.x, including tenant/database-aware paths.</p>
 <h2 id="supported-providers">Supported Providers<a class="headerlink" href="#supported-providers" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2513,16 +2544,11 @@
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span>search-sensitive<span class="w"> </span>--collection<span class="w"> </span>docs
 </code></pre></div>
 <h2 id="sensitive-data-patterns">Sensitive Data Patterns<a class="headerlink" href="#sensitive-data-patterns" title="Permanent link">&para;</a></h2>
-<p>The <code>search-sensitive</code> command scans document content for:</p>
-<ul>
-<li>Email addresses</li>
-<li>Social Security Numbers (SSNs)</li>
-<li>Credit card numbers</li>
-<li>API keys and tokens</li>
-<li>Password patterns</li>
-<li>Other PII indicators</li>
-</ul>
-<p>These patterns are built into the ChromaDB client via <code>DefaultSensitivePatterns()</code>.</p>
+<p>The <code>search-sensitive</code> command scans document content using 27 regex patterns organized by severity. These patterns are shared across all providers via <code>DefaultSensitivePatterns()</code>.</p>
+<p><strong>Critical:</strong> SSN, credit card, AWS access key, AWS secret key, GCP service account, OpenAI API key, Anthropic API key, GitHub PAT, Stripe key, Vault token, private key</p>
+<p><strong>High:</strong> HuggingFace token, JWT token, Slack webhook, API key (generic), password field, bearer token, generic secret assignment, connection string (PostgreSQL, MongoDB, MySQL, Redis, Snowflake, MSSQL), PagerDuty key, Datadog API key, Sentry DSN</p>
+<p><strong>Medium:</strong> Email address, classification marker</p>
+<p><strong>Low:</strong> Internal IP address</p>
 <h2 id="workflow-progression">Workflow Progression<a class="headerlink" href="#workflow-progression" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>scan-network (discovers vector DB on :8000/:8080/:6333)
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  → vectordb enum (list collections, counts)

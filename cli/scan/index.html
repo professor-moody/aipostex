@@ -805,6 +805,8 @@
       
         
       
+        
+      
     
     
     
@@ -1076,6 +1078,34 @@
     
   
     scan-network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
   
 
     
@@ -2391,10 +2421,11 @@
 <h1 id="scan">scan<a class="headerlink" href="#scan" title="Permanent link">&para;</a></h1>
 <p>Run YAML vulnerability templates against one or more AI infrastructure targets.</p>
 <h2 id="synopsis">Synopsis<a class="headerlink" href="#synopsis" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aipostex scan --target &lt;url&gt; [flags]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aipostex scan [target...] [flags]
 </code></pre></div>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
 <p>The <code>scan</code> command loads vulnerability templates (both embedded and from optional directories), filters them by tags or severity, and executes matching templates against the specified targets. Each template runs a detect phase to confirm the target type, then executes checks with HTTP matchers and extractors to identify vulnerabilities.</p>
+<p>Targets can be passed as positional arguments, via <code>--target</code>, or both. All sources are merged and deduplicated.</p>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2410,9 +2441,9 @@
 <tr>
 <td><code>--target</code></td>
 <td><code>-t</code></td>
-<td>Yes</td>
+<td>No</td>
 <td></td>
-<td>Target URL(s). Can be specified multiple times.</td>
+<td>Target URL(s). Can be specified multiple times. At least one target is required (flag or positional).</td>
 </tr>
 <tr>
 <td><code>--tags</code></td>
@@ -2448,25 +2479,28 @@
 <li>Zero-finding targets</li>
 </ul>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Scan an Ollama instance</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:11434
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Scan an Ollama instance (positional target)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>http://127.0.0.1:11434
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Scan for MCP vulnerabilities only</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>--tags<span class="w"> </span>mcp
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Same thing using --target flag</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:11434
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Scan for critical issues only</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8000<span class="w"> </span>--severity<span class="w"> </span>critical
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Scan for MCP vulnerabilities only</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>--tags<span class="w"> </span>mcp
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Scan multiple targets</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://10.0.0.5:11434<span class="w"> </span>--target<span class="w"> </span>http://10.0.0.6:8000
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Scan for critical issues only</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8000<span class="w"> </span>--severity<span class="w"> </span>critical
 <a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Scan through a proxy with TLS skip</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>https://10.0.0.10:8443<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span>--proxy<span class="w"> </span>socks5://127.0.0.1:1080<span class="w"> </span>--insecure
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># Use custom templates alongside built-ins</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:11434<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span>--templates-dir<span class="w"> </span>./my-templates
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Scan multiple targets</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://10.0.0.5:11434<span class="w"> </span>--target<span class="w"> </span>http://10.0.0.6:8000
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Scan through a proxy with TLS skip</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>https://10.0.0.10:8443<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span>--proxy<span class="w"> </span>socks5://127.0.0.1:1080<span class="w"> </span>--insecure
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># Use custom templates alongside built-ins</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:11434<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">  </span>--templates-dir<span class="w"> </span>./my-templates
 </code></pre></div>
 <h2 id="template-loading">Template Loading<a class="headerlink" href="#template-loading" title="Permanent link">&para;</a></h2>
 <ol>
@@ -2475,7 +2509,7 @@
 <li>Templates are filtered by <code>--tags</code> and <code>--severity</code> before execution</li>
 </ol>
 <h2 id="finding-deduplication">Finding Deduplication<a class="headerlink" href="#finding-deduplication" title="Permanent link">&para;</a></h2>
-<p>Findings are deduplicated deterministically before output based on source, template ID, target, title, and severity. Duplicate counts are preserved in <code>metadata.dedupe_count</code>.</p>
+<p>Findings are deduplicated deterministically before output based on source, template ID, target, title, severity, description, and evidence. Duplicate counts are preserved in <code>metadata.dedupe_count</code>.</p>
 
 
 

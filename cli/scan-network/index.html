@@ -14,7 +14,7 @@
         <link rel="prev" href="../scan-files/">
       
       
-        <link rel="next" href="../templates-cmd/">
+        <link rel="next" href="../merge/">
       
       
         
@@ -805,6 +805,8 @@
       
         
       
+        
+      
     
     
     
@@ -1067,6 +1069,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Summary Output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#grouped-console-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouped Console Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1095,6 +1114,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    merge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2366,6 +2413,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Summary Output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#grouped-console-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grouped Console Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2413,7 +2477,7 @@
 <h1 id="scan-network">scan-network<a class="headerlink" href="#scan-network" title="Permanent link">&para;</a></h1>
 <p>Fingerprint a network for AI services and optionally run vulnerability templates against discoveries.</p>
 <h2 id="synopsis">Synopsis<a class="headerlink" href="#synopsis" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aipostex scan-network --targets &lt;host-or-cidr&gt; [flags]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aipostex scan-network [target...] [flags]
 </code></pre></div>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
 <p>The <code>scan-network</code> command performs three operations in sequence:</p>
@@ -2423,6 +2487,7 @@
 <li><strong>Auto-scan</strong> -- optionally runs matching vulnerability templates against discovered services</li>
 </ol>
 <p>Discovered services are deduplicated by URL and service type (keeping the highest-specificity match). Vulnerability scan results are further deduplicated before output.</p>
+<p>Targets can be passed as positional arguments, via <code>--targets</code>, or both. All sources are merged and deduplicated.</p>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2436,9 +2501,9 @@
 <tbody>
 <tr>
 <td><code>--targets</code></td>
-<td>Yes</td>
+<td>No</td>
 <td></td>
-<td>Host(s) or CIDR range(s) to scan. Can be specified multiple times.</td>
+<td>Host(s) or CIDR range(s) to scan. Can be specified multiple times. At least one target is required (flag or positional).</td>
 </tr>
 <tr>
 <td><code>--ports</code></td>
@@ -2456,7 +2521,7 @@
 <td><code>--tags</code></td>
 <td>No</td>
 <td><em>(all)</em></td>
-<td>Filter vulnerability templates by tag.</td>
+<td>Filter vulnerability templates by tag. When provided, replaces auto-detected service tags (exclusive, not additive).</td>
 </tr>
 <tr>
 <td><code>--severity</code></td>
@@ -2542,7 +2607,7 @@
 </tbody>
 </table>
 <h2 id="cidr-expansion">CIDR Expansion<a class="headerlink" href="#cidr-expansion" title="Permanent link">&para;</a></h2>
-<p>CIDR ranges are expanded to individual host IPs. The <code>--max-hosts</code> flag (default <code>65536</code>) limits expansion to prevent accidentally scanning enormous ranges. Set to <code>0</code> to disable the guardrail.</p>
+<p>CIDR ranges are expanded to individual host IPs. The <code>--max-hosts</code> flag (default <code>65536</code>) limits expansion to prevent accidentally scanning enormous ranges. Set to <code>0</code> to disable the guardrail. Large IPv6 CIDRs (63+ host bits, e.g., <code>/64</code> and larger) are rejected before expansion to prevent integer overflow. Overlapping CIDRs are deduplicated before the host count is checked against <code>--max-hosts</code>.</p>
 <h2 id="summary-output">Summary Output<a class="headerlink" href="#summary-output" title="Permanent link">&para;</a></h2>
 <p>After scanning, a summary is printed to stderr with:</p>
 <ul>
@@ -2552,6 +2617,8 @@
 <li>Gated suggestions count</li>
 <li>Per-service scan results</li>
 </ul>
+<h3 id="grouped-console-output">Grouped Console Output<a class="headerlink" href="#grouped-console-output" title="Permanent link">&para;</a></h3>
+<p>In console mode, <code>scan-network</code> groups findings by host in the output footer. Each host header shows detected service names, and findings within each group are sorted by severity (critical first). Fingerprint-level <code>INFO</code> findings are folded into the host header rather than displayed individually. This makes multi-host results easier to read compared to interleaved output.</p>
 <h2 id="workflow-guidance">Workflow Guidance<a class="headerlink" href="#workflow-guidance" title="Permanent link">&para;</a></h2>
 <p>For each discovered service, <code>scan-network</code> attaches <strong>Next actions</strong> -- concrete follow-on commands for the matching exploit module. These appear in:</p>
 <ul>
@@ -2560,22 +2627,25 @@
 </ul>
 <p>Read-only commands appear before gated commands.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Scan a /24 subnet with default ports</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/24
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Scan a /24 subnet with default ports (positional target)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span><span class="m">10</span>.0.0.0/24
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Scan specific host and ports</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--ports<span class="w"> </span><span class="m">11434</span>,8000,8888
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Same thing using --targets flag</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/24
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Large CIDR with no host limit, through a proxy</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.10.0.0/20<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span>--max-hosts<span class="w"> </span><span class="m">0</span><span class="w"> </span>--proxy<span class="w"> </span>http://127.0.0.1:8080
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># Scan without auto-running templates</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/24<span class="w"> </span>--auto-scan<span class="o">=</span><span class="nb">false</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Scan specific host and ports</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--ports<span class="w"> </span><span class="m">11434</span>,8000,8888
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Large CIDR with no host limit, through a proxy</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.10.0.0/20<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span>--max-hosts<span class="w"> </span><span class="m">0</span><span class="w"> </span>--proxy<span class="w"> </span>http://127.0.0.1:8080
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># Stream results for long-running scans</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/16<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span>--format<span class="w"> </span>jsonl<span class="w"> </span>--output<span class="w"> </span>findings.jsonl
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># Scan without auto-running templates</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/24<span class="w"> </span>--auto-scan<span class="o">=</span><span class="nb">false</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># Stream results for long-running scans</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>./aipostex<span class="w"> </span>scan-network<span class="w"> </span>--targets<span class="w"> </span><span class="m">10</span>.0.0.0/16<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span>--format<span class="w"> </span>jsonl<span class="w"> </span>--output<span class="w"> </span>findings.jsonl
 </code></pre></div>
 
 
