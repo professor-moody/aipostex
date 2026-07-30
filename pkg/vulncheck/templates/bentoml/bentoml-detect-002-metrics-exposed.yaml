@@ -1,0 +1,28 @@
+id: bentoml-detect-002-metrics-exposed
+info:
+  type: detection
+  name: "BentoML - Prometheus Metrics Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    BentoML exposes Prometheus metrics without authentication, revealing
+    model performance data, request counts, latency distributions, and
+    potentially sensitive operational details.
+  reference:
+    - https://docs.bentoml.com/en/latest/guides/monitoring.html
+  tags: [bentoml, metrics, prometheus, information-disclosure]
+
+checks:
+  - name: "Metrics endpoint accessible"
+    method: GET
+    path: /metrics
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(bentoml|prometheus|HELP|TYPE)"
+    severity: medium
+    finding:
+      title: "BentoML Prometheus Metrics Exposed"
+      description: "BentoML metrics endpoint is accessible and reveals operational data including request counts and model performance."
+      remediation: "Restrict the /metrics endpoint to authorized monitoring systems only."

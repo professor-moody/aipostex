@@ -1,0 +1,39 @@
+id: hf-tei-enum-002-metrics-exposed
+info:
+  type: detection
+  name: "Hugging Face TEI - Metrics Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    TEI exports Prometheus metrics that reveal embedding workload activity,
+    queue behavior, and backend state without authentication.
+  reference:
+    - https://huggingface.co/docs/text-embeddings-inference/
+  tags: [huggingface, tei, metrics, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /info
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "model_id"
+
+checks:
+  - name: "TEI metrics exposed"
+    method: GET
+    path: /metrics
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(text_embeddings|tei_)"
+    severity: medium
+    finding:
+      title: "TEI Metrics Exposed Without Authentication"
+      description: "The TEI listener returned Prometheus metrics without authentication, exposing embedding workload telemetry and backend state."
+      remediation: "Restrict metrics exposure to trusted monitoring systems and keep TEI listeners internal-only where possible."
+

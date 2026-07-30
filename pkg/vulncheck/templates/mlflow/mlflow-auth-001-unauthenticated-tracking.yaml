@@ -1,0 +1,41 @@
+id: mlflow-auth-001-unauthenticated-tracking
+info:
+  type: detection
+  name: "MLflow Tracking API - Unauthenticated Exposure"
+  severity: high
+  author: aipostex
+  description: |
+    An MLflow tracking API is reachable without authentication. Exposed tracking
+    servers can reveal experiment, run, registry, and artifact metadata useful for
+    follow-on access and model-material correlation.
+  reference:
+    - https://mlflow.org/
+  tags: [mlflow, auth, tracking, misconfiguration]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+checks:
+  - name: "MLflow experiments API reachable"
+    method: POST
+    read_only: true
+    path: /api/2.0/mlflow/experiments/search
+    body: |
+      {"max_results": 1}
+    headers:
+      Content-Type: application/json
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)experiments"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "MLflow Tracking API Exposed Without Authentication"
+      description: "The MLflow tracking API returned experiment metadata without authentication. Follow-on registry, model-version, and artifact pivots may also be reachable."
+      remediation: "Require authentication for tracking APIs and restrict network exposure."
+      evidence: |
+        Request:  POST /api/2.0/mlflow/experiments/search (no auth)
+        Result:   200 OK — experiment metadata returned
+        Impact:   Experiment data leak, model registry access, artifact exfiltration

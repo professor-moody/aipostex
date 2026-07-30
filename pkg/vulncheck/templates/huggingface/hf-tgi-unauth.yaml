@@ -1,0 +1,41 @@
+id: hf-tgi-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "Hugging Face Text Generation Inference - Unauthenticated API"
+  severity: high
+  author: aipostex
+  description: |
+    Text Generation Inference (TGI) exposes health, metrics, and OpenAI-style
+    HTTP endpoints. When not fronted by authentication, anyone who can reach
+    the service can run inference and consume GPU resources.
+  reference:
+    - https://huggingface.co/docs/text-generation-inference/en/basic_tutorials/launcher
+  tags: [huggingface, tgi, auth, misconfiguration, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /health
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Info endpoint exposes model identity"
+    method: GET
+    path: /info
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "model_id"
+    extractors:
+      - type: json
+        name: model_id
+        path: "model_id"
+    severity: high
+    finding:
+      title: "TGI Unauthenticated - Model {{model_id}}"
+      description: "TGI /info is reachable without authentication and reports model_id {{model_id}}, confirming an exposed inference stack."
+      remediation: "Place TGI behind an API gateway with auth, use network segmentation, and disable admin or metrics routes from public listeners where possible."

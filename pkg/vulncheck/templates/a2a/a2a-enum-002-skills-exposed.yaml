@@ -1,0 +1,71 @@
+id: a2a-enum-002-skills-exposed
+info:
+  type: detection
+  name: "Agent-to-Agent - Skills Enumeration"
+  severity: medium
+  author: aipostex
+  description: |
+    The A2A agent card exposes a detailed skills array that reveals the agent's
+    capabilities, accepted input modes, and output modes. Attackers enumerate
+    these to craft targeted task injections or identify high-value tool access
+    (e.g., code execution, file I/O, database queries).
+  reference:
+    - https://a2a-protocol.org/latest/specification/
+  tags: [a2a, agent, enumeration, skills]
+
+detect:
+  - method: GET
+    path: /.well-known/agent-card.json
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "skills"
+
+checks:
+  - name: "Agent card with skills array"
+    method: GET
+    path: /.well-known/agent-card.json
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "skills"
+    extractors:
+      - type: json
+        name: agent_name
+        path: "name"
+      - type: json
+        name: skill_count
+        path: "skills.#"
+      - type: json
+        name: first_skill_name
+        path: "skills.0.name"
+    severity: medium
+    stage: access
+    landed: reachable
+    finding:
+      title: "A2A Agent Skills Enumerated - {{agent_name}} ({{skill_count}} skills)"
+      description: "Agent card at /.well-known/agent-card.json discloses {{skill_count}} skill(s) for agent {{agent_name}}. First skill: {{first_skill_name}}. Skill metadata reveals accepted input/output modes and capability descriptions that aid targeted task injection."
+      remediation: "Restrict agent card access to authenticated A2A peers. Minimize skill metadata exposed in agent cards — avoid publishing internal tool names or capability details."
+
+  - name: "Skills include input/output mode details"
+    method: GET
+    path: /.well-known/agent-card.json
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "inputModes|outputModes"
+    extractors:
+      - type: json
+        name: agent_name
+        path: "name"
+      - type: json
+        name: skill_count
+        path: "skills.#"
+    severity: medium
+    finding:
+      title: "A2A Skills Reveal I/O Modes - {{agent_name}}"
+      description: "Agent {{agent_name}} publishes input/output mode details in its skills array. This reveals whether the agent accepts text, files, structured data, or other modalities — information an attacker uses to craft effective payloads."
+      remediation: "Limit skill detail exposure in publicly accessible agent cards. Serve detailed capability metadata only to authenticated peers."

@@ -1,0 +1,41 @@
+id: mcp-session-001-session-id-in-url
+info:
+  type: detection
+  name: "MCP SSE Transport - Session ID Exposed in URL"
+  severity: medium
+  author: aipostex
+  description: |
+    Detects MCP SSE endpoints that expose session identifiers as URL query
+    parameters rather than in HTTP headers. Session IDs in URLs are logged
+    by web servers, proxies, CDNs, and appear in Referer headers, enabling
+    session hijacking by any component that observes or caches the URL.
+  reference:
+    - https://equixly.com/blog/2025/03/29/mcp-server-new-security-nightmare/
+    - https://vulnerablemcp.info/
+  tags: [mcp, session-management, sse, session-hijacking]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /sse
+    matchers:
+      - type: header_contains
+        key: content-type
+        value: "text/event-stream"
+
+checks:
+  - name: "Session ID leaked in SSE endpoint URL"
+    method: GET
+    path: /sse
+    matchers:
+      - type: header_contains
+        key: content-type
+        value: "text/event-stream"
+      - type: body_regex
+        value: "[?&](sessionId|session_id|sid|session)=[a-zA-Z0-9_-]+"
+    severity: medium
+    finding:
+      title: "MCP Session ID Exposed in URL Query Parameter"
+      description: "The MCP SSE endpoint returns a message URL containing a session identifier as a query parameter. Session tokens in URLs are recorded in server logs, proxy caches, browser history, and HTTP Referer headers, enabling session hijacking."
+      remediation: "Transmit session tokens via HTTP headers (e.g. Authorization bearer tokens) instead of URL parameters. Use short-lived tokens with automatic rotation. Deploy HTTPS to prevent network interception."

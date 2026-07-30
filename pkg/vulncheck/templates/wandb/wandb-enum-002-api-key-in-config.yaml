@@ -1,0 +1,105 @@
+id: wandb-enum-002-api-key-in-config
+info:
+  type: detection
+  name: "Weights & Biases - API Key in GraphQL Run Config"
+  severity: critical
+  author: aipostex
+  description: |
+    W&B run configurations returned by GraphQL may contain the W&B API key or
+    other cloud provider credentials. The API key grants access to the W&B
+    account including projects, runs, and artifacts.
+  tags: [wandb, credentials, api-key, exposure]
+  classification:
+    mitre-atlas: [AML.T0034]
+
+detect:
+  - method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Viewer { viewer { username entity } }"}'
+    matchers:
+      - type: status
+        value: "200"
+      # Require a real GraphQL data object, not an error string. A non-W&B server
+      # (e.g. MLflow at :5000) returns {"data":null,"errors":["Cannot query field
+      # 'viewer'…"]} — which contains the word "viewer" but not "viewer":{.
+      - type: body_regex
+        value: '"viewer"\s*:\s*\{'
+    extractors:
+      - type: json
+        name: wandb_entity
+        path: "data.viewer.entity"
+
+checks:
+  - name: "Project context for run scan"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Projects($entity: String!, $cursor: String, $perPage: Int = 20) { models(entityName: $entity, after: $cursor, first: $perPage) { edges { node { id name entityName } } pageInfo { endCursor hasNextPage } } }","variables":{"entity":"{{wandb_entity}}","perPage":20}}'
+    matchers:
+      - type: status
+        value: "200"
+      # Require the models data object, not the literal word "models" (which appears in
+      # a GraphQL error like "Cannot query field 'models'" from a non-W&B server).
+      - type: body_regex
+        value: '"models"\s*:\s*\{'
+    extractors:
+      - type: json
+        name: first_wandb_project
+        path: "data.models.edges.0.node.name"
+    severity: medium
+    stage: access
+    landed: reachable
+    finding:
+      title: "W&B Project Context Exposed - {{first_wandb_project}}"
+      description: "W&B GraphQL disclosed a project for entity {{wandb_entity}}, enabling run configuration secret scanning."
+      remediation: "Restrict unauthenticated GraphQL access to W&B project metadata."
+
+  - name: "W&B API key in run config"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Runs($entity: String!, $project: String!, $cursor: String, $perPage: Int = 20) { project(entityName: $entity, name: $project) { runs(after: $cursor, first: $perPage) { edges { node { id name config summaryMetrics } } pageInfo { endCursor hasNextPage } } } }","variables":{"entity":"{{wandb_entity}}","project":"{{first_wandb_project}}","perPage":20}}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)wandb[_-]?api[_-]?key|WANDB_API_KEY"
+    severity: critical
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "W&B API Key Exposed in Run Configuration"
+      description: "A W&B API key marker was found in a GraphQL run configuration. This key may grant access to the W&B account."
+      remediation: "Rotate the exposed W&B API key immediately. Remove API keys from run configurations and use environment variables or service accounts instead."
+      evidence: |
+        Request:  POST /graphql query Runs
+        Result:   200 OK - W&B API key marker found in config JSON string
+        Project:  {{wandb_entity}}/{{first_wandb_project}}
+        Impact:   W&B account access, project enumeration, artifact manipulation
+
+  - name: "Cloud credentials in run config"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Runs($entity: String!, $project: String!, $cursor: String, $perPage: Int = 20) { project(entityName: $entity, name: $project) { runs(after: $cursor, first: $perPage) { edges { node { id name config summaryMetrics } } pageInfo { endCursor hasNextPage } } } }","variables":{"entity":"{{wandb_entity}}","project":"{{first_wandb_project}}","perPage":20}}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|HF_TOKEN|DATABASE_URL)"
+    severity: critical
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Cloud or Provider Credentials Exposed in W&B Run Configuration"
+      description: "Cloud or model-provider credential markers were found in W&B GraphQL run configurations used for artifact storage, model calls, or data access during training."
+      remediation: "Rotate exposed credentials. Use IAM roles, workload identity, or service accounts instead of embedding credentials in run configurations."

@@ -1,0 +1,46 @@
+id: bentoml-detect-001-unauth-inference
+info:
+  type: detection
+  name: "BentoML - Unauthenticated Inference Access"
+  severity: high
+  author: aipostex
+  description: |
+    BentoML service exposes prediction endpoints without authentication.
+    An attacker can send inference requests to hosted models without
+    any access controls.
+  reference:
+    - https://docs.bentoml.com/en/latest/
+  tags: [bentoml, unauth, inference, misconfiguration]
+
+detect:
+  - method: GET
+    path: /healthz
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "OpenAPI spec exposed"
+    method: GET
+    path: /docs.json
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(openapi|swagger)"
+    severity: high
+    finding:
+      title: "BentoML OpenAPI Docs Exposed"
+      description: "BentoML OpenAPI specification is accessible, revealing all prediction endpoints and input schemas."
+      remediation: "Implement authentication middleware for BentoML services and restrict OpenAPI spec access."
+
+  - name: "Health endpoint accessible"
+    method: GET
+    path: /healthz
+    matchers:
+      - type: status
+        value: "200"
+    severity: info
+    finding:
+      title: "BentoML Health Endpoint Accessible"
+      description: "BentoML health endpoint confirms service availability."

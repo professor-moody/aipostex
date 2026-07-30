@@ -1,0 +1,86 @@
+id: ghsa-mrw7-hf4f-83pf-vllm-deserialization-dos
+info:
+  name: "vLLM Deserialization DoS and Potential RCE (GHSA-mrw7-hf4f-83pf)"
+  type: detection
+  severity: high
+  cvss: 8.6
+  author: aipostex
+  description: |
+    vLLM versions 0.10.2 and later contain a memory corruption vulnerability
+    in the Completions API. Due to a change in PyTorch 2.8.0, sparse tensor
+    integrity checks are disabled by default. Maliciously crafted tensors can
+    bypass internal bounds checks and trigger an out-of-bounds memory write
+    during deserialization, leading to denial of service (crash) and
+    potentially remote code execution. The vulnerability is triggered when
+    processing prompt_embeds in API requests.
+  reference:
+    - https://github.com/vllm-project/vllm/security/advisories/GHSA-mrw7-hf4f-83pf
+  tags: [vllm, ghsa, deserialization, dos, rce, memory-corruption, pytorch]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)vllm"
+    extractors:
+      - type: regex
+        name: vllm_version
+        regex: '"version"\s*:\s*"([^"]+)"'
+        group: 1
+
+checks:
+  - name: "vLLM Completions API accessible"
+    method: POST
+    read_only: true
+    path: /v1/completions
+    headers:
+      Content-Type: application/json
+    body: '{"model":"test","prompt":"hello","max_tokens":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "choices"
+    severity: medium
+    stage: recon
+    landed: reachable
+    affected_version:
+      variable: vllm_version
+      range: ">= 0.10.2, < 0.11.1"
+    finding:
+      title: "vLLM Completions API Accessible"
+      description: "vLLM Completions API is accessible. Versions 0.10.2+ are vulnerable to GHSA-mrw7-hf4f-83pf — maliciously crafted prompt_embeds can trigger out-of-bounds memory writes via PyTorch sparse tensor deserialization."
+
+  - name: "vLLM Chat Completions API accessible"
+    method: POST
+    read_only: true
+    path: /v1/chat/completions
+    headers:
+      Content-Type: application/json
+    body: '{"model":"test","messages":[{"role":"user","content":"hello"}],"max_tokens":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "chat.completion"
+    severity: high
+    stage: recon
+    landed: reachable
+    affected_version:
+      variable: vllm_version
+      range: ">= 0.10.2, < 0.11.1"
+    finding:
+      title: "GHSA-mrw7-hf4f-83pf: vLLM Inference API Exposed - Deserialization Risk"
+      description: "vLLM inference API is accessible without authentication. In versions 0.10.2+ running on PyTorch 2.8.0+, the prompt_embeds parameter in Completions API requests can contain maliciously crafted sparse tensors that bypass integrity checks and trigger out-of-bounds memory writes."
+      remediation: "Update vLLM to the latest patched version. Restrict API access to authenticated clients. Consider enabling PyTorch sparse tensor integrity checks if available."
+      evidence: |
+        Endpoint: POST /v1/chat/completions
+        Result:   Inference API reachable (benign request returned a completion)
+        Advisory: GHSA-mrw7-hf4f-83pf (CVSS 8.6); reported version in affected range
+        Risk:     Crafted prompt_embeds with malicious sparse tensors could trigger an OOB memory write (DoS / potential RCE) — NOT exercised by this check
+        Note:     This template reports reachability + affected version only; it does not perform the deserialization exploit

@@ -1,0 +1,40 @@
+id: ray-enum-003-cluster-status-exposed
+info:
+  type: detection
+  name: "Ray - Cluster Status Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    Ray cluster status endpoints can disclose node, autoscaling, and workload
+    state without authentication. This validates real Ray dashboard exposure
+    and leaks useful cluster topology information.
+  reference:
+    - https://docs.ray.io/en/latest/cluster/running-applications/job-submission/api.html
+  tags: [ray, enumeration, cluster-status, metadata]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /api/version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)ray"
+
+checks:
+  - name: "Cluster status endpoint exposed"
+    method: GET
+    path: /api/cluster_status
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(clusterstatus|autoscaling|node)"
+    severity: medium
+    finding:
+      title: "Ray Cluster Status Exposed Without Authentication"
+      description: "Ray cluster status metadata is reachable without authentication, disclosing node or autoscaling state useful for follow-on job or artifact targeting."
+      remediation: "Restrict Ray dashboard access and add authentication in front of cluster metadata routes."
+

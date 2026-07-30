@@ -1,0 +1,42 @@
+id: torchserve-mgmt-001-management-exposed
+info:
+  type: detection
+  name: "TorchServe - Management Endpoint Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    The TorchServe management REST API lists registered models and supports
+    lifecycle operations. When reachable from untrusted networks it expands
+    attack surface beyond inference-only exposure.
+  reference:
+    - https://pytorch.org/serve/rest_api.html
+  tags: [torchserve, management, model-serving]
+
+detect:
+  - method: GET
+    path: /models
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Model listing and detail surface"
+    method: GET
+    path: /models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    extractors:
+      - type: json
+        name: model_count
+        path: "models.#"
+      - type: json
+        name: first_model
+        path: "models.0.modelName"
+    severity: medium
+    finding:
+      title: "TorchServe Management - {{model_count}} Models Visible"
+      description: "Management API returned model metadata (e.g. {{first_model}}). Attackers can map the deployment and target specific models."
+      remediation: "Firewall management port 8081 from the internet, use management bind addresses restricted to admin networks, and require authentication at the proxy layer."

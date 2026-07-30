@@ -1,0 +1,68 @@
+id: streamlit-enum-001-health-metadata
+info:
+  type: detection
+  name: "Streamlit - Health and Metadata Disclosure"
+  severity: medium
+  author: aipostex
+  description: |
+    Streamlit exposes metadata through its internal endpoints that can reveal
+    deployment details, component inventory, and runtime configuration. This
+    information aids reconnaissance for further exploitation of the underlying
+    ML pipeline or data sources accessed by the application.
+  reference:
+    - https://docs.streamlit.io/
+  tags: [streamlit, enumeration, metadata, disclosure]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /_stcore/health
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "ok"
+
+checks:
+  - name: "Streamlit component registry"
+    method: GET
+    path: /_stcore/allowed-message-origins
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "allowedOrigins"
+    severity: info
+    finding:
+      title: "Streamlit Allowed Message Origins Disclosed"
+      description: "Streamlit allowed-message-origins endpoint is accessible, revealing trusted origins for cross-frame communication."
+
+  - name: "Streamlit static asset enumeration"
+    method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "stApp|streamlit|st-emotion"
+    severity: info
+    landed: reachable
+    finding:
+      title: "Streamlit Application Index Reachable"
+      description: "The root path serves the Streamlit single-page-app shell (matched Streamlit-specific markup), confirming a Streamlit web application is deployed and reachable. Streamlit serves its frontend as content-hashed bundles under /static/, so this detects the app via its index rather than a fixed bundle filename."
+
+  - name: "Streamlit media endpoint"
+    method: GET
+    path: /_stcore/stream
+    matchers:
+      - type: status
+        value: "200"
+    severity: info
+    finding:
+      title: "Streamlit WebSocket Stream Endpoint Present"
+      description: "The Streamlit WebSocket stream endpoint (/_stcore/stream) responds to an unauthenticated GET, indicating the real-time stream surface is exposed. This GET does not perform a WebSocket upgrade, so a successful real-time session is not confirmed by this check."
+      evidence: |
+        Request:  GET /_stcore/stream
+        Result:   200 OK (HTTP probe; no WebSocket upgrade was negotiated)
+        Note:     Endpoint reachable without authentication; real-time data access not exercised by this check.

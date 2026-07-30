@@ -1,0 +1,83 @@
+id: ghsa-8fr4-5q9j-m8gm-vllm-automap-rce
+info:
+  name: "vLLM Remote Code Execution via auto_map Config (GHSA-8fr4-5q9j-m8gm)"
+  type: detection
+  severity: critical
+  cvss: 9.8
+  author: aipostex
+  description: |
+    vLLM has a critical remote code execution vector in the
+    Nemotron_Nano_VL_Config class. When loading a model config containing an
+    auto_map entry, vLLM resolves the mapping with
+    get_class_from_dynamic_module() and immediately instantiates the returned
+    class. This fetches and executes Python from the remote HF repository
+    referenced in auto_map, even when trust_remote_code=False is explicitly
+    set. An attacker can publish a benign-looking frontend repo whose
+    config.json points via auto_map to a malicious backend repo; loading the
+    frontend silently runs the backend's code on the victim host.
+  reference:
+    - https://github.com/vllm-project/vllm/security/advisories/GHSA-8fr4-5q9j-m8gm
+    - https://github.com/vllm-project/vllm/pull/28126
+  tags: [vllm, ghsa, rce, model-loading, trust-remote-code, supply-chain]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0047, AML.T0010]
+
+detect:
+  - method: GET
+    path: /version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)vllm"
+
+checks:
+  - name: "vLLM version endpoint accessible"
+    method: GET
+    path: /version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(vllm|version)"
+    extractors:
+      - type: regex
+        name: vllm_version
+        regex: '"version"\s*:\s*"([^"]+)"'
+        group: 1
+    severity: medium
+    affected_version:
+      variable: vllm_version
+      range: "< 0.11.1"
+    finding:
+      title: "vLLM Instance Detected"
+      description: "vLLM inference server detected, version: {{vllm_version}}. Unpatched versions are vulnerable to GHSA-8fr4-5q9j-m8gm — remote code execution via auto_map config class that bypasses trust_remote_code=False."
+
+  - name: "vLLM model listing accessible"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    extractors:
+      - type: json
+        name: model_id
+        path: "data.0.id"
+    severity: high
+    stage: recon
+    landed: reachable
+    affected_version:
+      variable: vllm_version
+      range: "< 0.11.1"
+    finding:
+      title: "GHSA-8fr4-5q9j-m8gm: vLLM Models Accessible - auto_map RCE Risk"
+      description: "vLLM model listing accessible. Loaded model: {{model_id}}. Unpatched vLLM instances that load models with auto_map entries in config.json are vulnerable to arbitrary code execution — the get_class_from_dynamic_module() function fetches and executes remote Python even when trust_remote_code=False."
+      remediation: "Update vLLM to a version including PR #28126. Audit all loaded model configs for auto_map entries pointing to untrusted repositories. Only load models from trusted, verified sources."
+      evidence: |
+        Endpoint: GET /v1/models
+        Model:    {{model_id}}
+        Advisory: GHSA-8fr4-5q9j-m8gm (CVSS 9.8)
+        Attack:   Malicious model config.json with auto_map → fetches + executes remote Python
+        Impact:   Full RCE on vLLM host, bypasses trust_remote_code=False safety boundary

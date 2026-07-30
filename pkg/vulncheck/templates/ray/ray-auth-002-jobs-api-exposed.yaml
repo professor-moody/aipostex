@@ -1,0 +1,37 @@
+id: ray-auth-002-jobs-api-exposed
+info:
+  type: detection
+  name: "Ray Jobs API - Unauthenticated Exposure"
+  severity: critical
+  author: aipostex
+  description: |
+    The Ray jobs API is reachable without authentication. This can expose job
+    enumeration, bounded job-detail review, artifact correlation, and potentially
+    remote job submission or runtime-env takeover validation through the cluster
+    dashboard.
+  reference:
+    - https://docs.ray.io/
+  tags: [ray, jobs, auth, misconfiguration]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0034]
+
+checks:
+  - name: "Ray jobs API reachable"
+    method: GET
+    path: /api/jobs/
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(job_id|entrypoint|status)"
+    severity: critical
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Ray Jobs API Exposed Without Authentication"
+      description: "The Ray jobs API is reachable without authentication and may permit job enumeration, log review, artifact correlation, and remote workload abuse."
+      remediation: "Restrict dashboard access, disable unauthenticated jobs access, and place the control plane behind authentication."
+      evidence: |
+        Request:  GET /api/jobs/ (no authentication)
+        Result:   200 OK — job listing with IDs, entrypoints, and status returned
+        Impact:   Job enumeration, log access, remote code execution via job submission

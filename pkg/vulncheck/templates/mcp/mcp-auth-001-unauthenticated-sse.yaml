@@ -1,0 +1,99 @@
+id: mcp-auth-001-unauthenticated-sse
+info:
+  type: detection
+  name: "MCP Server - Unauthenticated SSE Access"
+  severity: high
+  author: aipostex
+  description: |
+    MCP server exposes its SSE (Server-Sent Events) endpoint without
+    authentication. Any network client can connect, enumerate available
+    tools and resources, and invoke server capabilities. This is the
+    primary attack vector observed in MCP reconnaissance campaigns.
+  reference:
+    - https://vulnerablemcp.info/vuln/grafana-mcp-unauthenticated-sse.html
+    - https://www.pillar.security/blog/operation-bizarre-bazaar
+  tags: [mcp, auth, misconfiguration, sse]
+  classification:
+    mitre-atlas: [AML.T0049]
+    owasp-llm: [LLM06]
+
+detect:
+  - method: GET
+    path: /sse
+    matchers:
+      - type: header_contains
+        key: content-type
+        value: "text/event-stream"
+
+checks:
+  - name: "Tool enumeration without authentication"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "tools"
+    extractors:
+      - type: json
+        name: tool_names
+        path: "result.tools.#.name"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "MCP Server Unauthenticated - Tools Exposed"
+      description: "MCP server exposes tools without authentication. Available tools: {{tool_names}}. Any client on the network can invoke these tools, potentially accessing files, databases, APIs, and executing commands."
+      remediation: "Implement authentication on MCP endpoints. Bind to localhost only if remote access is not required. Use network-level access controls."
+      evidence: |
+        Request:  POST /message — tools/list (no auth)
+        Result:   200 OK — tools returned: {{tool_names}}
+        Impact:   Tool invocation (file access, command exec, API calls)
+
+  - name: "Resource enumeration without authentication"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"resources/list","id":2}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "resources"
+    extractors:
+      - type: json
+        name: resource_uris
+        path: "result.resources.#.uri"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "MCP Server Unauthenticated - Resources Exposed"
+      description: "MCP server exposes resources without authentication: {{resource_uris}}"
+      evidence: |
+        Request:  POST /message — resources/list (no auth)
+        Result:   200 OK — resources returned: {{resource_uris}}
+        Impact:   Data enumeration, sensitive resource access
+
+  - name: "Prompt enumeration without authentication"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"prompts/list","id":3}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "prompts"
+    severity: medium
+    finding:
+      title: "MCP Server Unauthenticated - Prompts Exposed"
+      description: "MCP server exposes prompt templates without authentication."

@@ -1,0 +1,58 @@
+id: weaviate-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "Weaviate - Unauthenticated API Access"
+  severity: high
+  author: aipostex
+  description: |
+    Weaviate exposes schema and metadata endpoints without authentication.
+    An attacker can enumerate classes, infer indexed data domains, and
+    identify connected AI modules and data pipelines.
+  reference:
+    - https://weaviate.io/developers/weaviate/api
+  tags: [vectordb, weaviate, auth, misconfiguration, data-exposure]
+
+detect:
+  - method: GET
+    path: /v1/meta
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "version"
+
+checks:
+  - name: "Schema enumeration"
+    method: GET
+    path: /v1/schema
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "classes"
+    extractors:
+      - type: regex
+        name: class_name
+        regex: '"class"\s*:\s*"([^"]+)"'
+    severity: high
+    finding:
+      title: "Weaviate Unauthenticated - Schema Exposed"
+      description: "Weaviate schema is accessible without authentication. Class discovered: {{class_name}}. This reveals indexed data structure and collection naming."
+      remediation: "Require authentication for Weaviate APIs and restrict network exposure."
+
+  - name: "Server metadata disclosure"
+    method: GET
+    path: /v1/meta
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "version"
+    extractors:
+      - type: json
+        name: version
+        path: "version"
+    severity: info
+    finding:
+      title: "Weaviate Metadata Disclosed"
+      description: "Weaviate server metadata is accessible without authentication. Version reported: {{version}}."

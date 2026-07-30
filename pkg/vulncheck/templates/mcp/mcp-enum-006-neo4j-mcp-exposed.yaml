@@ -1,0 +1,98 @@
+id: mcp-enum-006-neo4j-mcp-exposed
+info:
+  type: detection
+  name: "Neo4j MCP Cypher Server Exposure (CVE-2025-10193)"
+  severity: high
+  author: aipostex
+  description: |
+    Detects exposed Neo4j MCP Cypher servers (mcp-neo4j, versions 0.2.2-0.3.1).
+    These servers provide Cypher query tools that grant full database access.
+    Combined with missing Host header validation, DNS rebinding enables remote
+    websites to execute arbitrary Cypher queries against local Neo4j instances.
+  reference:
+    - https://github.com/neo4j-contrib/mcp-neo4j/security/advisories/GHSA-vcqx-v2mg-7chx
+    - https://vulnerablemcp.info/
+  tags: [mcp, neo4j, cve-2025, dns-rebinding, database]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{}},"id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "serverInfo"
+
+checks:
+  - name: "Neo4j MCP server identification"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{}},"id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(neo4j|cypher)"
+    extractors:
+      - type: json
+        name: server_name
+        path: "result.serverInfo.name"
+      - type: json
+        name: server_version
+        path: "result.serverInfo.version"
+    severity: medium
+    finding:
+      title: "Neo4j MCP Cypher Server Detected"
+      description: "Neo4j MCP server identified: {{server_name}} v{{server_version}}. Versions 0.2.2 through 0.3.1 are vulnerable to CVE-2025-10193 (DNS rebinding to database takeover)."
+
+  - name: "Cypher query tools exposed"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(cypher|neo4j|run_query|read_query|write_query)"
+    extractors:
+      - type: json
+        name: tool_names
+        path: "result.tools.#.name"
+    severity: high
+    finding:
+      title: "Neo4j MCP Cypher Query Tools Exposed"
+      description: "Neo4j MCP server exposes database query tools: {{tool_names}}. An attacker can execute arbitrary Cypher queries to read, modify, or delete graph data."
+      remediation: "Update mcp-neo4j to v0.4.0 or later. Add authentication, restrict to localhost, and use read-only Neo4j accounts where possible."
+
+  - name: "DNS rebinding susceptibility (Host header trust)"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+      Host: rebinding.invalid
+    body: '{"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{}},"id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "serverInfo"
+      - type: body_regex
+        value: "(?i)(neo4j|cypher)"
+    severity: high
+    finding:
+      title: "CVE-2025-10193: Neo4j MCP DNS Rebinding - Database Takeover Risk"
+      description: "Neo4j MCP server ({{server_name}}) accepted an arbitrary Host header, confirming DNS rebinding susceptibility. Remote websites can pivot to this server and execute Cypher queries against the connected Neo4j database."
+      remediation: "Update to mcp-neo4j v0.4.0+. Implement Host header validation, CORS restrictions, and require authentication tokens."

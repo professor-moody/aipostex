@@ -1,0 +1,29 @@
+id: gradio-enum-002-callable-api-surface
+info:
+  type: detection
+  name: "Gradio API Surface Enumerated"
+  severity: medium
+  author: aipostex
+  description: |
+    A Gradio application exposed named endpoints or prediction metadata without authentication.
+    This finding stays read-oriented and confirms callable surface discovery only.
+  reference:
+    - https://www.gradio.app/
+  tags: [gradio, enum, api]
+  classification:
+    mitre-atlas: [AML.T0040]
+
+checks:
+  - name: "Gradio config reveals callable routes"
+    method: GET
+    path: /config
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(api_name|fn_index|named_endpoints)"
+    severity: medium
+    finding:
+      title: "Gradio Callable API Surface Exposed"
+      description: "Gradio config revealed callable route metadata without authentication."
+      remediation: "Restrict access to Gradio config and require authentication for exposed apps."

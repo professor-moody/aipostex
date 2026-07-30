@@ -1,0 +1,54 @@
+id: qdrant-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "Qdrant - Unauthenticated API Access"
+  severity: high
+  author: aipostex
+  description: |
+    Qdrant exposes collection metadata without authentication. An attacker
+    can enumerate vector collections and infer the presence of indexed
+    internal documents or application telemetry.
+  reference:
+    - https://qdrant.tech/documentation/
+  tags: [vectordb, qdrant, auth, misconfiguration, data-exposure]
+
+detect:
+  - method: GET
+    path: /collections
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "collections"
+
+checks:
+  - name: "Collection enumeration"
+    method: GET
+    path: /collections
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "collections"
+    extractors:
+      - type: regex
+        name: collection_name
+        regex: '"name"\s*:\s*"([^"]+)"'
+    severity: high
+    finding:
+      title: "Qdrant Unauthenticated - Collections Exposed"
+      description: "Qdrant collections are accessible without authentication. Collection discovered: {{collection_name}}."
+      remediation: "Require API key authentication and bind Qdrant to trusted interfaces only."
+
+  - name: "Server status disclosure"
+    method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "qdrant"
+    severity: info
+    finding:
+      title: "Qdrant Server Information Disclosed"
+      description: "Qdrant root endpoint is accessible without authentication and confirms service availability."

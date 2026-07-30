@@ -1,0 +1,94 @@
+rules:
+  - name: "Fine-Tuning Dataset Manifests"
+    category: "training-data"
+    severity: "medium"
+    description: "Fine-tuning dataset manifest or instruction-tuning corpus found. May contain sensitive prompts, conversations, or internal documents used to customize models."
+    file_patterns: ["*.jsonl", "*.parquet", "dataset_info.json", "metadata.json", "manifest.json"]
+    path_patterns: ["**/finetune/**", "**/fine-tune/**", "**/instruction_data/**", "**/sft/**", "**/datasets/**"]
+    content_patterns:
+      - '"messages"\s*:'
+      - '"prompt"\s*:'
+      - '"completion"\s*:'
+      - '"instruction"\s*:'
+
+  - name: "Arrow Training Data Files"
+    category: "training-data"
+    severity: "medium"
+    description: "Apache Arrow IPC file found. Often used to store preprocessed training datasets, embeddings, or feature tables that may contain sensitive data."
+    file_patterns: ["*.arrow"]
+    max_file_size: 0
+
+  - name: "TFRecord Training Data Files"
+    category: "training-data"
+    severity: "medium"
+    description: "TensorFlow TFRecord file found. Used for serialized training datasets that may contain PII, proprietary text, or corporate documents."
+    file_patterns: ["*.tfrecord", "*.tfrecords"]
+    max_file_size: 0
+
+  - name: "Embedding Pipeline Configuration"
+    category: "rag-config"
+    severity: "medium"
+    description: "Embedding model or vector ingestion configuration found. May reveal model providers, vector stores, and indexed data sources."
+    file_patterns: [".env", "*.py", "*.ts", "*.js", "*.yaml", "*.yml", "*.json"]
+    content_patterns:
+      - 'EMBEDDING_MODEL\s*[=:]\s*\S+'
+      - 'OPENAI_EMBEDDING_MODEL\s*[=:]\s*\S+'
+      - 'text-embedding-3-(small|large)'
+      - 'sentence-transformers/'
+      - 'HuggingFaceEmbeddings'
+      - 'OpenAIEmbeddings'
+
+  - name: "Database Connection Strings"
+    category: "credentials"
+    severity: "high"
+    description: "Database connection string with embedded credentials found. May provide direct access to production databases."
+    file_patterns: [".env", ".env.*", "*.py", "*.yaml", "*.yml", "*.json", "*.cfg", "*.conf", "*.toml", "docker-compose.yml", "docker-compose.yaml"]
+    content_patterns:
+      - 'postgresql://[^:]+:[^@]+@[^\s]+'
+      - 'mysql://[^:]+:[^@]+@[^\s]+'
+      - 'mongodb://[^:]+:[^@]+@[^\s]+'
+      - 'redis://[^:]+:[^@]+@[^\s]+'
+      - 'snowflake://[^:]+:[^@]+@[^\s]+'
+      - 'DATABASE_URL\s*[=:]\s*\S+'
+      - 'DB_URL\s*[=:]\s*\S+'
+      - 'POSTGRES_CONNECTION_STRING\s*[=:]'
+
+  - name: "LangChain RAG Configuration"
+    category: "rag-config"
+    severity: "medium"
+    description: "LangChain configuration pointing to vector stores or databases. Reveals internal infrastructure."
+    file_patterns: ["*.py", "*.yaml", "*.yml", "*.json", "docker-compose.yml"]
+    content_patterns:
+      - 'from langchain'
+      - 'CHROMA_HOST\s*[=:]\s*\S+'
+      - 'ChromaDB|Weaviate|Qdrant|Pinecone'
+
+  - name: "Marketplace Probe Indicators"
+    category: "llmjacking"
+    severity: "high"
+    description: "Logs or telemetry contain indicators consistent with commercial LLMjacking validation workflows and marketplace resale probes."
+    file_patterns: ["*.log", "*.json", "*.jsonl"]
+    content_patterns:
+      - 'silver\.inc'
+      - 'sk-test-placeholder'
+      - 'placeholder.*api.*key'
+      - 'GET /v1/models'
+      - 'Bearer sk-test'
+
+  - name: "ML Training CSV Tables"
+    category: "training-data"
+    severity: "medium"
+    description: "CSV under dataset or fine-tune paths with column names typical of instruction or text-classification corpora. May contain labeled prompts, completions, or PII used for model training."
+    file_patterns: ["*.csv"]
+    path_patterns: ["**/datasets/**", "**/dataset/**", "**/finetune/**", "**/fine-tune/**", "**/sft/**", "**/instruction_data/**", "**/train/**"]
+    content_patterns:
+      - '(?i)^[^\n]*\b(prompt|instruction|completion|text|label|query|response)\b[^\n]*,'
+      - '(?i),(\s*)"(prompt|instruction|completion|text|label|query|response)"'
+
+  - name: "Hugging Face Dataset Manifest"
+    category: "training-data"
+    severity: "low"
+    description: "Hugging Face datasets-style manifest (dataset_infos.json). Indicates a cached or exported dataset that may map to sensitive corpora."
+    file_patterns: ["dataset_infos.json", "dataset_dict.json"]
+    path_patterns: ["**/datasets/**", "**/.cache/huggingface/**", "**/huggingface/datasets/**"]
+    max_file_size: 0

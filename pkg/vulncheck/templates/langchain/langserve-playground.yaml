@@ -1,0 +1,34 @@
+id: langserve-enum-001-playground-exposed
+info:
+  type: detection
+  name: "LangServe - Playground Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    LangServe can expose an interactive playground for trying chains. A public
+    playground lowers the bar for probing prompts and abusing hosted runnables.
+  reference:
+    - https://python.langchain.com/docs/langserve
+  tags: [langchain, langserve, playground]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Playground route reachable"
+    method: GET
+    path: /playground
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "playground"
+    severity: medium
+    finding:
+      title: "LangServe Playground Publicly Reachable"
+      description: "GET /playground returned HTTP 200 with playground-related content, suggesting an interactive testing UI is exposed."
+      remediation: "Turn off playground in production builds, protect routes with authentication, or remove the playground mount entirely for internet-facing deployments."

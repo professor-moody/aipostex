@@ -1,0 +1,51 @@
+id: triton-enum-001-model-enumeration
+info:
+  type: detection
+  name: "NVIDIA Triton Inference Server - Model Enumeration"
+  severity: medium
+  author: aipostex
+  description: |
+    Triton exposes model metadata and per-model configuration over HTTP. Even
+    when inference is intended to be semi-public, enumeration reveals model
+    names, versions, and configuration details useful for targeted attacks.
+  reference:
+    - https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_model_repository.html
+  tags: [triton, enumeration, model-serving]
+
+detect:
+  - method: GET
+    path: /v2/health/ready
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "List models via repository API"
+    method: GET
+    path: /v2/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    extractors:
+      - type: json
+        name: model_name
+        path: "models.0.name"
+    severity: medium
+    finding:
+      title: "Triton Model Enumeration - {{model_name}}"
+      description: "Triton returned a model list including {{model_name}}. Further probing can retrieve full model configuration."
+      remediation: "Restrict who can reach Triton HTTP ports; use network policies and authenticated frontends."
+
+  - name: "Per-model configuration disclosure"
+    method: GET
+    path: /v2/models/{{model_name}}/config
+    matchers:
+      - type: status
+        value: "200"
+    severity: medium
+    finding:
+      title: "Triton Model Config Exposed for {{model_name}}"
+      description: "Full model configuration for {{model_name}} is retrievable via the Triton HTTP API."
+      remediation: "Do not expose the Triton HTTP endpoint to untrusted clients; enforce authentication and least-privilege network paths."

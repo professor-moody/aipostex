@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/professor-moody/aipostex/finding-schema.json",
+  "title": "aipostex Finding",
+  "description": "Schema for a single security finding emitted by aipostex modules.",
+  "type": "object",
+  "required": ["id", "timestamp", "source", "target", "title", "severity", "description"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique finding identifier, prefixed by source module."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when the finding was generated."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "file-discovery",
+        "fingerprint",
+        "vulncheck",
+        "ollama",
+        "vectordb",
+        "mcp",
+        "jupyter",
+        "openai-compat",
+        "ray",
+        "mlflow",
+        "gradio",
+        "credential",
+        "litellm",
+        "huggingface",
+        "k8s",
+        "a2a",
+        "torchserve",
+        "triton",
+        "tfserving",
+        "bentoml",
+        "wandb",
+        "kubeflow",
+        "listener",
+        "request"
+      ],
+      "description": "Module that generated this finding."
+    },
+    "template_id": {
+      "type": "string",
+      "description": "Template identifier for vulncheck findings."
+    },
+    "target": {
+      "type": "string",
+      "description": "Host, URL, or file path that was assessed."
+    },
+    "title": {
+      "type": "string",
+      "description": "Short human-readable title."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"],
+      "description": "Finding severity level."
+    },
+    "cvss": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "CVSS score if applicable."
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the finding."
+    },
+    "remediation": {
+      "type": "string",
+      "description": "Suggested remediation steps."
+    },
+    "evidence": {
+      "type": "string",
+      "description": "Evidence supporting the finding."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Tags for categorization and filtering."
+    },
+    "references": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Reference URLs (CVEs, advisories, MITRE ATLAS)."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Source-specific metadata. Keys vary by source module.",
+      "properties": {
+        "module":            { "type": "string" },
+        "action":            { "type": "string" },
+        "provider":          { "type": "string" },
+        "version":           { "type": "string" },
+        "service":           { "type": "string" },
+        "host":              { "type": "string" },
+        "port":              { "type": "integer" },
+        "specificity":       { "type": "integer" },
+        "model":             { "type": "string" },
+        "mutating":          { "type": "boolean" },
+        "proof_preset":      { "type": "string" },
+        "stage":             { "type": "string" },
+        "landed":            { "type": "string" },
+        "chain_source":      { "type": "string" },
+        "collection":        { "type": "string" },
+        "class":             { "type": "string" },
+        "sensitivity_hints": { "type": "string" },
+        "artifact_kind":     { "type": "string" },
+        "kernel":            { "type": "string" },
+        "path":              { "type": "string" },
+        "transport":         { "type": "string" },
+        "server":            { "type": "string" },
+        "config_source":     { "type": "string" },
+        "env_key":           { "type": "string" },
+        "capability":        { "type": "string" },
+        "capability_labels": { "type": "string" },
+        "confidence":        { "type": "string" },
+        "tool":              { "type": "string" },
+        "endpoint":          { "type": "string" },
+        "mode":              { "type": "string" },
+        "target_alias":      { "type": "string" },
+        "acceptance_class":  { "type": "string" },
+        "auth_pattern":      { "type": "string" },
+        "coherence_score":   { "type": "string" },
+        "rate_limit_signal": { "type": "string" },
+        "throughput_score":  { "type": "string" },
+        "value_score":       { "type": "string" },
+        "job_id":            { "type": "string" },
+        "risk_label":        { "type": "string" },
+        "experiment":        { "type": "string" },
+        "run_id":            { "type": "string" },
+        "artifact_path":     { "type": "string" },
+        "fn_index":          { "type": "integer" },
+        "queue_enabled":     { "type": "boolean" },
+        "file_input":        { "type": "string" },
+        "file_output":       { "type": "string" },
+        "template":          { "type": "string" },
+        "tags":              { "type": "string" },
+        "proxy_likely":      { "type": "boolean", "description": "Whether the service appears behind a reverse proxy (3+ services on same port)." },
+        "dedupe_count":      { "type": "integer", "description": "Number of duplicate findings collapsed into this one." },
+        "workflow":          { "type": "object", "description": "Structured follow-on command recommendations attached by the workflow engine.", "additionalProperties": true }
+      },
+      "additionalProperties": true
+    }
+  }
+}

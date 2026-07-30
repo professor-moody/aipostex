@@ -1,0 +1,40 @@
+id: jupyter-enum-003-kernelspecs-exposed
+info:
+  type: detection
+  name: "Jupyter - Kernelspecs Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    Jupyter kernelspec metadata can be read without authentication. This leaks
+    available interpreters, command paths, and environment context that help
+    operators assess what code execution paths are likely to work.
+  reference:
+    - https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
+  tags: [jupyter, enumeration, kernelspecs, metadata]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /api
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "jupyter_server"
+
+checks:
+  - name: "Kernelspecs API exposed"
+    method: GET
+    path: /api/kernelspecs
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(kernelspecs|default)"
+    severity: medium
+    finding:
+      title: "Jupyter Kernelspecs Exposed Without Authentication"
+      description: "GET /api/kernelspecs returned interpreter metadata without authentication, exposing available kernels and execution context."
+      remediation: "Require Jupyter authentication and restrict the server to trusted networks."
+

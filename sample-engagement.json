@@ -1,0 +1,47 @@
+{
+  "engagement_id": "eng-demo-sample",
+  "start_time": "2026-03-27T12:00:00Z",
+  "end_time": "2026-03-27T12:05:00Z",
+  "findings": [
+    {
+      "id": "vulncheck-demo-1",
+      "timestamp": "2026-03-27T12:01:00Z",
+      "source": "fingerprint",
+      "target": "http://172.16.50.10:11434",
+      "title": "AI service discovered: ollama",
+      "severity": "info",
+      "description": "Ollama inference API detected.",
+      "tags": ["ollama", "discovery"],
+      "metadata": {"service": "ollama", "port": "11434"}
+    },
+    {
+      "id": "vulncheck-demo-2",
+      "timestamp": "2026-03-27T12:02:00Z",
+      "source": "vulncheck",
+      "template_id": "ollama-auth-001-unauthenticated-api",
+      "target": "http://172.16.50.10:11434",
+      "title": "Ollama Unauthenticated API Access",
+      "severity": "high",
+      "cvss": 8.2,
+      "description": "The Ollama API accepts requests without authentication.",
+      "remediation": "Enable authentication or bind to localhost only.",
+      "evidence": "GET /api/tags returned 200 with model list.",
+      "tags": ["ollama", "auth", "llmjacking"],
+      "references": ["https://github.com/ollama/ollama/blob/main/docs/faq.md"]
+    },
+    {
+      "id": "vulncheck-demo-3",
+      "timestamp": "2026-03-27T12:03:00Z",
+      "source": "vulncheck",
+      "template_id": "campaign-bizarre-bazaar",
+      "target": "http://172.16.50.10:8000",
+      "title": "LLMjacking Risk: Empty Bearer Token Accepted",
+      "severity": "critical",
+      "cvss": 9.1,
+      "description": "OpenAI-compatible endpoint accepted an empty bearer token.",
+      "remediation": "Require valid API keys; reject anonymous inference.",
+      "evidence": "POST /v1/chat/completions with Authorization: Bearer  returned 200.",
+      "tags": ["openai-compat", "llmjacking", "auth"]
+    }
+  ]
+}

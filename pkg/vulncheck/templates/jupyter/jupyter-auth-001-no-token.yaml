@@ -1,0 +1,82 @@
+id: jupyter-auth-001-no-token
+info:
+  type: detection
+  name: "Jupyter Notebook - No Authentication Required"
+  severity: high
+  author: aipostex
+  description: |
+    Jupyter notebook server is running without token authentication.
+    This allows arbitrary code execution on the host system, access
+    to all files the Jupyter process can read, and credential theft
+    from environment variables and config files.
+  reference:
+    - https://jupyter-notebook.readthedocs.io/en/stable/security.html
+  tags: [jupyter, auth, misconfiguration, code-execution]
+
+detect:
+  - method: GET
+    path: /api
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "version"
+
+checks:
+  - name: "API accessible without token"
+    method: GET
+    path: /api/kernels
+    matchers:
+      - type: status
+        value: "200"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Jupyter Server - No Authentication"
+      description: "Jupyter kernel API accessible without token. Arbitrary code execution possible on the host system."
+      remediation: "Configure Jupyter with a strong token: jupyter notebook --NotebookApp.token='<strong-token>'"
+      evidence: |
+        Request:  GET /api/kernels (no token)
+        Result:   200 OK — kernel list returned without authentication
+        Impact:   Arbitrary code execution via kernel API
+
+  - name: "Session enumeration"
+    method: GET
+    path: /api/sessions
+    matchers:
+      - type: status
+        value: "200"
+    extractors:
+      - type: json
+        name: session_count
+        path: "#"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Jupyter Sessions Exposed - Active Sessions Found"
+      description: "Active Jupyter sessions accessible. Users may have running notebooks with loaded data and credentials."
+      evidence: |
+        Request:  GET /api/sessions (no token)
+        Result:   200 OK — active session list returned
+        Impact:   Session hijacking, access to loaded data and credentials
+
+  - name: "File listing"
+    method: GET
+    path: /api/contents
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "content"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Jupyter File System Accessible"
+      description: "Jupyter file browser accessible without authentication. All files within the Jupyter root directory can be read."
+      evidence: |
+        Request:  GET /api/contents (no token)
+        Result:   200 OK — directory listing with notebook files returned
+        Impact:   Data exfiltration, credential harvesting from notebooks

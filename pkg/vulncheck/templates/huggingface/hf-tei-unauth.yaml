@@ -1,0 +1,41 @@
+id: hf-tei-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "Hugging Face Text Embeddings Inference - Unauthenticated API"
+  severity: high
+  author: aipostex
+  description: |
+    Text Embeddings Inference (TEI) serves embedding models over HTTP. Missing
+    authentication on the inference port allows unauthorized embedding requests
+    and model fingerprinting via the public /info payload.
+  reference:
+    - https://huggingface.co/docs/text-embeddings-inference/en/cli_arguments
+  tags: [huggingface, tei, auth, misconfiguration, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /health
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Info endpoint exposes model_id"
+    method: GET
+    path: /info
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "model_id"
+    extractors:
+      - type: json
+        name: model_id
+        path: "model_id"
+    severity: high
+    finding:
+      title: "TEI Unauthenticated - Model {{model_id}}"
+      description: "TEI /info returned model_id {{model_id}} without requiring credentials."
+      remediation: "Terminate TLS and enforce API keys or mTLS at a reverse proxy; bind TEI to internal-only interfaces in production."

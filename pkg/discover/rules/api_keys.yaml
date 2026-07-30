@@ -1,0 +1,153 @@
+rules:
+  - name: "OpenAI API Key"
+    category: "ai-credentials"
+    severity: "high"
+    description: "OpenAI API key found in file. Can be used for unauthorized inference, billing fraud, or data access."
+    file_patterns: [".env", ".env.*", "*.cfg", "*.conf", "*.yaml", "*.yml", "*.json", "*.toml", "*.py", "*.js", "*.ts", "*.sh", "*.bash", "*.ipynb"]
+    content_patterns:
+      - 'sk-[a-zA-Z0-9]{20,}'
+      - 'OPENAI_API_KEY\s*[=:]\s*\S+'
+
+  - name: "Anthropic API Key"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Anthropic API key found. Provides access to Claude models."
+    file_patterns: [".env", ".env.*", "*.cfg", "*.conf", "*.yaml", "*.yml", "*.json", "*.toml", "*.py", "*.js", "*.ts", "*.ipynb"]
+    content_patterns:
+      - 'sk-ant-[a-zA-Z0-9\-]{20,}'
+      - 'ANTHROPIC_API_KEY\s*[=:]\s*\S+'
+
+  - name: "Hugging Face Token"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Hugging Face token found. May provide access to private models, datasets, and Spaces."
+    file_patterns: [".env", ".env.*", "*.cfg", "*.yaml", "*.yml", "*.json", "*.py", "*.ipynb", "token"]
+    path_patterns: ["*/.cache/huggingface/token"]
+    content_patterns:
+      - 'hf_[a-zA-Z0-9_]{20,}'
+      - 'HUGGINGFACE_TOKEN\s*[=:]\s*\S+'
+      - 'HF_TOKEN\s*[=:]\s*\S+'
+
+  - name: "Google AI / Vertex API Key"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Google AI or Vertex AI credentials found."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml"]
+    path_patterns: ["*/application_default_credentials.json"]
+    content_patterns:
+      - 'GOOGLE_API_KEY\s*[=:]\s*\S+'
+      - 'GOOGLE_APPLICATION_CREDENTIALS\s*[=:]\s*\S+'
+      - 'GOCSPX-[a-zA-Z0-9_]{20,}'
+      - 'client_secret.*GOCSPX'
+      - 'refresh_token.*1//[a-zA-Z0-9_]{20,}'
+
+  - name: "Cohere API Key"
+    category: "ai-credentials"
+    severity: "high"
+    file_patterns: [".env", ".env.*", "*.yaml", "*.yml", "*.json", "*.py"]
+    content_patterns:
+      - 'COHERE_API_KEY\s*[=:]\s*\S+'
+
+  - name: "Replicate API Token"
+    category: "ai-credentials"
+    severity: "high"
+    file_patterns: [".env", ".env.*", "*.yaml", "*.yml", "*.json", "*.py"]
+    content_patterns:
+      - 'REPLICATE_API_TOKEN\s*[=:]\s*r8_[a-zA-Z0-9]{20,}'
+
+  - name: "Mistral API Key"
+    category: "ai-credentials"
+    severity: "high"
+    file_patterns: [".env", ".env.*", "*.yaml", "*.yml", "*.json"]
+    content_patterns:
+      - 'MISTRAL_API_KEY\s*[=:]\s*\S+'
+
+  - name: "Groq API Key"
+    category: "ai-credentials"
+    severity: "high"
+    file_patterns: [".env", ".env.*", "*.yaml", "*.yml", "*.json"]
+    content_patterns:
+      - 'gsk_[a-zA-Z0-9_]{20,}'
+      - 'GROQ_API_KEY\s*[=:]\s*\S+'
+
+  - name: "AWS Bedrock/SageMaker Credentials"
+    category: "ai-credentials"
+    severity: "high"
+    description: "AWS credentials found near AI service references. May grant Bedrock or SageMaker access."
+    file_patterns: [".env", ".env.*", "*.cfg", "credentials", "*.yaml", "*.yml"]
+    content_patterns:
+      - 'aws_access_key_id\s*[=:]\s*AKIA[A-Z0-9]{16}'
+
+  - name: "Pinecone API Key"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Pinecone vector database API key. May expose indexed corporate data."
+    file_patterns: [".env", ".env.*", "*.yaml", "*.yml", "*.json", "*.py"]
+    content_patterns:
+      - 'PINECONE_API_KEY\s*[=:]\s*\S+'
+      - 'PINECONE_ENVIRONMENT\s*[=:]\s*\S+'
+
+  - name: "GitHub Personal Access Token"
+    category: "ai-credentials"
+    severity: "high"
+    description: "GitHub PAT found. Provides repository access and may be used in MCP server configs."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml", "*.py", "*.sh", "config"]
+    content_patterns:
+      - 'ghp_[a-zA-Z0-9]{36,}'
+      - 'GITHUB_PERSONAL_ACCESS_TOKEN\s*[=:]\s*\S+'
+      - 'GITHUB_TOKEN\s*[=:]\s*ghp_'
+
+  - name: "Slack Bot Token"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Slack bot token found. May be used in MCP or AI agent integrations for workspace access."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml"]
+    content_patterns:
+      - 'xoxb-[a-zA-Z0-9\-]{20,}'
+      - 'SLACK_BOT_TOKEN\s*[=:]\s*\S+'
+
+  - name: "Atlassian/Jira API Token"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Atlassian or Jira API token found. Used in MCP integrations for project management access."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml"]
+    content_patterns:
+      - 'ATATT3[a-zA-Z0-9_]{20,}'
+      - 'JIRA_API_TOKEN\s*[=:]\s*\S+'
+
+  - name: "Brave Search API Key"
+    category: "ai-credentials"
+    severity: "medium"
+    description: "Brave Search API key found. Used in MCP server configs for web search."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml"]
+    content_patterns:
+      - 'BSA_[a-zA-Z0-9_]{20,}'
+      - 'BRAVE_API_KEY\s*[=:]\s*\S+'
+
+  - name: "LangChain API Key"
+    category: "ai-credentials"
+    severity: "high"
+    description: "LangChain/LangSmith API key found. Provides access to tracing and evaluation data."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml", "*.py"]
+    content_patterns:
+      - 'ls__[a-zA-Z0-9_]{20,}'
+      - 'LANGCHAIN_API_KEY\s*[=:]\s*\S+'
+      - 'LANGSMITH_API_KEY\s*[=:]\s*\S+'
+
+  - name: "WandB API Key"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Weights & Biases API key found. Provides access to experiment tracking and model data."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml", "*.py"]
+    content_patterns:
+      - 'WANDB_API_KEY\s*[=:]\s*\S+'
+
+  - name: "Azure OpenAI Key"
+    category: "ai-credentials"
+    severity: "high"
+    description: "Azure OpenAI API key found. Provides access to Azure-hosted OpenAI models."
+    file_patterns: [".env", ".env.*", "*.json", "*.yaml", "*.yml"]
+    content_patterns:
+      - 'AZURE_API_KEY\s*[=:]\s*\S+'
+      - 'api_key.*[a-zA-Z0-9\-]{20,}'
+    path_patterns: ["*/litellm/*.yaml", "*/litellm/*.yml"]

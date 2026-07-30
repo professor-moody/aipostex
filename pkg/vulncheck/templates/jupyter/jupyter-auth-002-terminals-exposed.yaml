@@ -1,0 +1,35 @@
+id: jupyter-auth-002-terminals-exposed
+info:
+  type: detection
+  name: "Jupyter Notebook - Terminals Endpoint Exposed"
+  severity: high
+  author: aipostex
+  description: |
+    Jupyter exposes its terminals API without authentication. This can allow
+    shell session enumeration and, depending on deployment, direct terminal
+    access on the notebook host.
+  reference:
+    - https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
+  tags: [jupyter, auth, misconfiguration, shell-access]
+
+detect:
+  - method: GET
+    path: /api
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "version"
+
+checks:
+  - name: "Terminals API accessible without token"
+    method: GET
+    path: /api/terminals
+    matchers:
+      - type: status
+        value: "200"
+    severity: high
+    finding:
+      title: "Jupyter Terminals API Exposed"
+      description: "Jupyter terminals endpoint is accessible without authentication. Shell session access may be possible on the notebook host."
+      remediation: "Enable token authentication and disable terminals where they are not required."

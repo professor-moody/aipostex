@@ -1,0 +1,60 @@
+id: chroma-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "ChromaDB - Unauthenticated API Access"
+  severity: high
+  author: aipostex
+  description: |
+    ChromaDB instance is accessible without authentication. An attacker can
+    enumerate collections, extract all stored document chunks (which typically
+    contain ingested corporate documents from RAG pipelines), and search for
+    sensitive data. ChromaDB has no built-in authentication.
+  reference:
+    - https://docs.trychroma.com/
+  tags: [vectordb, chromadb, auth, misconfiguration, data-exposure]
+
+detect:
+  - method: GET
+    path: /api/v2/heartbeat
+    matchers:
+      - type: status
+        value: "200"
+  - method: GET
+    path: /api/v1/heartbeat
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Collection enumeration"
+    method: GET
+    path: /api/v2/collections
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "\"name\""
+    extractors:
+      - type: regex
+        name: collection_data
+        regex: '"name"\s*:\s*"([^"]+)"'
+    severity: high
+    finding:
+      title: "ChromaDB Unauthenticated - Collections Exposed"
+      description: "ChromaDB is accessible without authentication. Collections found: {{collection_data}}. These likely contain embedded corporate documents from RAG pipelines. Use 'aipostex vectordb' for deep extraction."
+      remediation: "Implement authentication via reverse proxy. Bind ChromaDB to localhost. Use network segmentation."
+
+  - name: "Version and server info"
+    method: GET
+    path: /api/v2/heartbeat
+    matchers:
+      - type: status
+        value: "200"
+    extractors:
+      - type: json
+        name: heartbeat_data
+        path: "@this"
+    severity: info
+    finding:
+      title: "ChromaDB Server Information Disclosed"
+      description: "ChromaDB heartbeat response: {{heartbeat_data}}"

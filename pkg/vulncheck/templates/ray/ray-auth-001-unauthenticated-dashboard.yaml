@@ -1,0 +1,29 @@
+id: ray-auth-001-unauthenticated-dashboard
+info:
+  type: detection
+  name: "Ray Dashboard - Unauthenticated Exposure"
+  severity: high
+  author: aipostex
+  description: |
+    A Ray dashboard API is reachable without authentication. Exposed Ray dashboards
+    often reveal cluster metadata and may expose follow-on job submission surfaces.
+  reference:
+    - https://docs.ray.io/
+  tags: [ray, auth, dashboard, misconfiguration]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+checks:
+  - name: "Ray dashboard version endpoint reachable"
+    method: GET
+    path: /api/version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)ray"
+    severity: high
+    finding:
+      title: "Ray Dashboard Exposed Without Authentication"
+      description: "Ray dashboard metadata is reachable without authentication."
+      remediation: "Restrict dashboard network exposure and add authentication controls in front of the Ray dashboard."

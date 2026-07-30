@@ -1,0 +1,45 @@
+id: triton-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "NVIDIA Triton Inference Server - Unauthenticated API Access"
+  severity: high
+  author: aipostex
+  description: |
+    Triton Inference Server HTTP endpoints are reachable without authentication.
+    An attacker can enumerate deployed models, read configurations, and abuse
+    inference APIs for compute theft or data exfiltration when the service is
+    exposed to untrusted networks.
+  reference:
+    - https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_model_repository.html
+  tags: [triton, auth, misconfiguration, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0034]
+
+detect:
+  - method: GET
+    path: /v2/health/ready
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Model repository exposed without authentication"
+    method: GET
+    path: /v2/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    extractors:
+      - type: json
+        name: model_count
+        path: "models.#"
+      - type: json
+        name: first_model
+        path: "models.0.name"
+    severity: high
+    finding:
+      title: "Triton Unauthenticated - {{model_count}} Models Exposed"
+      description: "Triton /v2/models is accessible without authentication. At least {{model_count}} model entries are visible (e.g. {{first_model}}). Restrict network access and enable authentication at the edge."
+      remediation: "Bind Triton to internal interfaces, place behind an authenticated reverse proxy or API gateway, and use TLS with mutual TLS or token auth for production deployments."

@@ -1,0 +1,123 @@
+id: wandb-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "Weights & Biases - Unauthenticated GraphQL API Access"
+  severity: high
+  author: aipostex
+  description: |
+    Weights & Biases server GraphQL API is accessible without authentication.
+    An attacker can enumerate viewer identity, projects, training runs,
+    hyperparameters, metrics, model artifacts, and potentially extract API keys
+    from run configurations.
+  reference:
+    - https://docs.wandb.ai/guides/hosting/security
+    - https://docs.wandb.ai/models/ref/python/public-api/api
+  tags: [wandb, auth, misconfiguration, ml-tracking]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0034]
+
+detect:
+  - method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Viewer { viewer { username email admin entity teams { edges { node { name } } } } }"}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "viewer"
+    extractors:
+      - type: json
+        name: wandb_entity
+        path: "data.viewer.entity"
+      - type: json
+        name: wandb_username
+        path: "data.viewer.username"
+
+checks:
+  - name: "Viewer identity without authentication"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Viewer { viewer { username email admin entity teams { edges { node { name } } } } }"}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: json_path
+        key: "data.viewer.username"
+      - type: json_path
+        key: "data.viewer.entity"
+    extractors:
+      - type: json
+        name: wandb_entity
+        path: "data.viewer.entity"
+      - type: json
+        name: wandb_username
+        path: "data.viewer.username"
+      - type: json
+        name: wandb_email
+        path: "data.viewer.email"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "W&B Unauthenticated - Viewer GraphQL Accessible"
+      description: "W&B GraphQL viewer data is accessible without authentication. Viewer {{wandb_username}} exposes entity {{wandb_entity}} and account metadata."
+      remediation: "Enable authentication on the W&B server, restrict GraphQL API access via network controls, or deploy behind an authenticating reverse proxy."
+      evidence: |
+        Request:  POST /graphql query Viewer (no authentication)
+        Result:   200 OK - viewer identity returned
+        Entity:   {{wandb_entity}}
+        Impact:   Account discovery, team enumeration, project/run follow-on access
+
+  - name: "Project enumeration without authentication"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Projects($entity: String!, $cursor: String, $perPage: Int = 20) { models(entityName: $entity, after: $cursor, first: $perPage) { edges { node { id name entityName createdAt isBenchmark } } pageInfo { endCursor hasNextPage } } }","variables":{"entity":"{{wandb_entity}}","perPage":20}}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: json_path
+        key: "data.models.edges.0.node.name"
+    extractors:
+      - type: json
+        name: first_wandb_project
+        path: "data.models.edges.0.node.name"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "W&B Unauthenticated - Projects Accessible"
+      description: "W&B GraphQL project enumeration is accessible without authentication for entity {{wandb_entity}}. First project: {{first_wandb_project}}."
+      remediation: "Require authentication for GraphQL project queries and restrict W&B access to trusted users and networks."
+      evidence: |
+        Request:  POST /graphql query Projects(entity={{wandb_entity}})
+        Result:   200 OK - project connection returned
+        Impact:   Training project enumeration, run discovery, artifact follow-on access
+
+  - name: "Run metadata exposure"
+    method: POST
+    read_only: true
+    path: /graphql
+    headers:
+      Content-Type: application/json
+    body: '{"query":"query Runs($entity: String!, $project: String!, $cursor: String, $perPage: Int = 10) { project(entityName: $entity, name: $project) { runCount runs(after: $cursor, first: $perPage) { edges { node { id name displayName state tags config summaryMetrics createdAt } cursor } pageInfo { endCursor hasNextPage } } } }","variables":{"entity":"{{wandb_entity}}","project":"{{first_wandb_project}}","perPage":10}}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "summaryMetrics"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "W&B Run Metadata Exposed"
+      description: "W&B run metadata is accessible through GraphQL without authentication. Runs may contain hyperparameters, metrics, and configuration that reveal model architecture and training data details."
+      remediation: "Require authentication for GraphQL run queries and audit run configurations for embedded secrets."

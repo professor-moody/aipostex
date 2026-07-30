@@ -1,0 +1,51 @@
+id: kubeflow-auth-001-dashboard-unauthenticated
+info:
+  type: detection
+  name: "Kubeflow - Unauthenticated Dashboard Access"
+  severity: high
+  author: aipostex
+  description: |
+    Kubeflow central dashboard and pipeline APIs provide control-plane access
+    to ML workflows. When authentication is missing or misconfigured, attackers
+    can reach the UI or pipeline REST surface from the network.
+  reference:
+    - https://www.kubeflow.org/docs/other-guides/security/
+  tags: [kubeflow, auth, misconfiguration, mlops]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)kubeflow"
+
+checks:
+  - name: "Pipeline UI path reachable"
+    method: GET
+    path: /pipeline/
+    matchers:
+      - type: status
+        value: "200"
+    severity: high
+    finding:
+      title: "Kubeflow Pipeline UI Path Exposed"
+      description: "GET /pipeline/ returned HTTP 200 on a host that identifies as Kubeflow, suggesting dashboard or pipeline UI exposure without adequate fronting controls."
+      remediation: "Enable OIDC or corporate SSO for Kubeflow, enforce Istio or ingress authentication, and restrict dashboard access to admin networks."
+
+  - name: "Pipelines REST API reachable"
+    method: GET
+    path: /api/v1/pipelines
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "pipelines"
+    severity: high
+    finding:
+      title: "Kubeflow Pipelines API Exposed"
+      description: "GET /api/v1/pipelines returned HTTP 200, indicating the pipelines API may be reachable without proper authentication."
+      remediation: "Configure authenticated ingress, enable Kubeflow multi-user isolation, and verify pipeline API is not anonymously callable from untrusted networks."

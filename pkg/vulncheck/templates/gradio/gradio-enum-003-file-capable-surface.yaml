@@ -1,0 +1,40 @@
+id: gradio-enum-003-file-capable-surface
+info:
+  type: detection
+  name: "Gradio - File-Capable Surface Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    Gradio config responses can disclose whether endpoints accept or return
+    files, helping operators prioritize upload/read/serve chains. This remains
+    read-only while validating a richer Gradio surface than liveness alone.
+  reference:
+    - https://www.gradio.app/
+  tags: [gradio, enumeration, file-handling, config]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /config
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(dependencies|named_endpoints|api_prefix)"
+
+checks:
+  - name: "Config advertises file-capable routes"
+    method: GET
+    path: /config
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(file|upload|allow_flagging)"
+    severity: medium
+    finding:
+      title: "Gradio Config Reveals File-Capable Surface"
+      description: "Gradio returned config metadata that advertises file-capable routes or upload behavior, indicating a higher-risk surface for follow-on chaining."
+      remediation: "Avoid exposing Gradio config publicly and protect file-capable apps with authentication."
+

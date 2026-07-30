@@ -1,0 +1,46 @@
+id: openai-auth-002-model-inventory-exposed
+info:
+  type: detection
+  name: "OpenAI-Compatible API - Model Inventory Exposed"
+  severity: high
+  author: aipostex
+  description: |
+    A real OpenAI-compatible model listing endpoint is exposed without strong
+    service-specific corroboration or credential enforcement. This template
+    validates the inventory surface before any active inference proof.
+  reference:
+    - https://platform.openai.com/docs/api-reference/models/list
+  tags: [openai-compatible, auth, enumeration, llmjacking]
+  classification:
+    mitre-atlas: [AML.T0040]
+
+detect:
+  - method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "\"data\""
+
+checks:
+  - name: "Model inventory exposed without auth"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)\"object\"\\s*:\\s*\"list\""
+    extractors:
+      - type: json
+        name: first_model
+        path: "data.0.id"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "OpenAI-Compatible Model Inventory Exposed"
+      description: "GET /v1/models returned a real model list without strong auth enforcement. First model observed: {{first_model}}."
+      remediation: "Require valid API credentials for model inventory endpoints and restrict exposed listeners to trusted networks."
+

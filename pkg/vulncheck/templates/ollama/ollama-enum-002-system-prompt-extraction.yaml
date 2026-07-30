@@ -1,0 +1,60 @@
+id: ollama-enum-002-system-prompt-extraction
+info:
+  name: "Ollama - System Prompt Extraction"
+  type: detection
+  severity: high
+  author: aipostex
+  description: |
+    Ollama /api/show endpoint reveals the complete Modelfile including
+    SYSTEM directives for any model. System prompts often contain
+    internal procedures, hardcoded credentials, tool definitions,
+    and business logic that should not be exposed.
+  reference:
+    - https://github.com/ollama/ollama/blob/main/docs/api.md
+  tags: [ollama, enumeration, system-prompt, data-exposure]
+  classification:
+    mitre-atlas: [AML.T0056]
+    owasp-llm: [LLM07]
+
+detect:
+  - method: GET
+    path: /api/tags
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    extractors:
+      - type: json
+        name: first_model
+        path: "models.0.name"
+
+checks:
+  - name: "System prompt extraction via /api/show"
+    method: POST
+    path: /api/show
+    read_only: true
+    landed: read-confirmed
+    headers:
+      Content-Type: application/json
+    body: '{"model":"{{first_model}}"}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "modelfile"
+    extractors:
+      - type: json
+        name: modelfile_content
+        path: "modelfile"
+      - type: json
+        name: model_family
+        path: "details.family"
+      - type: json
+        name: parameter_size
+        path: "details.parameter_size"
+    severity: high
+    finding:
+      title: "Ollama System Prompt Extracted - {{first_model}} ({{model_family}}, {{parameter_size}})"
+      description: "Complete Modelfile retrieved including SYSTEM prompt, parameters, and template. Review for embedded credentials, internal procedures, or sensitive business logic."
+      evidence: "{{modelfile_content}}"

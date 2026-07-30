@@ -1,0 +1,40 @@
+id: triton-enum-003-metrics-exposed
+info:
+  type: detection
+  name: "NVIDIA Triton - Metrics Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    Triton Prometheus metrics can disclose live inference counters, model load
+    state, and backend behavior without authentication. This helps validate a
+    real Triton surface while exposing operational telemetry.
+  reference:
+    - https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/metrics.html
+  tags: [triton, metrics, enumeration, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /v2/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+
+checks:
+  - name: "Prometheus metrics exposed"
+    method: GET
+    path: /metrics
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(nv_inference_|triton_)"
+    severity: medium
+    finding:
+      title: "Triton Metrics Exposed Without Authentication"
+      description: "Triton returned Prometheus metrics without authentication, exposing inference counters and backend telemetry."
+      remediation: "Restrict /metrics to internal monitoring networks and add authentication at the edge."
+

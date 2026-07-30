@@ -1,0 +1,53 @@
+id: k8s-rbac-001-anonymous-namespace-list
+info:
+  type: detection
+  name: "Kubernetes - Unauthenticated Namespace Enumeration"
+  severity: high
+  author: aipostex
+  description: |
+    A ClusterRole granting read access is bound to system:anonymous (or
+    system:unauthenticated), so the API server returns the cluster namespace list
+    to unauthenticated callers. This over-broad RBAC binding lets an attacker map
+    the cluster — discovering ML/production namespaces — with no credentials, and
+    typically extends to pods, deployments, and secrets.
+  reference:
+    - https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+    - https://kubernetes.io/docs/reference/kubernetes-api/cluster-resources/namespace-v1/
+  tags: [kubernetes, k8s, rbac, enumeration, anonymous]
+  classification:
+    mitre-atlas: [AML.T0040, AML.T0034]
+
+detect:
+  - method: GET
+    path: /version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "gitVersion"
+
+checks:
+  - name: "Anonymous namespace list"
+    method: GET
+    path: /api/v1/namespaces
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "NamespaceList"
+      - type: body_not_contains
+        value: "Unauthorized"
+    extractors:
+      - type: json
+        name: namespace_count
+        path: "items.#"
+      - type: json
+        name: first_namespace
+        path: "items.0.metadata.name"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Kubernetes Namespaces Enumerable Anonymously - {{namespace_count}} namespaces"
+      description: "The API server returned {{namespace_count}} namespace(s) (e.g. {{first_namespace}}) to an unauthenticated request. A ClusterRole is bound to the anonymous user, granting credential-free cluster reconnaissance."
+      remediation: "Remove any ClusterRoleBinding targeting system:anonymous or system:unauthenticated. Disable anonymous authentication. Apply least-privilege RBAC and enable audit logging for anonymous access attempts."

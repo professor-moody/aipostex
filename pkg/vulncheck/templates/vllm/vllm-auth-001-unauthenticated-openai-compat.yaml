@@ -1,0 +1,48 @@
+id: vllm-auth-001-unauthenticated-openai-compat
+info:
+  type: detection
+  name: "vLLM - Unauthenticated OpenAI-Compatible API"
+  severity: high
+  author: aipostex
+  description: |
+    vLLM server exposing OpenAI-compatible API without authentication.
+    Allows model enumeration, unauthorized inference, and compute theft.
+    Primary target in LLMjacking operations like Operation Bizarre Bazaar.
+  reference:
+    - https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
+    - https://www.pillar.security/blog/operation-bizarre-bazaar
+  tags: [vllm, auth, misconfiguration, llmjacking, openai-compatible]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0034]
+
+checks:
+  - name: "Model enumeration without authentication"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    extractors:
+      - type: json
+        name: model_ids
+        path: "data.#.id"
+    severity: high
+    finding:
+      title: "vLLM/OpenAI-Compatible API - No Authentication"
+      description: "OpenAI-compatible API exposes models without authentication: {{model_ids}}. Vulnerable to LLMjacking compute theft."
+      remediation: "Implement API key authentication via --api-key flag or reverse proxy."
+
+  - name: "Health endpoint information disclosure"
+    method: GET
+    path: /health
+    matchers:
+      - type: status
+        value: "200"
+    severity: info
+    stage: recon
+    landed: reachable
+    finding:
+      title: "vLLM Health Endpoint Accessible"
+      description: "Health endpoint confirms service is running and responsive."

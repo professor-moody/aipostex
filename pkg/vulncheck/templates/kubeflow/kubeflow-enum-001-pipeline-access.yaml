@@ -1,0 +1,103 @@
+id: kubeflow-enum-001-pipeline-access
+info:
+  name: "Kubeflow - Unauthenticated Pipeline/Experiment Enumeration"
+  type: detection
+  severity: high
+  author: aipostex
+  description: |
+    Kubeflow Pipelines REST API allows listing pipelines, experiments, and runs
+    without authentication when misconfigured. An attacker can enumerate the full
+    ML workflow inventory and inspect pipeline parameters (which often contain
+    secrets). Potential impact: an unauthenticated API surface like this may also
+    permit submitting new pipeline runs to execute code on the cluster — this
+    template does not attempt that and only confirms read access.
+  reference:
+    - https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/
+    - https://www.kubeflow.org/docs/other-guides/security/
+  tags: [kubeflow, mlops, pipeline]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0040, AML.T0034]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)kubeflow"
+
+checks:
+  - name: "Pipelines v2 API enumeration"
+    method: GET
+    path: /pipeline/apis/v2beta1/pipelines?page_size=5
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "pipelines"
+    extractors:
+      - type: json
+        name: pipeline_count
+        path: "total_size"
+      - type: json
+        name: pipeline_name
+        path: "pipelines.0.display_name"
+      - type: json
+        name: pipeline_id
+        path: "pipelines.0.pipeline_id"
+    severity: high
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "Kubeflow Pipelines API Exposed - {{pipeline_count}} Pipelines"
+      description: "The v2beta1 pipelines API returned {{pipeline_count}} pipeline(s) without authentication. First pipeline: {{pipeline_name}} ({{pipeline_id}})."
+      remediation: "Enable OIDC/SSO for Kubeflow. Configure Istio authorization policies to block anonymous API access."
+
+  - name: "Experiments enumeration"
+    method: GET
+    path: /pipeline/apis/v2beta1/experiments?page_size=5
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "experiments"
+    extractors:
+      - type: json
+        name: experiment_count
+        path: "total_size"
+      - type: json
+        name: experiment_name
+        path: "experiments.0.display_name"
+    severity: high
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "Kubeflow Experiments Exposed - {{experiment_count}} Experiments"
+      description: "The experiments API returned {{experiment_count}} experiment(s) without authentication (e.g. {{experiment_name}}). Experiments often contain run parameters with embedded credentials, S3 paths, and database connection strings."
+      remediation: "Restrict API access via Istio policies. Enable multi-user isolation in Kubeflow to enforce namespace-level authorization."
+      evidence: |
+        Endpoint: GET /pipeline/apis/v2beta1/experiments?page_size=5
+        Result:   200 OK — {{experiment_count}} experiments returned
+        Sample:   {{experiment_name}}
+        Impact:   Experiment metadata often leaks secrets in pipeline parameters
+
+  - name: "Pipelines v1 API fallback"
+    method: GET
+    path: /api/v1/pipelines?page_size=5
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "pipelines"
+    extractors:
+      - type: json
+        name: v1_pipeline_count
+        path: "total_size"
+    severity: high
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "Kubeflow v1 Pipelines API Exposed - {{v1_pipeline_count}} Pipelines"
+      description: "The legacy v1 pipelines API is also accessible without authentication, returning {{v1_pipeline_count}} pipeline(s)."
+      remediation: "Ensure both v1 and v2 API paths are behind authentication."

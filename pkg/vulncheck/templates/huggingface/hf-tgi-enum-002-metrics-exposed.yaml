@@ -1,0 +1,40 @@
+id: hf-tgi-enum-002-metrics-exposed
+info:
+  type: detection
+  name: "Hugging Face TGI - Metrics Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    TGI exports Prometheus metrics that reveal live generation activity and
+    backend behavior. This provides stronger service validation than a generic
+    health check while still remaining read-only.
+  reference:
+    - https://huggingface.co/docs/text-generation-inference/
+  tags: [huggingface, tgi, metrics, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /info
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "model_id"
+
+checks:
+  - name: "TGI metrics exposed"
+    method: GET
+    path: /metrics
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(text_generation|tgi_)"
+    severity: medium
+    finding:
+      title: "TGI Metrics Exposed Without Authentication"
+      description: "The TGI listener returned Prometheus metrics without authentication, exposing generation telemetry and operational metadata."
+      remediation: "Restrict metrics to trusted monitoring infrastructure and remove public access to the TGI listener."
+

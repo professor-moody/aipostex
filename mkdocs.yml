@@ -1,0 +1,148 @@
+site_name: aipostex
+site_description: AI Infrastructure Offensive Security Framework
+repo_url: https://github.com/professor-moody/aipostex
+repo_name: professor-moody/aipostex
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: red
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: red
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.mark
+  - attr_list
+  - md_in_html
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quickstart: getting-started/quickstart.md
+    - Core Concepts: getting-started/concepts.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Package Reference: architecture/packages.md
+    - Template Execution Model: architecture/template-execution-model.md
+  - CLI Reference:
+    - Common Flags: cli/global-flags.md
+    - Discovery:
+      - discover network: cli/scan-network.md
+      - discover files: cli/scan-files.md
+    - Scanning:
+      - scan targets: cli/scan.md
+    - Assessment:
+      - assess network: cli/scan-all.md
+    - Templates:
+      - templates list / info: cli/templates-cmd.md
+    - Operator Console:
+      - request (one-shot): cli/request.md
+      - shell (interactive REPL): cli/shell.md
+    - Reporting:
+      - report view: cli/report-view.md
+      - report render: cli/report.md
+      - report summary: cli/summary.md
+      - report graph: cli/graph.md
+    - Engagement:
+      - sessions: cli/sessions.md
+      - engagement merge: cli/merge.md
+      - engagement bundle: cli/bundle.md
+    - CLI Migration: cli/migration.md
+  - Exploit Modules:
+    - modules/index.md
+    - Ollama: modules/ollama.md
+    - Vector Databases: modules/vectordb.md
+    - Jupyter: modules/jupyter.md
+    - MCP: modules/mcp.md
+    - OpenAI-Compatible: modules/openai-compat.md
+    - Ray: modules/ray.md
+    - MLflow: modules/mlflow.md
+    - Gradio: modules/gradio.md
+    - BentoML: modules/bentoml.md
+    - W&B: modules/wandb.md
+    - Triton: modules/triton.md
+    - TorchServe: modules/torchserve.md
+    - TF Serving: modules/tfserving.md
+    - HuggingFace: modules/huggingface.md
+    - Kubeflow: modules/kubeflow.md
+    - Kubernetes: modules/k8s.md
+    - A2A: modules/a2a.md
+    - Model scan: modules/model-scan.md
+    - LiteLLM: modules/litellm.md
+  - Templates:
+    - Template Format: vuln-templates/format.md
+    - Writing Templates: vuln-templates/writing.md
+    - Built-in Templates: vuln-templates/builtin.md
+    - Community Templates: vuln-templates/community.md
+  - Discovery Rules:
+    - Rule Format: rules/format.md
+    - Writing Rules: rules/writing.md
+    - Built-in Rules: rules/builtin.md
+  - Output:
+    - Output Formats: output/formats.md
+    - Finding Schema: output/finding-schema.md
+    - Workflow Metadata: output/workflow-metadata.md
+  - Operator Guide:
+    - Operator Progression: operator-guide/progression.md
+    - Safety Model: operator-guide/safety.md
+    - OPSEC & Stealth: operator-guide/opsec.md
+    - Network Discovery: operator-guide/network-discovery.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Adding Modules: development/adding-modules.md
+    - Adding Templates: development/adding-templates.md
+    - Testing Against Real Products: development/sandbox.md
+    - Coverage Matrix: development/coverage.md
+    - Roadmap: development/roadmap.md
+    - Implementation plans:
+        - Overview: development/plans/README.md
+        - v0.1.2 depth: development/plans/v0.1.2-implementation-plan.md
+        - Vector DB (Milvus/pgvector): development/plans/vectordb-milvus-pgvector-tasks.md
+        - v0.2.0 detection: development/plans/v0.2.0-detection-track.md
+        - v0.2.0 workflow/credchain: development/plans/v0.2.0-workflow-credchain-track.md
+        - Technical debt (fingerprint/CI): development/plans/technical-debt-fingerprint-and-ci.md

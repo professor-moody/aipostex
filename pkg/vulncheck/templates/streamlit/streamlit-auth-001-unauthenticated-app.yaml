@@ -1,0 +1,67 @@
+id: streamlit-auth-001-unauthenticated-app
+info:
+  type: detection
+  name: "Streamlit - Unauthenticated Application Access"
+  severity: high
+  author: aipostex
+  description: |
+    Streamlit application is accessible without authentication. By default
+    Streamlit does not enforce authentication, exposing internal dashboards,
+    ML model interfaces, and potentially sensitive data visualizations to
+    any network client. Custom credentials may be stored in
+    .streamlit/secrets.toml which is accessible via config exposure paths.
+  reference:
+    - https://docs.streamlit.io/develop/concepts/configuration/secrets-management
+  tags: [streamlit, auth, misconfiguration, dashboard]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: body_contains
+        value: "streamlitApp"
+
+checks:
+  - name: "Streamlit health endpoint accessible"
+    method: GET
+    path: /_stcore/health
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "ok"
+    severity: medium
+    stage: impact
+    landed: reachable
+    finding:
+      title: "Streamlit Unauthenticated - Health Endpoint Accessible"
+      description: "Streamlit application health endpoint is accessible without authentication. The application is running and serving content to any network client."
+      remediation: "Deploy Streamlit behind an authenticating reverse proxy, configure secrets.toml with credentials, or restrict network access to authorized users."
+      evidence: |
+        Request:  GET /_stcore/health (no authentication)
+        Result:   200 OK — application is running and accessible
+        Impact:   Unauthenticated access to internal ML dashboards and data
+
+  - name: "Streamlit host configuration exposure"
+    method: GET
+    path: /_stcore/host-config
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "allowRunOnSave"
+    extractors:
+      - type: json
+        name: allow_run_on_save
+        path: "allowRunOnSave"
+    stage: impact
+    landed: read-confirmed
+    severity: high
+    finding:
+      title: "Streamlit Host Configuration Exposed"
+      description: "Streamlit host configuration is accessible, revealing deployment settings. This may disclose internal hostnames, port bindings, and feature flags."
+      evidence: |
+        Request:  GET /_stcore/host-config
+        Result:   200 OK — host configuration returned

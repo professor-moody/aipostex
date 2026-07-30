@@ -1,0 +1,45 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - gosec
+    - bodyclose
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+      # Intentional for a security tool: file scanning, subprocess launch
+      - linters:
+          - gosec
+        text: 'G104|G204|G301|G304|G702'
+      # Terminal file descriptor (uintptr) -> int for term.GetSize is always safe
+      - path: internal/output/console\.go
+        linters:
+          - gosec
+        text: 'G115'
+      # Deferred Close/Flush in non-critical paths
+      - linters:
+          - errcheck
+        text: '\.Close|\.Flush'
+      # Cleanup best-effort calls
+      - linters:
+          - errcheck
+        text: 'os\.Remove'
+      # Style suggestions, not correctness
+      - linters:
+          - staticcheck
+        text: 'QF|ST1005'
+
+run:
+  timeout: 5m

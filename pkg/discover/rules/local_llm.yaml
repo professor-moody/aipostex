@@ -1,0 +1,75 @@
+rules:
+  - name: "Ollama Model Directory"
+    category: "local-llm"
+    severity: "medium"
+    description: "Ollama installation found. Models may have been used with corporate data."
+    file_patterns: ["Modelfile"]
+    path_patterns: ["*/.ollama/models/*"]
+
+  - name: "GGUF Model Files"
+    category: "local-llm"
+    severity: "medium"
+    description: "GGUF model weight file found. Indicates local LLM deployment."
+    file_patterns: ["*.gguf"]
+    max_file_size: 0  # Don't read content, just match filename
+
+  - name: "SafeTensors Model Files"
+    category: "local-llm"
+    severity: "medium"
+    description: "SafeTensors model weights found. May indicate fine-tuning with corporate data."
+    file_patterns: ["*.safetensors", "model.safetensors.index.json"]
+    max_file_size: 0
+
+  - name: "Pickle Model Files"
+    category: "local-llm"
+    severity: "high"
+    description: "Pickle-serialized model file found. Pickle deserialization allows arbitrary code execution — loading untrusted .pkl files is equivalent to running attacker-controlled code."
+    file_patterns: ["*.pkl", "*.pickle"]
+    max_file_size: 0
+
+  - name: "PyTorch Model Files"
+    category: "local-llm"
+    severity: "high"
+    description: "PyTorch model checkpoint found. Default torch.load() uses pickle deserialization, enabling arbitrary code execution from untrusted model files."
+    file_patterns: ["*.pt", "*.pth", "*.bin"]
+    max_file_size: 0
+
+  - name: "ONNX Model Files"
+    category: "local-llm"
+    severity: "medium"
+    description: "ONNX model interchange file found. Indicates ML model deployment or export pipeline."
+    file_patterns: ["*.onnx"]
+    max_file_size: 0
+
+  - name: "LM Studio Installation"
+    category: "local-llm"
+    severity: "medium"
+    description: "LM Studio local LLM deployment found."
+    path_patterns: ["*/.cache/lm-studio/*", "*/LM Studio/*"]
+    file_patterns: ["lms-*"]
+
+  - name: "Docker AI Container Config"
+    category: "local-llm"
+    severity: "medium"
+    description: "Docker Compose configuration referencing AI container images."
+    file_patterns: ["docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"]
+    content_patterns:
+      - 'ollama/ollama'
+      - 'vllm/vllm-openai'
+      - 'localai/localai'
+      - 'ghcr\.io/huggingface'
+      - 'text-generation-inference'
+      - 'open-webui'
+      - 'chromadb/chroma'
+      - 'semitechnologies/weaviate'
+      - 'qdrant/qdrant'
+
+  - name: "Ollama Environment Config"
+    category: "local-llm"
+    severity: "medium"
+    description: "Ollama environment configuration that may expose bind address or model paths."
+    file_patterns: ["*.env", "*.service", "*.conf"]
+    content_patterns:
+      - 'OLLAMA_HOST\s*='
+      - 'OLLAMA_MODELS\s*='
+      - 'OLLAMA_ORIGINS\s*='

@@ -1,0 +1,212 @@
+id: bizarre-bazaar-001-llmjacking-validation
+info:
+  name: "Operation Bizarre Bazaar - LLMjacking Endpoint Validation"
+  type: exploit
+  severity: high
+  author: aipostex
+  description: |
+    Simulates the silver.inc validation phase from Operation Bizarre Bazaar
+    (documented by Pillar Security, Jan 2026). Tests whether AI endpoints
+    accept placeholder/test API keys or no authentication, indicating
+    vulnerability to LLMjacking — unauthorized compute theft and resale.
+    
+    The real campaign captured 35,000 attack sessions in one month, with
+    attackers reselling stolen compute at 40-60% discount.
+  reference:
+    - https://www.pillar.security/blog/operation-bizarre-bazaar
+    - https://www.pillar.security/resources/operation-bizarre-bazaar
+  tags: [adversary-emulation, bizarre-bazaar, llmjacking, auth, ollama, vllm]
+  classification:
+    mitre-atlas: [AML.T0006, AML.T0049, AML.T0034, AML.T0040]
+
+checks:
+  - name: "No authentication required (Ollama)"
+    method: GET
+    path: /api/tags
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    extractors:
+      - type: json
+        name: model_names
+        path: "models.#.name"
+    severity: critical
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: Ollama Endpoint - No Authentication"
+      description: "Ollama API responds without any authentication. Models available: {{model_names}}. Matches Operation Bizarre Bazaar primary target profile. Attackers can steal compute, extract model data, and resell access."
+      remediation: "Bind to localhost (OLLAMA_HOST=127.0.0.1), implement reverse proxy with auth, or use network ACLs."
+      evidence: |
+        Request:  GET /api/tags (no authentication)
+        Result:   200 OK — model list returned: {{model_names}}
+        Impact:   Compute theft, model exfiltration, resale (Operation Bizarre Bazaar pattern)
+
+  - name: "No authentication required (OpenAI-compatible)"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    severity: critical
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: OpenAI-Compatible Endpoint - No Authentication"
+      description: "OpenAI-compatible API responds without authentication. Exposed to commercial LLMjacking operations like silver.inc."
+      evidence: |
+        Request:  GET /v1/models (no authentication)
+        Result:   200 OK — model inventory returned
+        Impact:   Compute theft, model access without auth (silver.inc pattern)
+
+  - name: "Placeholder API key accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer sk-test-placeholder-key-00000000"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: Placeholder API Key Accepted"
+      description: "Endpoint accepted a placeholder API key (sk-test-*). Authentication is not properly enforced. This is the exact validation technique used by silver.inc."
+
+  - name: "Developer test token accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer test-token"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: Developer Test Token Accepted"
+      description: "Endpoint accepted a common developer/test token. This broadens the placeholder credential patterns that can be used to validate exploitable inference access."
+
+  - name: "Weak placeholder key accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer sk-1234"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: Weak Placeholder Key Accepted"
+      description: "Endpoint accepted a weak placeholder-style bearer token (sk-1234), indicating broken or absent API-key enforcement."
+
+  - name: "Local developer token accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer dev-local-key"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: Local Developer Token Accepted"
+      description: "Endpoint accepted a local development or CI-style bearer token, broadening the weak-auth validation patterns available to LLMjacking operators."
+
+  - name: "Empty bearer token accepted"
+    method: GET
+    path: /v1/models
+    headers:
+      Authorization: "Bearer "
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    severity: critical
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: Empty Bearer Token Accepted"
+      description: "Endpoint accepts empty authentication tokens. No authentication is effectively enforced."
+      evidence: |
+        Request:  GET /v1/models with "Authorization: Bearer " (empty token)
+        Result:   200 OK — model data returned despite empty credential
+        Impact:   Authentication completely bypassed, compute theft trivial
+
+  - name: "Model inventory exposed without auth"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "data"
+    extractors:
+      - type: json
+        name: model_ids
+        path: "data.#.id"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: Model Inventory Exposed"
+      description: "Endpoint exposes model inventory without authentication: {{model_ids}}. Attackers can quickly assess resale value after validation."
+
+  - name: "High-value model inventory exposed"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(gpt-4|claude|70b|72b|90b|405b|128k|200k)"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "LLMjacking Risk: High-Value Model Metadata Exposed"
+      description: "Endpoint exposes model metadata suggesting high-value model inventory or long-context capacity, increasing the likelihood of commercial resale or compute theft prioritization."
+
+  - name: "Inference possible without auth"
+    method: POST
+    path: /v1/chat/completions
+    headers:
+      Content-Type: application/json
+    body: '{"model":"test","messages":[{"role":"user","content":"hi"}],"max_tokens":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "choices"
+      - type: body_contains
+        value: '"object":"chat.completion"'
+    severity: critical
+    stage: impact
+    landed: execution-confirmed
+    finding:
+      title: "LLMjacking Risk: Unauthorized Inference Confirmed"
+      description: "Inference execution succeeded without valid credentials. Endpoint is actively exploitable for compute theft. In Operation Bizarre Bazaar, such endpoints were cataloged and resold within hours of discovery."
+      evidence: |
+        Request:  POST /v1/chat/completions (no valid credentials)
+        Payload:  {"model":"test","messages":[{"role":"user","content":"hi"}],"max_tokens":1}
+        Result:   200 OK — inference response returned
+        Impact:   Active compute theft, endpoint cataloged for resale within hours

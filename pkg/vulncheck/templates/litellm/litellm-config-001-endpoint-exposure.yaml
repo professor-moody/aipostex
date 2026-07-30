@@ -1,0 +1,78 @@
+id: litellm-config-001-endpoint-exposure
+info:
+  type: detection
+  name: "LiteLLM - Configuration and Backend Exposure"
+  severity: high
+  author: aipostex
+  description: |
+    LiteLLM proxy exposes health, readiness, and model-info endpoints that
+    leak backend provider topology, API base URLs, version information, and
+    potentially embedded API keys from litellm_params. LiteLLM proxies
+    aggregate keys across multiple providers (OpenAI, Anthropic, Azure,
+    Bedrock) into a single unauthenticated surface.
+  reference:
+    - https://docs.litellm.ai/docs/proxy/health
+    - https://vulnerablemcp.info/
+  tags: [litellm, openai-compatible, auth, config-exposure, key-aggregation]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0040]
+
+detect:
+  # Fingerprint via /health/readiness: it returns instantly and always carries
+  # litellm_version. (/health runs live backend health-probes and can hang for
+  # seconds when an upstream is cold, making it an unreliable detection gate.)
+  - method: GET
+    path: /health/readiness
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "litellm"
+
+checks:
+  - name: "Readiness endpoint version leak"
+    method: GET
+    path: /health/readiness
+    matchers:
+      - type: status
+        value: "200"
+    extractors:
+      - type: json
+        name: litellm_version
+        path: "litellm_version"
+      - type: json
+        name: db_status
+        path: "db_connected"
+    severity: medium
+    finding:
+      title: "LiteLLM Version Disclosed: {{litellm_version}}"
+      description: "LiteLLM readiness endpoint is unprotected and leaks version {{litellm_version}} and database status ({{db_status}}). This endpoint requires no authentication."
+      remediation: "Restrict /health/readiness to internal networks or require authentication."
+
+  - name: "Health endpoint backend topology"
+    method: GET
+    path: /health
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "healthy_endpoints"
+    severity: high
+    finding:
+      title: "LiteLLM Health Endpoint Exposes Backend Topology"
+      description: "LiteLLM /health reveals healthy and unhealthy backend endpoints including model names and API base URLs. This maps the provider infrastructure behind the proxy."
+      remediation: "Restrict /health to authenticated admin users or internal networks."
+
+  - name: "Model info configuration exposure"
+    method: GET
+    path: /v1/model/info
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "litellm_params"
+    severity: high
+    finding:
+      title: "LiteLLM Model Info Exposes Provider Configurations"
+      description: "LiteLLM /v1/model/info returns full model configurations including litellm_params which may contain API keys, API base URLs, and provider-specific credentials."
+      remediation: "Require authentication for /v1/model/info or strip sensitive fields from the response."

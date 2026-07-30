@@ -1,0 +1,39 @@
+id: torchserve-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "TorchServe - Unauthenticated Management API"
+  severity: high
+  author: aipostex
+  description: |
+    TorchServe exposes management and inference HTTP APIs. The management
+    interface (default port 8081) allows listing and registering models without
+    built-in authentication when exposed, enabling abuse and operational takeover.
+  reference:
+    - https://pytorch.org/serve/rest_api.html
+  tags: [torchserve, auth, misconfiguration, model-serving]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /ping
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "Healthy"
+
+checks:
+  - name: "Management models API without authentication"
+    method: GET
+    path: /models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    severity: high
+    finding:
+      title: "TorchServe Management API Exposed (scan target may use port 8081)"
+      description: "TorchServe responded to GET /models with a model listing. The management API is typically on port 8081; exposure allows model enumeration and administrative actions without credentials."
+      remediation: "Disable public management ports, bind management to localhost, enable TorchServe SSL and token-based management if available, or front with an authenticated reverse proxy."

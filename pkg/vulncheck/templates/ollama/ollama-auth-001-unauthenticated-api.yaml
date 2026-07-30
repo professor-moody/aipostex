@@ -1,0 +1,80 @@
+id: ollama-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "Ollama - Unauthenticated API Access"
+  severity: high
+  author: aipostex
+  description: |
+    Ollama instance is accessible without authentication. An attacker can
+    enumerate models, extract system prompts, execute inference (compute theft),
+    and potentially create or delete models. This matches the attack vector
+    exploited in Operation Bizarre Bazaar.
+  reference:
+    - https://vulnerablemcp.info/
+    - https://www.pillar.security/blog/operation-bizarre-bazaar
+  tags: [ollama, auth, misconfiguration, llmjacking]
+  classification:
+    mitre-atlas: [AML.T0049, AML.T0034, AML.T0040]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: body_contains
+        value: "Ollama is running"
+
+checks:
+  - name: "Model enumeration without authentication"
+    method: GET
+    path: /api/tags
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    extractors:
+      - type: json
+        name: model_count
+        path: "models.#"
+      - type: json
+        name: first_model
+        path: "models.0.name"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Ollama Unauthenticated - {{model_count}} Models Exposed"
+      description: "Ollama API is accessible without authentication. Models available include: {{first_model}}. Any network client can enumerate models, steal system prompts, and abuse compute."
+      remediation: "Enable authentication via reverse proxy (nginx/caddy with auth), bind Ollama to localhost only (OLLAMA_HOST=127.0.0.1), or implement network-level access controls."
+      evidence: |
+        Request:  GET /api/tags (no authentication)
+        Result:   200 OK — {{model_count}} model(s) returned, first: {{first_model}}
+        Impact:   Model enumeration, prompt extraction, compute theft
+
+  - name: "Version disclosure"
+    method: GET
+    path: /api/version
+    matchers:
+      - type: status
+        value: "200"
+    extractors:
+      - type: json
+        name: ollama_version
+        path: "version"
+    severity: info
+    finding:
+      title: "Ollama Version Disclosed: {{ollama_version}}"
+      description: "Ollama version {{ollama_version}} is exposed. Check for known CVEs against this version."
+
+  - name: "Running models disclosure"
+    method: GET
+    path: /api/ps
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    severity: medium
+    finding:
+      title: "Ollama Running Models Exposed"
+      description: "Currently loaded models and VRAM usage are accessible without authentication."

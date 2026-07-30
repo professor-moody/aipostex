@@ -1,0 +1,31 @@
+id: gradio-auth-001-config-exposed
+info:
+  type: detection
+  name: "Gradio Config - Unauthenticated Exposure"
+  severity: high
+  author: aipostex
+  description: |
+    A Gradio application exposed its config surface without authentication. Config
+    responses often reveal callable endpoints, function indexes, queue usage, file
+    handling capability, API routing details, and whether upload/read/serve chains
+    are likely viable.
+  reference:
+    - https://www.gradio.app/
+  tags: [gradio, auth, config, misconfiguration]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+checks:
+  - name: "Gradio config endpoint reachable"
+    method: GET
+    path: /config
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(dependencies|named_endpoints|api_prefix)"
+    severity: high
+    finding:
+      title: "Gradio Config Exposed Without Authentication"
+      description: "Gradio returned config metadata without authentication. Exposed config often discloses callable routes, queue behavior, file-capable endpoints, and upload/read/serve chain potential."
+      remediation: "Add authentication and avoid exposing internal config metadata publicly."

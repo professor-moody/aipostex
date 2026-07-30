@@ -1,0 +1,40 @@
+id: langserve-enum-002-schema-exposed
+info:
+  type: detection
+  name: "LangServe - Input Schema Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    LangServe can publish JSON schemas for chain inputs and outputs. Public
+    schema routes help validate a real LangServe surface and expose argument
+    structure useful for later invoke testing.
+  reference:
+    - https://python.langchain.com/docs/langserve
+  tags: [langchain, langserve, schema, enumeration]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /docs
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(openapi|swagger)"
+
+checks:
+  - name: "Input schema route exposed"
+    method: GET
+    path: /input_schema
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(properties|title|type)"
+    severity: medium
+    finding:
+      title: "LangServe Input Schema Exposed Without Authentication"
+      description: "GET /input_schema returned a JSON schema, confirming a real LangServe runnable surface and exposing argument structure."
+      remediation: "Protect LangServe schema and docs routes with authentication or remove them from public deployments."
+

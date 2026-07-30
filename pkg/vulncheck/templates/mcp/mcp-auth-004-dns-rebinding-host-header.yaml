@@ -1,0 +1,35 @@
+id: mcp-auth-004-dns-rebinding-host-header
+info:
+  type: detection
+  name: "MCP HTTP Endpoint - Host Header Trust / DNS Rebinding Signal"
+  severity: medium
+  author: aipostex
+  description: |
+    Detects MCP HTTP endpoints that continue to serve JSON-RPC traffic when sent
+    an arbitrary Host header. This is a safe signal for Host-header trust issues
+    that can contribute to DNS rebinding exposure on locally bound servers.
+  reference:
+    - https://vulnerablemcp.info/
+  tags: [mcp, dns-rebinding, host-header]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+checks:
+  - name: "Initialize succeeds with arbitrary Host header"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+      Host: rebinding.invalid
+    body: '{"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{}},"id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "serverInfo"
+    severity: medium
+    finding:
+      title: "MCP Endpoint Accepts Arbitrary Host Header"
+      description: "MCP endpoint accepted an initialization request with an arbitrary Host header. Review localhost binding and Host-header validation for DNS rebinding exposure."
+      remediation: "Enforce trusted Host headers, bind locally when appropriate, and keep MCP SDKs patched."

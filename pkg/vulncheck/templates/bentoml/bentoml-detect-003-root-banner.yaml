@@ -1,0 +1,37 @@
+id: bentoml-detect-003-root-banner
+info:
+  type: detection
+  name: "BentoML - Service Root Banner Exposure"
+  severity: info
+  author: aipostex
+  description: |
+    The HTTP root path exposes a BentoML service banner or redirect, confirming
+    a model-serving surface. Useful when /docs.json is filtered but the default
+    landing page still identifies the framework.
+  reference:
+    - https://docs.bentoml.com/
+  tags: [bentoml, enumeration, information-disclosure]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)bentoml"
+
+checks:
+  - name: "Root page identifies BentoML"
+    method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)bentoml"
+    severity: info
+    finding:
+      title: "BentoML Service Banner on Root Path"
+      description: "The service root responds with content that identifies BentoML, confirming a Bento HTTP API is exposed on this port."
+      remediation: "If this host should not advertise BentoML, place it behind a reverse proxy and avoid framework banners on public roots."

@@ -1,0 +1,37 @@
+id: langserve-auth-001-unauthenticated-api
+info:
+  type: detection
+  name: "LangServe - Unauthenticated API Access"
+  severity: high
+  author: aipostex
+  description: |
+    LangServe hosts chain and runnable APIs with automatic OpenAPI documentation.
+    An exposed instance without authentication lets remote clients invoke chains
+    and retrieve API schemas from /docs.
+  reference:
+    - https://python.langchain.com/docs/langserve
+  tags: [langchain, langserve, auth, misconfiguration]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "OpenAPI documentation exposed"
+    method: GET
+    path: /docs
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(openapi|swagger)"
+    severity: high
+    finding:
+      title: "LangServe OpenAPI Docs Exposed at /docs"
+      description: "LangServe /docs returned content consistent with OpenAPI/Swagger UI, indicating an invokable HTTP API surface without authentication."
+      remediation: "Disable public docs in production, require authentication middleware on LangServe routes, and restrict ingress to trusted networks."

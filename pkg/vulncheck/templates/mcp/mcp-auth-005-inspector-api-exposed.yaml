@@ -1,0 +1,40 @@
+id: mcp-auth-005-inspector-api-exposed
+info:
+  type: detection
+  name: "MCP Inspector - Unauthenticated Control API Exposure"
+  severity: high
+  author: aipostex
+  description: |
+    Detects MCP Inspector or MCPJam Inspector API paths that respond without
+    authentication. Exposed inspector APIs materially increase the chance of
+    remote debugging or management abuse against local MCP environments.
+  reference:
+    - https://vulnerablemcp.info/
+  tags: [mcp, inspector, auth, misconfiguration]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+checks:
+  - name: "Inspector API servers endpoint reachable"
+    method: GET
+    path: /api/servers
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(transportType|serverUrl|servers)"
+    extractors:
+      - type: json
+        name: server_name
+        path: "0.name"
+      - type: json
+        name: server_url
+        path: "0.serverUrl"
+      - type: json
+        name: transport_type
+        path: "0.transportType"
+    severity: high
+    finding:
+      title: "MCP Inspector API Exposed Without Authentication"
+      description: "Inspector API endpoints responded without authentication. Discovered server {{server_name}} at {{server_url}} using {{transport_type}} transport. Review remote exposure, default bindings, and access controls for inspector deployments."
+      remediation: "Bind inspector services to localhost, require authentication, and restrict network access."

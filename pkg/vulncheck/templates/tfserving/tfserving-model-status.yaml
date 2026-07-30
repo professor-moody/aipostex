@@ -1,0 +1,42 @@
+id: tfserving-enum-001-model-status
+info:
+  type: detection
+  name: "TensorFlow Serving - Model Status Disclosure"
+  severity: medium
+  author: aipostex
+  description: |
+    The TensorFlow Serving GetModelStatus REST response lists model names and
+    version states. Disclosure aids attackers in mapping the inference fleet
+    and targeting specific model versions.
+  reference:
+    - https://www.tensorflow.org/tfx/serving/api_rest
+  tags: [tfserving, enumeration, model-serving]
+
+detect:
+  - method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Model version status enumeration"
+    method: GET
+    path: /v1/models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "model_version_status"
+    extractors:
+      - type: json
+        name: model_name
+        path: "model_version_status.0.model_name"
+      - type: json
+        name: model_entries
+        path: "model_version_status.#"
+    severity: medium
+    finding:
+      title: "TensorFlow Serving Model Status - {{model_name}} ({{model_entries}} entries)"
+      description: "Model status response discloses {{model_name}} and related entries ({{model_entries}} top-level model_version_status items) via the REST API."
+      remediation: "Limit which networks can query /v1/models; require authenticated access through a reverse proxy or service mesh."

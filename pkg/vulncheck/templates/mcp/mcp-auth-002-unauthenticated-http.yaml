@@ -1,0 +1,113 @@
+id: mcp-auth-002-unauthenticated-http
+info:
+  type: detection
+  name: "MCP Server - Unauthenticated Streamable HTTP Transport"
+  severity: high
+  author: aipostex
+  description: |
+    MCP server accepts unauthenticated JSON-RPC requests over the streamable
+    HTTP transport. An attacker can initialize a session, complete the MCP
+    lifecycle, enumerate tools, and inspect server capabilities without
+    authenticating.
+  reference:
+    - https://modelcontextprotocol.io/specification/2025-11-25/basic/transports
+    - https://modelcontextprotocol.io/specification/2025-03-26/basic/lifecycle
+    - https://vulnerablemcp.info/
+  tags: [mcp, auth, misconfiguration, http]
+
+detect:
+  - method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"aipostex-template","version":"1.0.0"}},"id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "serverInfo"
+    extractors:
+      - type: header
+        name: mcp_session_id
+        path: "Mcp-Session-Id"
+      - type: json
+        name: mcp_protocol_version
+        path: "result.protocolVersion"
+      - type: json
+        name: server_name
+        path: "result.serverInfo.name"
+
+checks:
+  - name: "Server initialization disclosure"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"aipostex-template","version":"1.0.0"}},"id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "serverInfo"
+    extractors:
+      - type: header
+        name: mcp_session_id
+        path: "Mcp-Session-Id"
+      - type: json
+        name: mcp_protocol_version
+        path: "result.protocolVersion"
+      - type: json
+        name: server_name
+        path: "result.serverInfo.name"
+    severity: medium
+    stage: access
+    landed: reachable
+    finding:
+      title: "MCP Streamable HTTP Initialization Exposed"
+      description: "MCP server accepted an unauthenticated initialize request. Server name: {{server_name}}. Protocol version: {{mcp_protocol_version}}."
+
+  - name: "Initialized notification accepted"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+      Mcp-Session-Id: "{{mcp_session_id}}"
+      MCP-Protocol-Version: "{{mcp_protocol_version}}"
+    body: '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}'
+    matchers:
+      - type: status
+        value: "202"
+    severity: medium
+    stage: access
+    landed: reachable
+    finding:
+      title: "MCP Streamable HTTP Session Established"
+      description: "MCP server accepted the unauthenticated notifications/initialized lifecycle notification for session {{mcp_session_id}}."
+
+  - name: "Tool enumeration over streamable HTTP"
+    method: POST
+    read_only: true
+    path: /message
+    headers:
+      Content-Type: application/json
+      Mcp-Session-Id: "{{mcp_session_id}}"
+      MCP-Protocol-Version: "{{mcp_protocol_version}}"
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "tools"
+    extractors:
+      - type: json
+        name: tool_names
+        path: "result.tools.#.name"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "MCP Streamable HTTP Transport - Tools Exposed"
+      description: "Unauthenticated streamable HTTP transport exposed MCP tools: {{tool_names}}."

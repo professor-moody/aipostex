@@ -1,0 +1,59 @@
+id: milvus-detect-001-unauth-access
+info:
+  type: detection
+  name: "Milvus - Unauthenticated REST API Access"
+  severity: high
+  author: aipostex
+  description: |
+    Milvus v2.4+ exposes a REST API that allows unauthenticated access to
+    collection listing, entity queries, and similarity searches. An attacker
+    can enumerate collections, extract embeddings, and inject poisoned data
+    into the vector store.
+  reference:
+    - https://milvus.io/docs/restful_api.md
+  tags: [vectordb, milvus, unauth, misconfiguration, data-exposure]
+
+detect:
+  - method: POST
+    read_only: true
+    path: /v2/vectordb/collections/list
+    headers:
+      Content-Type: application/json
+    body: "{}"
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Collection enumeration via REST API"
+    method: POST
+    read_only: true
+    path: /v2/vectordb/collections/list
+    headers:
+      Content-Type: application/json
+    body: "{}"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(collection_names|\"data\")"
+    extractors:
+      - type: regex
+        name: collection_hint
+        regex: '"([a-zA-Z_][a-zA-Z0-9_]*)"'
+    severity: high
+    finding:
+      title: "Milvus Unauthenticated - Collections Exposed"
+      description: "Milvus REST API collections are accessible without authentication."
+      remediation: "Enable Milvus authentication via the security.authorizationEnabled config flag and restrict network access."
+
+  - name: "Health endpoint disclosure"
+    method: GET
+    path: /v1/health
+    matchers:
+      - type: status
+        value: "200"
+    severity: info
+    finding:
+      title: "Milvus Health Endpoint Accessible"
+      description: "Milvus health endpoint is accessible without authentication and confirms service availability."

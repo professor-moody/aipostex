@@ -1,0 +1,31 @@
+id: mcp-auth-003-inspector-exposed
+info:
+  type: detection
+  name: "MCP Inspector - Unauthenticated Exposure"
+  severity: high
+  author: aipostex
+  description: |
+    MCP Inspector or MCPJam Inspector is exposed over HTTP without authentication.
+    Inspector deployments commonly provide remote control and debugging workflows
+    that materially expand the attack surface of local MCP environments and can
+    reveal concrete remote enum/poison follow-ons.
+  reference:
+    - https://vulnerablemcp.info/
+  tags: [mcp, inspector, auth, misconfiguration]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+checks:
+  - name: "Inspector UI reachable without authentication"
+    method: GET
+    path: /
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)mcp(\\s|-)?(jam\\s)?inspector"
+    severity: high
+    finding:
+      title: "MCP Inspector Exposed Without Authentication"
+      description: "Inspector UI is reachable without authentication. This can expose local MCP debugging or management workflows to remote clients and hand off directly into remote enum/poison chains."
+      remediation: "Bind inspector services to localhost, add authentication, and restrict network access."

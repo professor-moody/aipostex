@@ -1,0 +1,43 @@
+id: ollama-enum-003-model-metadata-surface
+info:
+  type: detection
+  name: "Ollama - Model Metadata Surface"
+  severity: medium
+  author: aipostex
+  description: |
+    Ollama exposes model metadata endpoints that reveal installed model names,
+    runtime status, and versioning details without authentication. Even when
+    active model tampering is not attempted, this inventory helps validate that
+    the listener is a real Ollama instance and can guide follow-on review.
+  reference:
+    - https://github.com/ollama/ollama/blob/main/docs/api.md
+  tags: [ollama, enumeration, metadata, model-inventory]
+  classification:
+    mitre-atlas: [AML.T0040]
+
+detect:
+  - method: GET
+    path: /
+    matchers:
+      - type: body_contains
+        value: "Ollama is running"
+
+checks:
+  - name: "Model inventory and version exposed"
+    method: GET
+    path: /api/version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "version"
+    extractors:
+      - type: json
+        name: ollama_version
+        path: "version"
+    severity: medium
+    finding:
+      title: "Ollama Model Metadata Surface Exposed"
+      description: "Ollama version {{ollama_version}} is exposed without authentication. Pair with /api/tags or /api/ps to review installed and running model inventory."
+      remediation: "Bind Ollama to localhost or place it behind an authenticated reverse proxy if inventory disclosure is not intended."
+

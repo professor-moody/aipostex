@@ -1,0 +1,67 @@
+id: k8s-enum-001-anonymous-api
+info:
+  type: detection
+  name: "Kubernetes - Anonymous API Server Access"
+  severity: medium
+  author: aipostex
+  description: |
+    The Kubernetes API server answers unauthenticated requests for /version and
+    the /api discovery document. Anonymous read access to the control plane lets
+    an attacker fingerprint the cluster version and enumerate available API groups
+    without credentials — the entry point for workload and credential discovery on
+    clusters hosting ML/AI workloads.
+  reference:
+    - https://kubernetes.io/docs/reference/access-authn-authz/authentication/#anonymous-requests
+    - https://kubernetes.io/docs/concepts/security/controlling-access/
+  tags: [kubernetes, k8s, apiserver, enumeration, anonymous]
+  classification:
+    mitre-atlas: [AML.T0040]
+
+detect:
+  - method: GET
+    path: /version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "gitVersion"
+
+checks:
+  - name: "Anonymous /version disclosed"
+    method: GET
+    path: /version
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "gitVersion"
+    extractors:
+      - type: json
+        name: git_version
+        path: "gitVersion"
+      - type: json
+        name: platform
+        path: "platform"
+    severity: medium
+    stage: access
+    landed: read-confirmed
+    finding:
+      title: "Kubernetes API Server Allows Anonymous Version Read - {{git_version}}"
+      description: "The API server returned its version ({{git_version}}, {{platform}}) to an unauthenticated request. Anonymous read access to the control plane is enabled, exposing the cluster to credential-free enumeration."
+      remediation: "Disable anonymous authentication (--anonymous-auth=false) on the kube-apiserver, or ensure no ClusterRole is bound to system:anonymous / system:unauthenticated. Restrict control-plane network exposure."
+
+  - name: "Anonymous API discovery"
+    method: GET
+    path: /api
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "APIVersions"
+    severity: medium
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "Kubernetes API Discovery Exposed to Anonymous Callers"
+      description: "The /api discovery document was returned without authentication, confirming the API server processes anonymous requests rather than rejecting them with 401."
+      remediation: "Disable anonymous auth and audit RBAC bindings to the anonymous user/group."

@@ -1,0 +1,50 @@
+id: triton-detect-002-shm-exposed
+info:
+  type: detection
+  name: "Triton - Shared Memory Regions Exposed"
+  severity: high
+  author: aipostex
+  description: |
+    Triton Inference Server exposes shared memory region status without
+    authentication. This is part of the IPC vulnerability chain discovered
+    by Wiz (CVE-2025-23319/23320/23334) that can lead to memory corruption
+    and code execution through shared memory manipulation.
+  reference:
+    - https://www.wiz.io/blog/wiz-research-discovers-critical-nvidia-ai-vulnerabilities
+  tags: [triton, shm, ipc, vulnerability, cve-2025-23319]
+
+detect:
+  - method: GET
+    path: /v2/systemsharedmemory/status
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "System shared memory regions accessible"
+    method: GET
+    path: /v2/systemsharedmemory/status
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(name|key|byte_size)"
+    severity: high
+    stage: access
+    finding:
+      title: "Triton System Shared Memory Regions Exposed"
+      description: "System shared memory status endpoint exposes region data, indicating potential IPC exploitation surface."
+      remediation: "Restrict Triton API access and disable shared memory endpoints if not required."
+
+  - name: "CUDA shared memory regions accessible"
+    method: GET
+    path: /v2/cudasharedmemory/status
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(\"(name|key|device_id|byte_size)\"\\s*:|^\\s*\\[)"
+    severity: medium
+    finding:
+      title: "Triton CUDA Shared Memory Status Accessible"
+      description: "CUDA shared memory status endpoint is accessible without authentication."

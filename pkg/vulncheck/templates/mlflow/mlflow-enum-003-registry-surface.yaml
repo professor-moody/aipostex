@@ -1,0 +1,48 @@
+id: mlflow-enum-003-registry-surface
+info:
+  type: detection
+  name: "MLflow - Registry Surface Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    MLflow model registry APIs can expose registered model names and versioning
+    metadata without authentication. This validates a real tracking/registry
+    surface beyond a generic health response.
+  reference:
+    - https://mlflow.org/docs/latest/rest-api.html
+  tags: [mlflow, registry, enumeration, metadata]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: POST
+    read_only: true
+    path: /api/2.0/mlflow/registered-models/search
+    headers:
+      Content-Type: application/json
+    body: '{"max_results":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)registered_models"
+
+checks:
+  - name: "Registered models API exposed"
+    method: POST
+    read_only: true
+    path: /api/2.0/mlflow/registered-models/search
+    headers:
+      Content-Type: application/json
+    body: '{"max_results":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)registered_models"
+    severity: medium
+    finding:
+      title: "MLflow Registered Models API Exposed"
+      description: "MLflow returned registered model metadata without authentication, exposing registry inventory and versioning details."
+      remediation: "Require authentication for MLflow registry APIs and restrict network access to trusted users."
+

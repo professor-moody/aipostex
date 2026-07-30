@@ -1,0 +1,43 @@
+rules:
+  - name: "Claude Desktop MCP Config"
+    category: "mcp-config"
+    severity: "high"
+    description: "Claude Desktop MCP configuration found. Contains server definitions, connection strings, and potentially API tokens for connected services."
+    file_patterns: ["claude_desktop_config.json"]
+    path_patterns: ["*/Claude/*", "*/.config/Claude/*", "*/AppData/Roaming/Claude/*"]
+
+  - name: "VS Code MCP Settings"
+    category: "mcp-config"
+    severity: "high"
+    description: "VS Code settings with MCP server configuration. May contain API tokens and database connection strings."
+    file_patterns: ["settings.json"]
+    content_patterns:
+      - '"mcpServers"'
+      - '"mcp\.servers"'
+
+  - name: "Cursor MCP Config"
+    category: "mcp-config"
+    severity: "high"
+    description: "Cursor IDE MCP configuration. May contain API tokens and overprivileged tool definitions."
+    file_patterns: ["mcp.json", "*.mcp.json"]
+    path_patterns: ["*/.cursor/*", "*/Cursor/*"]
+
+  - name: "Generic MCP Server Config"
+    category: "mcp-config"
+    severity: "medium"
+    description: "MCP server configuration file found."
+    file_patterns: ["mcp.json", "mcp_config.json", "mcp_servers.json", "mcp-config.yaml", "*mcp*.json"]
+    content_patterns:
+      - '"mcpServers"'
+      - '"command"\s*:\s*"(npx|uvx|python|node)"'
+
+  - name: "MCP Server Source Code"
+    category: "mcp-config"
+    severity: "medium"
+    description: "MCP server implementation found. May reveal tool capabilities and connected systems."
+    file_patterns: ["*.py", "*.ts", "*.js"]
+    content_patterns:
+      - 'from mcp\.server import'
+      - '@mcp\.tool'
+      - 'McpServer\('
+      - 'import.*@modelcontextprotocol'

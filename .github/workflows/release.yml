@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.12"
+
+      # Gate the release on the same checks CI enforces on every push, so a
+      # tag can never publish binaries that fail tests, vet, or vuln scanning.
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+      - name: Build all platforms
+        run: make build-all
+
+      - name: Generate checksums
+        working-directory: bin
+        run: sha256sum * > checksums-sha256.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            bin/aipostex-linux-amd64
+            bin/aipostex-linux-arm64
+            bin/aipostex-darwin-amd64
+            bin/aipostex-darwin-arm64
+            bin/aipostex-windows-amd64.exe
+            bin/checksums-sha256.txt

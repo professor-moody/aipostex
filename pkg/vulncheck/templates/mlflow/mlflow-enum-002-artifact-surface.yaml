@@ -1,0 +1,34 @@
+id: mlflow-enum-002-artifact-surface
+info:
+  type: detection
+  name: "MLflow Run Metadata Reveals Artifact Surface"
+  severity: medium
+  author: aipostex
+  description: |
+    MLflow run metadata is exposed and includes artifact URI material. This does not
+    download artifacts by itself, but it reveals artifact storage and follow-on targets.
+  reference:
+    - https://mlflow.org/
+  tags: [mlflow, artifact, enum]
+  classification:
+    mitre-atlas: [AML.T0040]
+
+checks:
+  - name: "MLflow runs API reveals artifact URI"
+    method: POST
+    read_only: true
+    path: /api/2.0/mlflow/runs/search
+    body: |
+      {"max_results": 1}
+    headers:
+      Content-Type: application/json
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)artifact_uri"
+    severity: medium
+    finding:
+      title: "MLflow Run Metadata Exposes Artifact Locations"
+      description: "MLflow run search returned artifact URI metadata without authentication."
+      remediation: "Require authentication on MLflow tracking APIs and review artifact storage exposure."

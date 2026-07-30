@@ -1,0 +1,45 @@
+.DS_Store
+
+.gocache/
+.gomodcache/
+__pycache__/
+
+bin/
+/aipostex
+aipostex-linux
+aipostex-linux-*
+aipostex-darwin-*
+aipostex-windows-*
+*.test
+*.code-workspace
+
+# Coverage
+coverage.out
+coverage-*.out
+*cover*.out
+
+# Checkpoints
+aipostex-checkpoint-*.jsonl
+
+# Generated engagement output / dev scratch (never commit to the public repo)
+campaign-output/
+test-results/
+ctf-captures/
+internal-docs/
+lab-report.html
+lab-scan.json
+
+# Handoff docs (local only)
+HANDOFF-*.md
+site/
+tmp/
+
+# Separate repo — kept in workspace for convenience
+aipostex-lab/
+
+# Local-only DEF CON con-kit / operator materials — live in ~/aipostex-operator, never commit here
+/cards/
+/rtv/
+/defcon-34-*.md
+/deck-*.md
+/rehearsal-commands.md

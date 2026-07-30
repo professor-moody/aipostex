@@ -1,0 +1,34 @@
+id: torchserve-detect-002-mgmt-exposed
+info:
+  type: detection
+  name: "TorchServe - Management API Exposed"
+  severity: high
+  author: aipostex
+  description: |
+    TorchServe management API (default port 8081) is accessible without
+    authentication, exposing model registration, scaling, and deletion
+    capabilities. This is the primary attack surface for ShellTorch
+    vulnerabilities.
+  reference:
+    - https://pytorch.org/serve/management_api.html
+    - https://nvd.nist.gov/vuln/detail/CVE-2023-43654
+  tags: [torchserve, management, unauth, misconfiguration]
+
+checks:
+  - name: "Management API model listing"
+    method: GET
+    path: /models
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_contains
+        value: "models"
+    extractors:
+      - type: regex
+        name: model_name
+        regex: '"modelName"\s*:\s*"([^"]+)"'
+    severity: high
+    finding:
+      title: "TorchServe Management API Exposed with Model Data"
+      description: "TorchServe management API is accessible without authentication and returns model listing."
+      remediation: "Bind the management API to localhost only and implement authentication."

@@ -1,0 +1,93 @@
+rules:
+  - name: "ChromaDB Local Storage"
+    category: "vectordb"
+    severity: "high"
+    description: "ChromaDB database file found. Likely contains embedded corporate documents from a RAG pipeline."
+    file_patterns: ["chroma.sqlite3"]
+    path_patterns: ["*/chroma/*", "*/.chroma/*", "*/chromadb/*"]
+    max_file_size: 0
+
+  - name: "FAISS Index Files"
+    category: "vectordb"
+    severity: "high"
+    description: "FAISS vector index found. Contains embeddings of corporate documents."
+    file_patterns: ["*.faiss", "index.faiss", "*.index"]
+    path_patterns: ["*/faiss_index/*", "*/vector_store/*", "*/vectorstore/*"]
+    max_file_size: 0
+
+  - name: "Weaviate Configuration"
+    category: "vectordb"
+    severity: "medium"
+    description: "Weaviate vector database configuration found."
+    file_patterns: ["*.py", "*.ts", "*.js", "*.yaml", "*.yml", ".env"]
+    content_patterns:
+      - 'WEAVIATE_URL\s*[=:]\s*\S+'
+      - 'weaviate\.Client\('
+      - 'weaviate_url'
+
+  - name: "Qdrant Configuration"
+    category: "vectordb"
+    severity: "medium"
+    description: "Qdrant vector database configuration found."
+    file_patterns: ["*.py", "*.ts", "*.js", "*.yaml", "*.yml", ".env"]
+    content_patterns:
+      - 'QDRANT_URL\s*[=:]\s*\S+'
+      - 'qdrant_client\.QdrantClient'
+      - 'QDRANT_API_KEY'
+
+  - name: "LangChain RAG Configuration"
+    category: "rag-config"
+    severity: "medium"
+    description: "LangChain application found. May reveal connected data sources and databases."
+    file_patterns: ["*.py"]
+    content_patterns:
+      - 'from langchain.*import'
+      - 'SQLDatabase\.from_uri\('
+      - 'DirectoryLoader\('
+      - 'S3DirectoryLoader\('
+      - 'AzureBlobStorageContainerLoader'
+      - 'WebBaseLoader\('
+
+  - name: "LlamaIndex Configuration"
+    category: "rag-config"
+    severity: "medium"
+    description: "LlamaIndex application found. May reveal indexed data sources."
+    file_patterns: ["*.py"]
+    content_patterns:
+      - 'from llama_index.*import'
+      - 'StorageContext\.from_defaults'
+      - 'VectorStoreIndex'
+      - 'SimpleDirectoryReader\('
+
+  - name: "Training Data Files"
+    category: "training-data"
+    severity: "medium"
+    description: "Potential LLM training/fine-tuning data found. May contain sensitive corporate data used for model customization."
+    file_patterns: ["*.jsonl", "train.json", "training_data.json", "finetune.json", "dataset.json"]
+    path_patterns: ["*/training/*", "*/finetune/*", "*/fine-tune/*", "*/datasets/*", "*/sft/*"]
+
+  - name: "Jupyter AI Notebooks"
+    category: "ai-notebook"
+    severity: "medium"
+    description: "Jupyter notebook with AI/ML imports. May contain API keys, model outputs, or data analysis with sensitive data."
+    file_patterns: ["*.ipynb"]
+    content_patterns:
+      - '"import openai"'
+      - '"from transformers import"'
+      - '"import anthropic"'
+      - '"from langchain"'
+      - '"import chromadb"'
+      - '"import torch"'
+      - '"from llama_index"'
+
+  - name: "LLMjacking Indicators"
+    category: "llmjacking"
+    severity: "high"
+    description: "Indicators matching Operation Bizarre Bazaar validation patterns in log files. Endpoint may have been probed by LLMjacking operators."
+    file_patterns: ["*.log", "*.json"]
+    content_patterns:
+      - 'silver\.inc'
+      - '"sk-test"'
+      - '"test-token"'
+      - '"dev-key"'
+      - 'placeholder.*api.*key'

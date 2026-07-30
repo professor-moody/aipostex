@@ -1,0 +1,32 @@
+id: triton-detect-003-model-repo-access
+info:
+  type: detection
+  name: "Triton - Model Repository API Exposed"
+  severity: high
+  author: aipostex
+  description: |
+    The Triton model repository index API is accessible without authentication,
+    proving that the repository management API is exposed and model loading
+    may be ungated.
+  reference:
+    - https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_model_repository.html
+  tags: [triton, model-repo, unauth, misconfiguration]
+
+checks:
+  - name: "Repository index accessible"
+    method: POST
+    read_only: true
+    path: /v2/repository/index
+    headers:
+      Content-Type: application/json
+    body: "{}"
+    matchers:
+      - type: status
+        value: "200"
+      - type: body_regex
+        value: "(name|state)"
+    severity: high
+    finding:
+      title: "Triton Model Repository Index Exposed"
+      description: "Triton model repository index API is accessible and returns model listing, proving repository API exposure."
+      remediation: "Restrict model repository API access with authentication and network controls."
