@@ -108,6 +108,61 @@ func TestBuiltinInspectorProbesIncludeAPIPaths(t *testing.T) {
 	t.Fatal("expected mcp-inspector probe to exist")
 }
 
+// TestFingerprintFalsePositivesFixed pins closed two body-substring false positives found
+// against the live lab (2026-07-31): the wandb /graphql probe matched a MLflow auth gateway
+// whose GraphQL error echoed the field name "viewer", and the mcp-inspector "/" probe matched
+// a docs site that merely names "MCP Inspector". Bodies below are the real captured responses.
+func TestFingerprintFalsePositivesFixed(t *testing.T) {
+	probes := BuiltinProbes()
+	find := func(name string) ServiceProbe {
+		for _, p := range probes {
+			if p.Name == name {
+				return p
+			}
+		}
+		t.Fatalf("probe %q not found", name)
+		return ServiceProbe{}
+	}
+	probeByPath := func(sp ServiceProbe, path string) HTTPProbe {
+		for _, hp := range sp.Probes {
+			if hp.Path == path {
+				return hp
+			}
+		}
+		t.Fatalf("%s: no probe for path %q", sp.Name, path)
+		return HTTPProbe{}
+	}
+
+	realWandbViewer := `{"data": {"viewer": {"id": "user-lab-wandb-admin", "username": "lab-wandb-admin", "entity": "acme-ml-team"}}}`
+	mlflowGatewayGraphQLError := `{"data":null,"errors":["Cannot query field 'viewer' on type 'Query'."]}`
+	realInspectorServers := `[{"name": "acme-internal-mcp", "serverUrl": "http://x:3000/sse", "transportType": "sse"}]`
+
+	// wandb: /graphql viewer probe matches a real viewer object, not a field-not-found error.
+	gql := probeByPath(find("wandb"), "/graphql")
+	if !matchProbe(gql, 200, realWandbViewer, nil) {
+		t.Error("wandb /graphql probe should match a real wandb viewer response")
+	}
+	if matchProbe(gql, 200, mlflowGatewayGraphQLError, nil) {
+		t.Error("wandb /graphql probe must NOT match a GraphQL \"Cannot query field 'viewer'\" error")
+	}
+
+	// mcp-inspector: no bare "/" body-substring probe (docs false positive), and /api/servers
+	// still identifies a real inspector.
+	insp := find("mcp-inspector")
+	for _, hp := range insp.Probes {
+		if hp.Path == "/" {
+			t.Errorf("mcp-inspector must not fingerprint on a \"/\" body substring; found %#v", hp)
+		}
+	}
+	servers := probeByPath(insp, "/api/servers")
+	if !matchProbe(servers, 200, realInspectorServers, nil) {
+		t.Error("mcp-inspector /api/servers probe should match a real inspector response")
+	}
+	if matchProbe(servers, 404, "", nil) {
+		t.Error("mcp-inspector /api/servers probe must not match a 404 (docs-site false positive)")
+	}
+}
+
 func TestBuiltinMCPProbeIncludesStreamableHTTP(t *testing.T) {
 	probes := BuiltinProbes()
 	for _, probe := range probes {

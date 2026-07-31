@@ -1267,11 +1267,12 @@ func BuiltinProbes() []ServiceProbe {
 		{
 			Name:        "mcp-inspector",
 			DefaultPort: 6274,
+			// Fingerprint on the inspector's own API (servers/tools), NOT a "/" body
+			// substring: a docs/blog/vendor page that merely names "MCP Inspector" 200s on
+			// "/" and would false-match. The API endpoints are app-specific.
 			Probes: []HTTPProbe{
-				{Path: "/", MatchStatus: 200, MatchBody: "MCP Inspector", Specificity: 95},
 				{Path: "/api/servers", MatchStatus: 200, MatchBody: "transportType", Specificity: 97},
 				{Path: "/api/tools", MatchStatus: 200, MatchBody: "toolName", Specificity: 92},
-				{Path: "/", MatchStatus: 200, MatchBody: "Inspector", Specificity: 75},
 			},
 		},
 		{
@@ -1368,7 +1369,9 @@ func BuiltinProbes() []ServiceProbe {
 					Method: "POST", Path: "/graphql",
 					Headers:     map[string]string{"Content-Type": "application/json"},
 					Body:        `{"query":"query Viewer { viewer { username entity } }"}`,
-					MatchStatus: 200, MatchBody: "viewer", Specificity: 90,
+					// `"viewer":` matches a real wandb viewer object; a non-wandb GraphQL
+					// endpoint that 200s with "Cannot query field 'viewer'" won't contain it.
+					MatchStatus: 200, MatchBody: `"viewer":`, Specificity: 90,
 				},
 				{Path: "/healthz", MatchStatus: 200, MatchBody: "wandb", Specificity: 70, Strength: ProbeStrengthSupporting},
 			},
