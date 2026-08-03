@@ -68,6 +68,55 @@ func TestRunReportViewPrintsCredentialsCommandsAndEvidence(t *testing.T) {
 	}
 }
 
+// --chains must not suppress the other section flags: --chains --credentials renders BOTH the
+// attack-chain view and the credential index in one pass (regression for the early-return bug).
+func TestRunReportViewChainsComposesWithCredentials(t *testing.T) {
+	path := writeJSONLFindings(t, []report.Finding{
+		{
+			ID:       "ray-1",
+			Source:   report.SourceRay,
+			Target:   "http://172.16.50.20:8265",
+			Title:    "Ray job runtime_env secrets exposed: training",
+			Severity: report.SeverityCritical,
+			Evidence: "MLFLOW_TRACKING_URI=http://localhost:5000",
+			Metadata: map[string]interface{}{
+				"extracted_credentials": []interface{}{
+					map[string]interface{}{
+						"type":          "mlflow-url",
+						"name":          "MLFLOW_TRACKING_URI",
+						"value":         "http://localhost:5000",
+						"source_target": "http://172.16.50.20:8265",
+						"target_url":    "http://172.16.50.20:5000",
+						"chainable":     true,
+						"note":          "service URL disclosed by Ray runtime_env",
+					},
+				},
+			},
+		},
+	})
+	resetReportViewFlags(t)
+	reportViewChains = true
+	reportViewCredentials = true
+
+	out := captureStdout(t, func() {
+		if err := runReportView(nil, []string{path}); err != nil {
+			t.Fatalf("runReportView returned error: %v", err)
+		}
+	})
+	if !strings.Contains(out, "Attack chains") {
+		t.Fatalf("expected the Attack chains section:\n%s", out)
+	}
+	if !strings.Contains(out, "Credentials") {
+		t.Fatalf("--chains suppressed the Credentials section (compose regression):\n%s", out)
+	}
+	if !strings.Contains(out, "MLFLOW_TRACKING_URI") {
+		t.Fatalf("expected the credential in the Credentials section:\n%s", out)
+	}
+	if strings.Index(out, "Attack chains") > strings.Index(out, "Credentials") {
+		t.Fatalf("expected chains before credentials:\n%s", out)
+	}
+}
+
 func resetReportViewFlags(t *testing.T) {
 	t.Helper()
 	prevSource := reportViewSource
@@ -79,6 +128,7 @@ func resetReportViewFlags(t *testing.T) {
 	prevEvidence := reportViewEvidence
 	prevCredentials := reportViewCredentials
 	prevCommands := reportViewCommands
+	prevChains := reportViewChains
 	prevLimit := reportViewLimit
 	prevDossierDir := reportViewDossierDir
 	reportViewSource = ""
@@ -90,6 +140,7 @@ func resetReportViewFlags(t *testing.T) {
 	reportViewEvidence = false
 	reportViewCredentials = false
 	reportViewCommands = false
+	reportViewChains = false
 	reportViewLimit = 0
 	reportViewDossierDir = ""
 	t.Cleanup(func() {
@@ -102,6 +153,7 @@ func resetReportViewFlags(t *testing.T) {
 		reportViewEvidence = prevEvidence
 		reportViewCredentials = prevCredentials
 		reportViewCommands = prevCommands
+		reportViewChains = prevChains
 		reportViewLimit = prevLimit
 		reportViewDossierDir = prevDossierDir
 	})

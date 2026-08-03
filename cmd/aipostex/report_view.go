@@ -105,18 +105,23 @@ func runReportView(_ *cobra.Command, args []string) error {
 		return writeDossier(reportViewDossierDir, findings, collection)
 	}
 
-	if reportViewChains {
-		return renderChainView(findings, reportViewCommands)
-	}
-
-	if !reportViewEvidence && !reportViewCredentials && !reportViewCommands {
+	// Section flags compose: --chains, --credentials, and --evidence each render their own
+	// section and can be combined in one view. With no section flag at all, print the list.
+	if !reportViewChains && !reportViewEvidence && !reportViewCredentials && !reportViewCommands {
 		printReportViewFindingList(findings)
 		return nil
+	}
+	if reportViewChains {
+		if err := renderChainView(findings, reportViewCommands); err != nil {
+			return err
+		}
 	}
 	if reportViewCredentials {
 		printReportViewCredentials(findings)
 	}
-	if reportViewCommands {
+	// --commands is a standalone section only when NOT charting chains; with --chains it is
+	// consumed as "show each hop's full command inline", so a flat section would just duplicate it.
+	if reportViewCommands && !reportViewChains {
 		printReportViewCommands(findings)
 	}
 	if reportViewEvidence {
