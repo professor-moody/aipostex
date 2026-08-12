@@ -46,11 +46,11 @@
 <rect x="254" y="252" width="172" height="36" rx="6" fill="rgb(60,52,137)" stroke="rgb(175,169,236)" stroke-width="0.5"/>
 <text x="340" y="270" class="c" fill="rgb(175,169,236)" font-size="12">85 detect · 46 exploit</text>
 
-<!-- PILLAR 3: Exploitation (taller to fit 18 modules) -->
-<rect x="460" y="110" width="180" height="250" rx="12" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<!-- PILLAR 3: Exploitation (taller to fit modules + model/agent layer) -->
+<rect x="460" y="110" width="180" height="278" rx="12" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
 <text x="550" y="132" class="c" fill="rgb(245,196,179)" font-size="14" font-weight="500">Exploitation</text>
 <rect x="474" y="148" width="152" height="30" rx="6" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
-<text x="550" y="163" class="c" fill="rgb(240,153,123)" font-size="12">18 service modules</text>
+<text x="550" y="163" class="c" fill="rgb(240,153,123)" font-size="12">infra + model/agent layer</text>
 <!-- Module chips: 2 columns × 5 rows -->
 <rect x="474" y="184" width="72" height="24" rx="4" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
 <text x="510" y="196" class="c" fill="rgb(240,153,123)" font-size="11">Ollama</text>
@@ -75,16 +75,17 @@
 <!-- Remaining modules as compact text -->
 <text x="550" y="332" class="c" fill="rgb(194,192,182)" font-size="10">Triton · TorchServe · BentoML · K8s</text>
 <text x="550" y="346" class="c" fill="rgb(194,192,182)" font-size="10">TF Serving · Kubeflow · W&amp;B · A2A</text>
+<text x="550" y="366" class="c" fill="rgb(245,196,179)" font-size="10" font-weight="500">+ Agent · RAG · Serve · fingerprint</text>
 
 <!-- Arrows from pillars to finding pipeline -->
 <line x1="130" y1="298" x2="130" y2="396" class="arr" marker-end="url(#arrow)"/>
 <line x1="340" y1="298" x2="340" y2="396" class="arr" marker-end="url(#arrow)"/>
-<line x1="550" y1="360" x2="550" y2="396" class="arr" marker-end="url(#arrow)"/>
+<line x1="550" y1="388" x2="550" y2="396" class="arr" marker-end="url(#arrow)"/>
 
 <!-- Finding pipeline -->
 <rect x="60" y="398" width="560" height="50" rx="8" fill="rgb(68,68,65)" stroke="rgb(180,178,169)" stroke-width="0.5"/>
 <text x="340" y="416" class="c" fill="rgb(211,209,199)" font-size="14" font-weight="500">report.Finding pipeline</text>
-<text x="340" y="434" class="c" fill="rgb(180,178,169)" font-size="12">Dedup · proof badges (verified / exploited) · enrichment</text>
+<text x="340" y="434" class="c" fill="rgb(180,178,169)" font-size="12">Dedup · landed grading (reachable → takeover-capable) · enrichment</text>
 
 <!-- Arrow to workflow -->
 <line x1="340" y1="448" x2="340" y2="476" class="arr" marker-end="url(#arrow)"/>
