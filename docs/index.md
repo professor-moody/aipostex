@@ -1,25 +1,3 @@
-<div class="apx-dc" markdown="0">
-  <span class="apx-dc-txt">✦ See you at DEF&nbsp;CON&nbsp;34 · Red&nbsp;Team&nbsp;Village ✦</span>
-</div>
-<style>
-.apx-dc { text-align: center; margin: .2rem 0 1.4rem; }
-.apx-dc-txt {
-  display: inline-block;
-  font-weight: 800;
-  font-size: clamp(1rem, 3.4vw, 1.7rem);
-  letter-spacing: .02em;
-  background: linear-gradient(90deg,#a855f7,#8b5cf6,#6366f1,#3b82f6,#06b6d4,#3b82f6,#6366f1,#8b5cf6,#a855f7);
-  background-size: 300% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: apx-dc-shim 7s linear infinite;
-}
-@keyframes apx-dc-shim { to { background-position: 300% center; } }
-@media (prefers-reduced-motion: reduce) { .apx-dc-txt { animation: none; background-position: 50% center; } }
-</style>
-
 # aipostex
 
 **AI Infrastructure Offensive Security Framework**
@@ -46,7 +24,7 @@ aipostex is a single-binary Go tool for discovering, assessing, and exploiting A
 
 -   **Post-Exploitation**
 
-    18 dedicated exploit modules covering Ollama, vector databases (ChromaDB, Weaviate, Qdrant, Milvus, pgvector), Jupyter, MCP, OpenAI-compatible APIs, LiteLLM, Ray, MLflow, Gradio, BentoML, Triton, TorchServe, HuggingFace TGI/TEI, TensorFlow Serving, Kubeflow, W&B, A2A agents, and Kubernetes API servers.
+    20 dedicated exploit modules covering Ollama, vector databases (ChromaDB, Weaviate, Qdrant, Milvus, pgvector), Jupyter, MCP, OpenAI-compatible APIs, LiteLLM, Ray, MLflow, Gradio, BentoML, Triton, TorchServe, HuggingFace TGI/TEI, TensorFlow Serving, Kubeflow, W&B, A2A agents, Kubernetes API servers, and the model/agent layer — bespoke `/chat` agents, black-box RAG apps, and behavioral model fingerprinting.
 
 </div>
 
@@ -83,11 +61,11 @@ See the [Quickstart guide](getting-started/quickstart.md) for a full walkthrough
 
 ## Current Status
 
-aipostex includes scanning, file discovery, reporting, and 18 exploit modules with staged workflow guidance. Advisory coverage includes 24 CVE-specific templates, 2 GHSA templates, and 1 TRA template across MCP, Ollama, MLflow, Gradio, Ray, vLLM, LangChain, and related AI infrastructure. See the [Coverage Matrix](development/coverage.md) for the full breakdown.
+aipostex includes scanning, file discovery, reporting, and 20 exploit modules with staged workflow guidance. Advisory coverage includes 24 CVE-specific templates, 2 GHSA templates, and 1 TRA template across MCP, Ollama, MLflow, Gradio, Ray, vLLM, LangChain, and related AI infrastructure. See the [Coverage Matrix](development/coverage.md) for the full breakdown.
 
 | Category | Commands |
 |---|---|
-| Workflow CLI | `discover network`, `discover files`, `scan targets`, `assess network`, `report render`, `report summary`, `report graph`, `engagement merge`, `engagement bundle` |
+| Workflow CLI | `discover network`, `discover files`, `scan targets`, `assess network`, `report render`, `report summary`, `report graph`, `engagement merge`, `engagement bundle`, `serve` (run aipostex as an MCP server) |
 | Templates | `templates list`, `templates info` |
 | Ollama | `enum`, `prompts`, `generate`, `show`, `running`, `copy`, `create`, `delete`, `poison`, `poison-verify`, `exfiltrate` |
 | Vector DBs | `enum`, `extract`, `search-sensitive`, `inject`, `metadata-inject`, `rag-verify` |
@@ -105,10 +83,36 @@ aipostex includes scanning, file discovery, reporting, and 18 exploit modules wi
 | TF Serving | `enum`, `models`, `metadata`, `predict`, `metrics` |
 | Kubeflow | `enum`, `pipelines`, `runs`, `experiments`, `notebooks`, `run-pipeline` |
 | W&B | `enum`, `projects`, `runs`, `artifacts`, `secrets` |
-| A2A | `enum`, `skills`, `auth-probe`, `msg-integrity`, `sender-spoof`, `delegate-probe`, `card-spoof`, `task-send`, `task-status`, `task-cancel`, `stream-probe`, `push-hijack`, `mcp-pivot`, `scrape-loop`, `tool-inject`, `replay` |
+| A2A | `enum`, `skills`, `auth-probe`, `msg-integrity`, `sender-spoof`, `delegate-probe`, `card-spoof`, `task-send`, `task-status`, `task-cancel`, `stream-probe`, `push-hijack`, `mcp-pivot`, `scrape-loop`, `tool-inject`, `replay`, `register` |
 | Kubernetes | `rbac-probe`, `access-review`, `enum`, `secret-read`, `artifact-read`, `pod-exec`, `sa-loot`, `persist` |
+| Agent (bespoke `/chat`) | `probe`, `enum`, `extract`, `fingerprint`, `inject`, `guardrail` |
+| RAG (black-box) | `query`, `map`, `poison` |
 
 ### Deferred
 
 - `validate` (finding validation)
 - SQLite output format
+
+<div class="apx-dc" markdown="0">
+  <span class="apx-dc-txt">✦ As seen at DEF&nbsp;CON&nbsp;34 · Red&nbsp;Team&nbsp;Village ✦</span>
+</div>
+<style>
+.apx-dc { text-align: center; margin: 2.4rem 0 .4rem; }
+.apx-dc-txt {
+  display: inline-block;
+  font-weight: 700;
+  font-size: clamp(.72rem, 1.7vw, .95rem);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg,#a855f7,#8b5cf6,#6366f1,#3b82f6,#06b6d4,#3b82f6,#6366f1,#8b5cf6,#a855f7);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: apx-dc-shim 7s linear infinite;
+  opacity: .9;
+}
+@keyframes apx-dc-shim { to { background-position: 300% center; } }
+@media (prefers-reduced-motion: reduce) { .apx-dc-txt { animation: none; background-position: 50% center; } }
+</style>

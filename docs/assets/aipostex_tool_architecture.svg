@@ -75,7 +75,7 @@
 <!-- Remaining modules as compact text -->
 <text x="550" y="332" class="c" fill="rgb(194,192,182)" font-size="10">Triton · TorchServe · BentoML · K8s</text>
 <text x="550" y="346" class="c" fill="rgb(194,192,182)" font-size="10">TF Serving · Kubeflow · W&amp;B · A2A</text>
-<text x="550" y="366" class="c" fill="rgb(245,196,179)" font-size="10" font-weight="500">+ Agent · RAG · Serve · fingerprint</text>
+<text x="550" y="366" class="c" fill="rgb(245,196,179)" font-size="10" font-weight="500">+ Agent · RAG · model fingerprinting</text>
 
 <!-- Arrows from pillars to finding pipeline -->
 <line x1="130" y1="298" x2="130" y2="396" class="arr" marker-end="url(#arrow)"/>
