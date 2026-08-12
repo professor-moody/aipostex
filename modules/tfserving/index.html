@@ -1872,6 +1872,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2575,6 +2581,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../model-scan/" class="md-nav__link">
         
   
@@ -2611,6 +2673,34 @@
     
   
     LiteLLM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP server (serve)
   
 
     
@@ -4081,11 +4171,11 @@
 </tr>
 <tr>
 <td><code>execution-confirmed</code></td>
-<td><code>predict</code> when the inference reality probe confirms real, input-dependent inference (output varies for distinct inputs).</td>
+<td><code>predict</code> when the inference reality probe confirms input-dependent inference — output varies for distinct inputs, so the handler ran input-dependent code rather than returning a canned fixture (it does not warrant real ML-model semantics).</td>
 </tr>
 </tbody>
 </table>
-<p>This module has no intermediate <code>read-confirmed</code> or <code>influenced</code> step and does not reach <code>takeover-capable</code>. <code>metadata</code> is deliberately capped at <code>reachable</code>: it confirms a model is exposed but is neither a credential-gated read nor real inference. A <code>predict</code> whose response does not vary with a mutated input stays at <code>reachable</code> rather than over-claiming execution.</p>
+<p>This module has no intermediate <code>read-confirmed</code> or <code>influenced</code> step and does not reach <code>takeover-capable</code>. <code>metadata</code> is deliberately capped at <code>reachable</code>: it confirms a model is exposed but is neither a credential-gated read nor confirmed input-dependent inference. A <code>predict</code> whose response does not vary with a mutated input stays at <code>reachable</code> rather than over-claiming execution.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Probe for server reachability</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>./aipostex<span class="w"> </span>tfserving<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8501<span class="w"> </span>enum

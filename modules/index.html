@@ -1872,6 +1872,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2412,6 +2418,62 @@
   
   
     <li class="md-nav__item">
+      <a href="agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="rag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="model-scan/" class="md-nav__link">
         
   
@@ -2448,6 +2510,34 @@
     
   
     LiteLLM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="serve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP server (serve)
   
 
     
@@ -3725,7 +3815,7 @@
 
 
 <h1 id="exploit-modules">Exploit Modules<a class="headerlink" href="#exploit-modules" title="Permanent link">&para;</a></h1>
-<p>aipostex includes 18 post-exploitation modules, each targeting a specific AI service family. Modules follow a consistent pattern: read-only enumeration commands run without restrictions, while state-changing or high-noise actions require <code>--force-exploit</code>.</p>
+<p>aipostex includes 20 post-exploitation modules, each targeting a specific AI service family. Modules follow a consistent pattern: read-only enumeration commands run without restrictions, while state-changing or high-noise actions require <code>--force-exploit</code>.</p>
 <h2 id="module-summary">Module Summary<a class="headerlink" href="#module-summary" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -3762,15 +3852,15 @@
 <tr>
 <td><a href="mcp/">mcp</a></td>
 <td>MCP servers</td>
-<td>6</td>
+<td>8</td>
 <td>3</td>
-<td>3</td>
+<td>5</td>
 </tr>
 <tr>
 <td><a href="openai-compat/">openai-compat</a></td>
 <td>OpenAI-compatible APIs</td>
-<td>9</td>
-<td>7</td>
+<td>10</td>
+<td>8</td>
 <td>2</td>
 </tr>
 <tr>
@@ -3853,9 +3943,9 @@
 <tr>
 <td><a href="a2a/">a2a</a></td>
 <td>Agent-to-Agent APIs</td>
-<td>11</td>
+<td>12</td>
 <td>4</td>
-<td>7</td>
+<td>8</td>
 </tr>
 <tr>
 <td><a href="k8s/">k8s</a></td>
@@ -3863,6 +3953,20 @@
 <td>7</td>
 <td>3</td>
 <td>4</td>
+</tr>
+<tr>
+<td><a href="agent/">agent</a></td>
+<td>Bespoke LLM <code>/chat</code> apps</td>
+<td>6</td>
+<td>6</td>
+<td>0</td>
+</tr>
+<tr>
+<td><a href="rag/">rag</a></td>
+<td>Black-box RAG apps</td>
+<td>3</td>
+<td>2</td>
+<td>1</td>
 </tr>
 </tbody>
 </table>
