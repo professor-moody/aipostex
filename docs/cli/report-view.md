@@ -31,6 +31,7 @@ console summary truncates.
 | `--credentials` | Print extracted credential values for matching findings |
 | `--commands` | Print credential-derived follow-up commands |
 | `--chains` | Reconstruct looted credentials as **attack chains** (see below): `find → loot → chain → reached`/`gap` |
+| `--threat-model` | Render a **threat-model** view (see below): kill-chain coverage, crown jewels, ATLAS-aligned tactics |
 | `--limit` | Maximum matching findings to display (`0` = no limit) |
 | `--dossier-dir` | Write an operator **dossier** (see below) to this directory instead of printing to the console |
 
@@ -48,7 +49,31 @@ aipostex report view findings.jsonl --source ray --title-contains runtime_env --
 
 # Reconstruct the attack chains from the loot
 aipostex report view findings.jsonl --chains
+
+# Threat-model deliverable: how far each target was pushed + ATLAS tactics
+aipostex report view findings.jsonl --threat-model
 ```
+
+## Threat model: `--threat-model`
+
+`--threat-model` turns the findings into a threat-model deliverable, built entirely from
+the honest `stage`/`landed` kill-chain metadata every module already emits — nothing is
+inferred or inflated:
+
+1. **Kill-chain coverage** — the furthest each target was actually pushed
+   (`recon → access → impact → own`, `reachable → takeover-capable`), sorted by depth.
+2. **Crown jewels** — the findings that reached the deepest `landed` levels
+   (`takeover-capable`, `execution-confirmed`, `read-confirmed`) — what the operator
+   actually got, not what was merely reachable.
+3. **MITRE ATLAS-aligned tactics** — a curated grouping of the findings by ATLAS tactic
+   (Discovery, ML Model Access, Defense Evasion, Credential Access, Execution, Exfiltration,
+   Persistence, …). The tactic and technique **label** are the authoritative anchor; a
+   specific `AML.T####` id is attached only where high-confidence (e.g. `AML.T0051` LLM
+   Prompt Injection, `AML.T0054` LLM Jailbreak), so no id is fabricated. The mapping is
+   aipostex's own, not MITRE's.
+
+It is the Module-10 threat-model / assumption-register view: it reads the same `stage`/`landed`
+axes that grade every finding and rolls them up into "what did we prove, and how far."
 
 ## Chains: `--chains`
 

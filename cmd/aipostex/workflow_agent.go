@@ -19,6 +19,9 @@ func buildAgentWorkflowPlan(target, current string) workflowPlan {
 		{"enum", base + "enum", "Enumerate advertised tools/capabilities.", false, 30},
 		{"extract", base + "extract", "Recover the system prompt/config via the output-filter-bypass matrix.", false, 40},
 		{"inject", base + "inject", "Test input-filter bypass / direct prompt injection.", false, 50},
+		{"crescendo", base + "crescendo", "Escalate a multi-turn (crescendo) injection when a single-shot inject is filtered.", false, 55},
+		{"session-probe", base + "session-probe", "Check whether session identifiers are predictable (cross-session enumeration).", false, 60},
+		{"fragment", base + "fragment", "Split the injected token across turns to evade a per-message content filter.", false, 57},
 	}
 	var recs []workflowRecommendation
 	for _, s := range steps {

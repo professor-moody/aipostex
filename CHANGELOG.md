@@ -2,6 +2,46 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.7.0] — 2026-08-12
+
+**Advanced prompt-injection tradecraft + the threat-model view** — deepens the model/agent
+layer with multi-turn techniques and turns findings into a threat-model deliverable.
+
+### Added
+
+- **`agent crescendo`** — multi-turn (crescendo) prompt injection. Fires a single-shot control,
+  then walks a conversation ladder (rapport → capability priming → format priming → objective),
+  sending the growing transcript each turn so a stateless `/chat` agent still gets full context.
+  Beats a per-message input filter a single shot cannot; graded `impact`/`influenced` when the
+  ramp emits the marker (High when the direct ask was refused).
+- **`agent fragment`** — cross-turn fragmentation. Splits the injected token across turns, then a
+  trigger turn reassembles it — evades a per-message content filter that scans for the intact token.
+- **`agent session-probe`** — samples the agent's session identifiers and classifies the scheme
+  (uuid / sequential / timestamp / short / opaque). Predictable schemes (a cross-session
+  enumeration precondition) are flagged; UUID/opaque are the honest negative. Detects prefixed
+  sequences (`review-1001`, `chat_42`).
+- **`report view --threat-model`** — a threat-model deliverable built entirely from the honest
+  `stage`/`landed` metadata: kill-chain coverage (furthest reach per target), crown jewels
+  (deepest `landed` levels), and a curated MITRE ATLAS-aligned tactic mapping (specific `AML.T####`
+  ids attached only where high-confidence — nothing fabricated).
+
+## [v1.6.0] — 2026-08-12
+
+**The model & agent layer** — extends aipostex past infrastructure recon into the model,
+agent-conversation, and RAG layer, with honest landed/stage grading throughout.
+
+### Added
+
+- **`agent` module** — attack a bespoke `/chat` app over a configurable transport: `probe`, `enum`,
+  `extract` (output-filter bypass), `fingerprint`, `inject` (input-filter-bypass matrix), `guardrail`.
+- **`rag` module** — black-box RAG apps: citation recon, KB enumeration, and `poison --obey-marker`
+  to verify *indirect* prompt injection (retrieved **and** obeyed).
+- **`openai-compat fingerprint` + `internal/modelfingerprint`** — behavioral model attribution
+  (identity, contradiction de-masking, knowledge-cutoff) that survives an identity-masking system prompt.
+- **`serve` + serving verbs** gated by an input-differential reality probe (`internal/inferenceprobe`):
+  a distinct input must yield a distinct output to earn `execution-confirmed`, else `influenced`.
+- **`a2a register`** and **`mcp` sandbox-escape / SSTI** verbs; next-action guidance wired into the dossier/report.
+
 ## [v1.4.0] — 2026-07-03
 
 **Operator output & the engagement dossier** — turns raw findings into a legible, handoff-ready

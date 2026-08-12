@@ -26,6 +26,7 @@ var (
 	reportViewCredentials   bool
 	reportViewCommands      bool
 	reportViewChains        bool
+	reportViewThreatModel   bool
 	reportViewLimit         int
 	reportViewDossierDir    string
 )
@@ -85,6 +86,7 @@ func init() {
 	reportViewCmd.Flags().BoolVar(&reportViewCredentials, "credentials", false, "Print extracted credential values for matching findings")
 	reportViewCmd.Flags().BoolVar(&reportViewCommands, "commands", false, "Print credential-derived follow-up commands (with --chains: show each hop's full runnable command)")
 	reportViewCmd.Flags().BoolVar(&reportViewChains, "chains", false, "Render looted credentials as attack chains (find → loot → chain → reached/gap)")
+	reportViewCmd.Flags().BoolVar(&reportViewThreatModel, "threat-model", false, "Render a threat-model view: kill-chain coverage, crown jewels, and ATLAS-aligned tactics")
 	reportViewCmd.Flags().IntVar(&reportViewLimit, "limit", 0, "Maximum matching findings to display (0 = no limit)")
 	reportViewCmd.Flags().StringVar(&reportViewDossierDir, "dossier-dir", "", "Write an operator dossier (credentials, commands, targets, evidence) to this directory")
 }
@@ -107,7 +109,7 @@ func runReportView(_ *cobra.Command, args []string) error {
 
 	// Section flags compose: --chains, --credentials, and --evidence each render their own
 	// section and can be combined in one view. With no section flag at all, print the list.
-	if !reportViewChains && !reportViewEvidence && !reportViewCredentials && !reportViewCommands {
+	if !reportViewChains && !reportViewEvidence && !reportViewCredentials && !reportViewCommands && !reportViewThreatModel {
 		printReportViewFindingList(findings)
 		return nil
 	}
@@ -115,6 +117,9 @@ func runReportView(_ *cobra.Command, args []string) error {
 		if err := renderChainView(findings, reportViewCommands); err != nil {
 			return err
 		}
+	}
+	if reportViewThreatModel {
+		renderThreatModel(findings)
 	}
 	if reportViewCredentials {
 		printReportViewCredentials(findings)
