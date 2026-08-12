@@ -2,33 +2,6 @@
 
 All notable changes to aipostex are documented in this file.
 
-## [v1.6.0] — 2026-08-12
-
-**The model & agent layer** — extends aipostex past infrastructure recon into the model,
-agent-conversation, and RAG layer, with the same honest landed/stage grading throughout.
-
-### Added
-
-- **`agent` module** — attack a bespoke `/chat` app over a configurable transport: `probe`,
-  `enum`, `extract` (output-filter bypass via reformatting), `fingerprint`, `inject`
-  (direct prompt injection with an input-filter-bypass matrix), and `guardrail` (defensive-posture
-  profile). `extract` earns `read-confirmed` only when the recovered content is actually sensitive.
-- **`rag` module** — black-box RAG apps: citation recon, KB enumeration, and `poison` with
-  `--obey-marker` to verify *indirect* prompt injection (retrieved **and** obeyed), not merely surfaced.
-- **`openai-compat fingerprint` + `internal/modelfingerprint`** — transport-agnostic behavioral model
-  attribution (identity probe, contradiction de-masking, knowledge-cutoff bracketing) that survives an
-  identity-masking system prompt; returns an honest `unknown` rather than guessing.
-- **`serve` + serving verbs** (torchserve/triton/tfserving/bentoml) — register/model-load/predict
-  follow-ons gated by an input-differential reality probe (`internal/inferenceprobe`): a distinct input
-  must yield a distinct output to earn `execution-confirmed`, else `influenced`.
-- **`a2a register`** and **`mcp` escalation** (sandbox-escape / SSTI) verbs, plus next-action guidance
-  wired into the dossier/report for every new verb.
-
-### Changed
-
-- Serving/inference proofs describe **input-dependent handler execution**, never "real inference" —
-  a canned fixture cannot pass the input-differential probe and stays `influenced`.
-
 ## [v1.4.0] — 2026-07-03
 
 **Operator output & the engagement dossier** — turns raw findings into a legible, handoff-ready

@@ -84,7 +84,7 @@
 <text x="555" y="314" class="c" fill="rgb(175,169,236)" font-size="11">models, auth</text>
 
 <!-- Remaining enum modules -->
-<text x="345" y="346" class="cm" fill="rgb(194,192,182)" font-size="11">+ bentoml · a2a · tfserving · kubeflow · wandb enum</text>
+<text x="345" y="346" class="cm" fill="rgb(194,192,182)" font-size="11">+ agent · rag · bentoml · a2a · tfserving · kubeflow · wandb enum</text>
 
 <!-- Discovered values annotation -->
 <rect x="70" y="360" width="550" height="30" rx="6" fill="rgb(38,38,36)" stroke="rgba(222,220,209,0.3)" stroke-width="0.5" stroke-dasharray="3 3"/>
@@ -138,7 +138,7 @@
 <text x="563" y="566" class="c" fill="rgb(93,202,165)" font-size="11">service info</text>
 
 <!-- Remaining proof modules -->
-<text x="345" y="598" class="cm" fill="rgb(194,192,182)" font-size="11">+ a2a skills · wandb artifacts · kubeflow pipelines · tfserving models</text>
+<text x="345" y="598" class="cm" fill="rgb(194,192,182)" font-size="11">+ agent extract · rag map · a2a skills · wandb artifacts · kubeflow · tfserving</text>
 
 <!-- Proof annotation -->
 <text x="345" y="618" class="cm" fill="rgb(194,192,182)" font-size="12">All read-only — no --force-exploit required</text>
@@ -179,7 +179,7 @@
 <text x="555" y="784" class="c" fill="rgb(240,153,123)" font-size="11">register, scale</text>
 
 <!-- Remaining takeover -->
-<text x="345" y="818" class="cm" fill="rgb(194,192,182)" font-size="11">+ oai-compat throughput · a2a inject</text>
+<text x="345" y="818" class="cm" fill="rgb(194,192,182)" font-size="11">+ agent inject · rag poison · oai-compat throughput · a2a inject</text>
 
 <!-- Output -->
 <path d="M345 832 L345 852" fill="none" class="arr" marker-end="url(#arrow)"/>
