@@ -38,7 +38,7 @@ The `bentoml` module targets BentoML services that expose REST APIs for model in
 | `landed` | What produces it in bentoml |
 |---|---|
 | `reachable` | `enum` (service metadata and health), `routes` (prediction endpoints parsed from the OpenAPI spec plus generated payload guidance), `metrics` (Prometheus data), and `predict` when the endpoint responds but output does not vary with a mutated input. |
-| `execution-confirmed` | `predict` when the inference reality probe confirms real, input-dependent inference (output varies for distinct inputs). |
+| `execution-confirmed` | `predict` when the inference reality probe confirms input-dependent inference — output varies for distinct inputs, so the handler ran input-dependent code rather than returning a canned fixture (it does not warrant real ML-model semantics). |
 
 This module has no intermediate `read-confirmed` or `influenced` step and does not reach `takeover-capable`. A `predict` whose response does not vary with a mutated input stays at `reachable` rather than over-claiming execution.
 

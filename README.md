@@ -5,7 +5,7 @@
 [![CI](https://github.com/professor-moody/aipostex/actions/workflows/ci.yml/badge.svg)](https://github.com/professor-moody/aipostex/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![Templates](https://img.shields.io/badge/templates-131-blue)](https://github.com/professor-moody/aipostex-templates)
-[![Modules](https://img.shields.io/badge/exploit%20modules-18-orange)](#exploit-modules)
+[![Modules](https://img.shields.io/badge/exploit%20modules-20-orange)](#exploit-modules)
 [![License](https://img.shields.io/github/license/professor-moody/aipostex)](LICENSE)
 
 A single-binary Go tool for discovering, assessing, and exploiting AI/ML infrastructure. Purpose-built for penetration testers, red teams, and adversary emulation operators targeting LLM gateways, model registries, inference servers, vector databases, Jupyter notebooks, and MCP tool servers.
@@ -106,7 +106,7 @@ See [sessions](https://professor-moody.github.io/aipostex/cli/sessions/).
 | **Ollama** | Model enum, system prompt extraction, compute abuse, capped model weight blob exfiltration |
 | **Jupyter** | Notebook listing, content reading, **cell secret mining**, kernel exec, reverse-shell proof, pip proof |
 | **MCP** | Config analysis/hijack, tool enumeration, schema poisoning, env extraction, credential chain, streamable-HTTP SSE |
-| **OpenAI-Compatible** | Auth sweep, LiteLLM probe, prompt injection testing, tool injection |
+| **OpenAI-Compatible** | Auth sweep, LiteLLM probe, prompt injection testing, tool injection, behavioral model fingerprint (identity/contradiction/cutoff) |
 | **LiteLLM** | Config extraction, budget/spend probe, proxy chain analysis, credential discovery |
 | **MLflow** | Experiment/run enum, **param/tag secret extraction**, artifact download, capped bulk artifact exfiltration, registry mutation proof, controller-confirmed hook metadata |
 | **Ray** | Cluster enum, job submission, log exposure, pip injection, cluster resource exfiltration |
@@ -119,8 +119,10 @@ See [sessions](https://professor-moody.github.io/aipostex/cli/sessions/).
 | **TF Serving** | Model discovery, metadata/signature extraction, signature-shaped predict guidance, Prometheus metrics, input-dependent inference verification |
 | **Kubeflow** | Pipeline/run/experiment enum, notebook listing, pipeline run submission |
 | **W&B** | Project enum, run metadata extraction, artifact discovery |
-| **A2A** | Agent card enum, skill discovery, task injection, push-notification hijack |
+| **A2A** | Agent card enum, skill discovery, task injection, push-notification hijack, rogue-agent registration |
 | **Kubernetes** | Anonymous RBAC probe, identity access-review, workload/CRD enum, Secret exfiltration, model-artifact harvest, in-pod exec, in-cluster lateral movement (SA-token theft + escalation) |
+| **Agent** (bespoke `/chat`) | Configurable-transport probe/enum, system-prompt extraction with an output-filter-bypass matrix, behavioral model fingerprint, direct prompt injection with an input-filter-bypass matrix, defensive-posture (guardrail) profile |
+| **RAG** (black-box) | Citation recon via `/query`, knowledge-base mapping, ingestion poisoning with obey-marker indirect-prompt-injection confirmation |
 
 ### Operator Console
 
@@ -144,6 +146,7 @@ See the [console reference](https://professor-moody.github.io/aipostex/cli/reque
 | Landed / Stage | Every finding tagged with a `landed` value (`reachable` → `influenced` → `read-confirmed` → `execution-confirmed` → `takeover-capable`) and a kill-chain `stage` (`recon` → `access` → `impact` → `own`) |
 | Report Generation | `report render`, `report summary`, `report graph`, `engagement bundle` |
 | Model Scanning | `model-scan` for pickle/PyTorch deserialization risk in local model files |
+| MCP Server | `serve` exposes the read-only verbs (+ a confirm-gated `rag_poison`) as MCP tools over stdio so an LLM/agent can drive the tool |
 
 ---
 

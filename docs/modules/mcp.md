@@ -25,6 +25,8 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | `config-hijack` | Write and verify a hijacked local config entry with backup/rollback |
 | `poison` | Send exploit probes to an MCP server (9 modes) |
 | `chain` | Automated multi-step credential exfiltration kill chain |
+| `sandbox-escape` | Probe an MCP filesystem read tool for a path-based sandbox escape (CVE-2025-53109 / -53110 class) |
+| `ssti` | Probe an MCP rendering/formatting tool for server-side template injection (Jinja2) |
 
 ## Flags
 
@@ -118,6 +120,22 @@ The `chain` subcommand (gated) automates the multi-step credential exfiltration 
 
 Flags: `--cloud` (aws/gcp/azure/all), `--skip-metadata`
 
+## Sandbox Escape
+
+The `sandbox-escape` subcommand (gated) tests whether an MCP filesystem **read** tool enforces its advertised directory boundary — the class of flaw assigned CVE-2025-53109 / CVE-2025-53110. It sends a prefix-check-bypass path (the allowed prefix followed by traversal), a percent-encoded traversal variant, and a bare absolute path, and checks whether the tool returns content from **outside** the sandbox. A read-like tool is auto-detected when `--tool` is not given (pure listing tools are excluded).
+
+The escape is only claimed when the response carries a **runtime-only marker** — a Unix passwd signature such as `root:x:0:0` or `:/bin/bash` — that cannot be hallucinated. Enforcing the sandbox → **Info**, `reachable`; a confirmed read outside the directory → **High**, `impact` / `read-confirmed`.
+
+Flags: `--tool` (auto-detected if empty), `--path-arg` (name of the tool's path argument, default `path`), `--allowed-prefix` (the tool's advertised allowed directory, default `/data/documents`), `--escape-target` (file outside the sandbox to try to read, default `/etc/passwd`).
+
+## SSTI
+
+The `ssti` subcommand (gated) sends template-injection payloads to an MCP **rendering / formatting** tool and checks the output for evaluation. It prioritizes the Jinja2 `{{ lipsum.__globals__.keys() }}` signal — whose `dict_keys` / `__globals__` / `'os'` / `builtins` output only exists inside the server's Python runtime and so cannot be hallucinated — over bare arithmetic (`{{7*7}}` → `49`). A render-like tool is auto-detected when `--tool` is not given.
+
+Grading is honest about *how strongly* injection was proven: a globals leak confirms an SSTI that reaches the Python runtime (a code-execution surface) → **High**, `impact` / `read-confirmed`; a bare-arithmetic evaluation alone → **Medium**, `impact` / `influenced`; literal, un-evaluated output → **Info**, `reachable`.
+
+Flags: `--tool` (auto-detected if empty), `--arg` (name of the tool argument that gets rendered, default `content`).
+
 ## Examples
 
 ```bash
@@ -162,6 +180,14 @@ Flags: `--cloud` (aws/gcp/azure/all), `--skip-metadata`
   --server aipostex-hijack \
   --url http://127.0.0.1:3000/mcp \
   --force-exploit
+
+# Filesystem sandbox escape (gated)
+./aipostex mcp --target http://127.0.0.1:3000 sandbox-escape \
+  --allowed-prefix /data/documents --force-exploit
+
+# Server-side template injection (gated)
+./aipostex mcp --target http://127.0.0.1:3000 ssti \
+  --tool render_report --arg report_data --force-exploit
 
 # Automated credential chain (gated)
 ./aipostex mcp --target http://127.0.0.1:3000 chain --force-exploit
@@ -212,9 +238,9 @@ The `landed` axis records what actually landed on the MCP server. The `mcp` modu
 
 | `landed` | What produces it in mcp |
 |---|---|
-| `reachable` | `enum` (endpoint responds; tools/inspector discovered); `poison` in a schema mode (`type-field`, `default-value`, `example-inject`, `error-message`, `enum-poison`), or when the tool returns an error, or `ssrf-cloud` with no provider marker |
-| `influenced` | `config-hijack` after a local config entry is written and reparsed; `poison --mode generic` (payload accepted); `poison --mode cmd-inject` (a command-output marker appeared, but a substring match is not nonce-confirmed execution, so it stays "likely"); `poison --mode path-traversal` before a file signature is confirmed |
-| `read-confirmed` | `env-extract` when a real credential is leaked (env value returned); `poison --mode ssrf-cloud` when a provider marker is returned; `poison --mode path-traversal` when a file-read is confirmed (`file-read-confirmed`); `chain` credential-exfiltration steps |
+| `reachable` | `enum` (endpoint responds; tools/inspector discovered); `poison` in a schema mode (`type-field`, `default-value`, `example-inject`, `error-message`, `enum-poison`), or when the tool returns an error, or `ssrf-cloud` with no provider marker; `sandbox-escape` when the tool enforces its directory boundary; `ssti` when the payloads are returned as literal, un-evaluated text |
+| `influenced` | `config-hijack` after a local config entry is written and reparsed; `poison --mode generic` (payload accepted); `poison --mode cmd-inject` (a command-output marker appeared, but a substring match is not nonce-confirmed execution, so it stays "likely"); `poison --mode path-traversal` before a file signature is confirmed; `ssti` when only bare arithmetic evaluated (no runtime globals leak) |
+| `read-confirmed` | `env-extract` when a real credential is leaked (env value returned); `poison --mode ssrf-cloud` when a provider marker is returned; `poison --mode path-traversal` when a file-read is confirmed (`file-read-confirmed`); `sandbox-escape` when a runtime passwd marker confirms a read outside the sandbox; `ssti` when the Jinja2 globals leak confirms the injection reaches the Python runtime; `chain` credential-exfiltration steps |
 | `execution-confirmed` | `chain` cloud-metadata step — a fetch-capable tool processes an SSRF URL and returns AWS/GCP/Azure metadata provider markers |
 
 ## Operator console
@@ -265,5 +291,7 @@ discover network / discover files (discovers MCP config or endpoint)
   → mcp enum --target <url> (remote tool enumeration)
     → mcp env-extract (credential probing, read-only)
     → mcp poison --mode <mode> (exploit validation, gated)
+    → mcp sandbox-escape (filesystem read-tool path escape, gated)
+    → mcp ssti (rendering-tool template injection, gated)
     → mcp chain (automated credential exfiltration, gated)
 ```

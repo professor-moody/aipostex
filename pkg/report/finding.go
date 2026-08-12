@@ -41,6 +41,8 @@ const (
 	SourceHuggingFace   = "huggingface"
 	SourceKubeflow      = "kubeflow"
 	SourceK8s           = "k8s"
+	SourceAgent         = "agent"
+	SourceRAG           = "rag"
 	SourceListener      = "listener"
 	SourceCredential    = "credential"
 	// SourceRequest tags a finding produced by the operator console `request`
@@ -149,8 +151,8 @@ var moduleDisplayKeys = map[string][]string{
 	SourceOllama:       {"module", "action", "provider", "model", "version", "model_count", "layer_count", "total_bytes", "bytes_read", "downloadable", "output_dir", "mutating", "payload_preset", "stage", "landed", "chain_source"},
 	SourceVectorDB:     {"module", "action", "provider", "version", "collection", "collection_count", "count", "class", "sensitivity_hints", "artifact_kind", "mutating", "stage", "landed"},
 	SourceJupyter:      {"module", "action", "provider", "kernel", "kernel_count", "path", "session_count", "version", "mutating", "stage", "landed"},
-	SourceMCP:          {"module", "action", "provider", "transport", "tool_count", "prompt_count", "resource_count", "server", "config_source", "env_key", "capability", "capability_labels", "confidence", "tool", "prompt", "resource", "endpoint", "mode", "target_alias", "stage", "landed"},
-	SourceOpenAICompat: {"module", "action", "provider", "model", "version", "model_count", "accepted_pattern_count", "acceptance_class", "auth_pattern", "backend_failure_class", "coherence_score", "rate_limit_signal", "throughput_score", "value_score", "status", "success", "max_tokens", "mutating", "stage", "landed"},
+	SourceMCP:          {"module", "action", "provider", "transport", "tool_count", "prompt_count", "resource_count", "server", "config_source", "env_key", "capability", "capability_labels", "confidence", "tool", "prompt", "resource", "endpoint", "mode", "target_alias", "escaped", "escape_technique", "ssti_confirmed", "ssti_signal", "stage", "landed"},
+	SourceOpenAICompat: {"module", "action", "provider", "model", "model_family", "model_vendor", "fingerprint_confidence", "cutoff_hint", "context_window_recalled", "version", "model_count", "accepted_pattern_count", "acceptance_class", "auth_pattern", "backend_failure_class", "coherence_score", "inference_verified", "rate_limit_signal", "throughput_score", "value_score", "status", "success", "max_tokens", "mutating", "stage", "landed"},
 	SourceLiteLLM:      {"module", "action", "provider", "model", "version", "model_count", "coherence_score", "status", "success", "mutating", "stage", "landed"},
 	SourceRay:          {"module", "action", "provider", "version", "endpoint", "job_id", "job_count", "env_var_count", "mutating", "risk_label", "payload_preset", "stage", "landed"},
 	SourceMLflow:       {"module", "action", "provider", "version", "experiment", "experiment_count", "run_id", "run_count", "registry_count", "artifact_path", "artifact_count", "artifact_kind", "files_found", "bytes_read", "total_bytes", "failures", "bulk", "version_count", "stage", "landed"},
@@ -159,12 +161,14 @@ var moduleDisplayKeys = map[string][]string{
 	SourceTriton:       {"module", "action", "provider", "version", "model", "model_count", "endpoint", "platform", "region_count", "mutating", "stage", "landed"},
 	SourceTorchServe:   {"module", "action", "provider", "version", "model", "model_count", "endpoint", "handler", "mutating", "stage", "landed"},
 	SourceTFServing:    {"module", "action", "provider", "version", "model", "model_count", "version_count", "signature_count", "endpoint", "signature", "mutating", "stage", "landed"},
-	SourceA2A:          {"module", "action", "provider", "agent_name", "agent_version", "skill_count", "event_count", "task_id", "webhook_url", "preset", "mutating", "stage", "landed", "advertised_schemes", "no_auth_accepted", "bad_auth_accepted", "auth_enforcement", "integrity_mode", "integrity_signal", "bad_sig_accepted", "unsigned_accepted", "status_code", "spoof_id", "behavior_delta", "sender_validated", "peer_url", "delegation_depth", "outbound_attempted", "delegation_signal", "spoof_mode", "attacker_card_url", "card_fetched", "card_trust_signal", "callback_confirmed"},
+	SourceA2A:          {"module", "action", "provider", "agent_name", "agent_version", "skill_count", "event_count", "task_id", "webhook_url", "preset", "mutating", "stage", "landed", "advertised_schemes", "no_auth_accepted", "bad_auth_accepted", "auth_enforcement", "integrity_mode", "integrity_signal", "bad_sig_accepted", "unsigned_accepted", "status_code", "spoof_id", "behavior_delta", "sender_validated", "peer_url", "delegation_depth", "outbound_attempted", "delegation_signal", "spoof_mode", "attacker_card_url", "card_fetched", "card_trust_signal", "callback_confirmed", "register_endpoint", "rogue_name", "rogue_url", "registration_accepted", "listed_in_registry"},
 	SourceWandB:        {"module", "action", "entity", "project", "project_count", "version", "username", "admin", "run_count", "secret_count", "artifact_count", "mutating", "stage", "landed"},
 	SourceHuggingFace:  {"module", "action", "provider", "service_type", "model_id", "revision", "version", "hub_base", "artifact_path", "artifact_kind", "files_found", "bytes_read", "total_bytes", "failures", "output_dir", "metric_lines", "input_count", "dimensions", "mutating", "stage", "landed"},
 	SourceKubeflow:     {"module", "action", "provider", "api_version", "namespace", "pipeline_id", "pipeline_name", "pipeline_count", "run_id", "run_name", "run_count", "run_status", "experiment_id", "experiment_name", "experiment_count", "notebook", "mutating", "stage", "landed"},
 	SourceK8s:          {"module", "action", "provider", "namespace", "namespace_count", "posture", "anon_accessible", "unauth_accessible", "authenticated", "can_write", "can_exec", "rule_count", "review_incomplete", "version", "workload", "kind", "image", "workload_count", "crd", "crd_kind", "crd_count", "secret_name", "key_count", "artifact", "artifact_source", "pod", "container", "command", "token_stolen", "escalation", "sa_can_write", "foothold_can_write", "mutating", "stage", "landed"},
 	SourceVulnCheck:    {"stage", "landed", "scan_mode", "advisory_confidence", "affected_version", "server_name", "server_url", "transport_type"},
+	SourceAgent:        {"module", "action", "endpoint", "method", "model_family", "model_vendor", "fingerprint_confidence", "cutoff_hint", "tool_count", "filter_detected", "filter_bypassed", "bypass_encoders", "leaked", "marker", "injected", "inject_framings", "control_refused", "secret_refused", "secret_leaked", "override_susceptible", "jailbreak_susceptible", "over_refusal", "mutating", "stage", "landed"},
+	SourceRAG:          {"module", "action", "endpoint", "query", "source_count", "document_count", "documents", "sensitive_docs", "sensitive_hints", "poisoned", "poison_surfaced", "injection_obeyed", "obey_marker", "trigger_query", "mutating", "stage", "landed"},
 }
 
 // fallbackDisplayKeys are used when the source is not in moduleDisplayKeys.

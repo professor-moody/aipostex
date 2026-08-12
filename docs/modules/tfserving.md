@@ -55,9 +55,9 @@ TF Serving returns a structured JSON error body for 404 responses (e.g. `{"code"
 | `landed` | What produces it in tfserving |
 |---|---|
 | `reachable` | `enum` (server presence via the structured 404 probe), `models` (models discovered by name probing), `metadata` (signature/tensor-spec disclosure plus generated payload guidance), `metrics` (Prometheus data), and `predict` when the endpoint responds but output does not vary with a mutated input. |
-| `execution-confirmed` | `predict` when the inference reality probe confirms real, input-dependent inference (output varies for distinct inputs). |
+| `execution-confirmed` | `predict` when the inference reality probe confirms input-dependent inference — output varies for distinct inputs, so the handler ran input-dependent code rather than returning a canned fixture (it does not warrant real ML-model semantics). |
 
-This module has no intermediate `read-confirmed` or `influenced` step and does not reach `takeover-capable`. `metadata` is deliberately capped at `reachable`: it confirms a model is exposed but is neither a credential-gated read nor real inference. A `predict` whose response does not vary with a mutated input stays at `reachable` rather than over-claiming execution.
+This module has no intermediate `read-confirmed` or `influenced` step and does not reach `takeover-capable`. `metadata` is deliberately capped at `reachable`: it confirms a model is exposed but is neither a credential-gated read nor confirmed input-dependent inference. A `predict` whose response does not vary with a mutated input stays at `reachable` rather than over-claiming execution.
 
 ## Examples
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -307,14 +308,22 @@ func TestRunTritonModelLoadVerifiesInference(t *testing.T) {
 			"outputs":  []map[string]any{{"name": "OUTPUT0", "datatype": "FP32", "shape": []int{1, 1}}},
 		})
 	})
-	mux.HandleFunc("/v2/models/aipostex-injected/infer", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/v2/models/aipostex-injected/infer", func(w http.ResponseWriter, r *http.Request) {
 		if !loaded {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		// Input-dependent handler: the output varies with the request body (a real
+		// handler's observable behavior), so the differential inference probe confirms
+		// input-dependent handler execution rather than a canned fixture.
+		body, _ := io.ReadAll(r.Body)
+		sum := 0
+		for _, b := range body {
+			sum += int(b)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"model_name": "aipostex-injected",
-			"outputs":    []map[string]any{{"name": "OUTPUT0", "datatype": "FP32", "shape": []int{1, 1}, "data": []float64{1.0}}},
+			"outputs":    []map[string]any{{"name": "OUTPUT0", "datatype": "FP32", "shape": []int{1, 1}, "data": []float64{float64(sum)}}},
 		})
 	})
 	srv := httptest.NewServer(mux)
@@ -346,7 +355,7 @@ func TestRunTritonModelLoadVerifiesInference(t *testing.T) {
 			t.Fatal(err)
 		}
 		content := string(raw)
-		if !strings.Contains(content, "Triton model loaded and inferable") {
+		if !strings.Contains(content, "Triton model loaded and handler execution confirmed") {
 			t.Fatalf("expected verified load title, got %s", content)
 		}
 		if !strings.Contains(content, `"load_verified":true`) {
@@ -354,6 +363,64 @@ func TestRunTritonModelLoadVerifiesInference(t *testing.T) {
 		}
 		if !strings.Contains(content, `"stage":"own"`) || !strings.Contains(content, `"landed":"execution-confirmed"`) {
 			t.Fatalf("expected own/execution-confirmed, got %s", content)
+		}
+	})
+}
+
+// A loaded model that returns a STATIC prediction (identical output for distinct inputs)
+// is a canned fixture — model-load must NOT claim execution-confirmed off a bare 2xx.
+func TestRunTritonModelLoadStaticOutputNotVerified(t *testing.T) {
+	loaded := false
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v2/repository/models/canned/load", func(w http.ResponseWriter, _ *http.Request) {
+		loaded = true
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/v2/models/canned", func(w http.ResponseWriter, _ *http.Request) {
+		if !loaded {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"name": "canned", "state": "READY", "platform": "onnxruntime_onnx"})
+	})
+	mux.HandleFunc("/v2/models/canned/infer", func(w http.ResponseWriter, _ *http.Request) {
+		if !loaded {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		// Static output regardless of input — a protocol-accurate canned fixture.
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"model_name": "canned",
+			"outputs":    []map[string]any{{"name": "OUTPUT0", "datatype": "FP32", "shape": []int{1, 1}, "data": []float64{0.5}}},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	prev, prevModel, prevPayload := tritonTarget, tritonModel, tritonPayload
+	defer func() { tritonTarget, tritonModel, tritonPayload = prev, prevModel, prevPayload }()
+
+	withTestConfig(t, func() {
+		tritonTarget = srv.URL
+		tritonModel = "canned"
+		tritonPayload = `{"inputs":[{"name":"INPUT0","datatype":"FP32","shape":[1,1],"data":[1.0]}]}`
+		cfg.ForceExploit = true
+		cfg.Format = "json"
+		cfg.OutputFile = filepath.Join(t.TempDir(), "triton-load-static.json")
+
+		if _, ok := runTritonModelLoad(nil, nil).(*exitcode.FindingsError); !ok {
+			t.Fatal("expected FindingsError")
+		}
+		raw, _ := os.ReadFile(cfg.OutputFile)
+		content := string(raw)
+		if !strings.Contains(content, `"load_verified":false`) {
+			t.Fatalf("static output must not be load_verified, got %s", content)
+		}
+		if strings.Contains(content, `"landed":"execution-confirmed"`) {
+			t.Fatalf("static output must NOT be execution-confirmed, got %s", content)
+		}
+		if !strings.Contains(content, `"landed":"influenced"`) {
+			t.Fatalf("expected influenced for accepted-but-unverified load, got %s", content)
 		}
 	})
 }

@@ -1,6 +1,6 @@
 # Exploit Modules
 
-aipostex includes 18 post-exploitation modules, each targeting a specific AI service family. Modules follow a consistent pattern: read-only enumeration commands run without restrictions, while state-changing or high-noise actions require `--force-exploit`.
+aipostex includes 20 post-exploitation modules, each targeting a specific AI service family. Modules follow a consistent pattern: read-only enumeration commands run without restrictions, while state-changing or high-noise actions require `--force-exploit`.
 
 ## Module Summary
 
@@ -9,8 +9,8 @@ aipostex includes 18 post-exploitation modules, each targeting a specific AI ser
 | [ollama](ollama.md) | Ollama | 10 | 5 | 5 |
 | [vectordb](vectordb.md) | ChromaDB, Weaviate, Qdrant, Milvus, pgvector | 5 | 3 | 2 |
 | [jupyter](jupyter.md) | Jupyter Notebook | 8 | 4 | 4 |
-| [mcp](mcp.md) | MCP servers | 6 | 3 | 3 |
-| [openai-compat](openai-compat.md) | OpenAI-compatible APIs | 9 | 7 | 2 |
+| [mcp](mcp.md) | MCP servers | 8 | 3 | 5 |
+| [openai-compat](openai-compat.md) | OpenAI-compatible APIs | 10 | 8 | 2 |
 | [ray](ray.md) | Ray | 9 | 4 | 5 |
 | [mlflow](mlflow.md) | MLflow | 12 | 8 | 4 |
 | [gradio](gradio.md) | Gradio | 7 | 4 | 3 |
@@ -22,8 +22,10 @@ aipostex includes 18 post-exploitation modules, each targeting a specific AI ser
 | [tfserving](tfserving.md) | TensorFlow Serving | 5 | 4 | 1 |
 | [kubeflow](kubeflow.md) | Kubeflow Pipelines | 6 | 5 | 1 |
 | [wandb](wandb.md) | Weights & Biases | 5 | 5 | 0 |
-| [a2a](a2a.md) | Agent-to-Agent APIs | 11 | 4 | 7 |
+| [a2a](a2a.md) | Agent-to-Agent APIs | 12 | 4 | 8 |
 | [k8s](k8s.md) | Kubernetes API server (ML/AI workloads) | 7 | 3 | 4 |
+| [agent](agent.md) | Bespoke LLM `/chat` apps | 6 | 6 | 0 |
+| [rag](rag.md) | Black-box RAG apps | 3 | 2 | 1 |
 
 ## Utilities
 

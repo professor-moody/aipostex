@@ -117,6 +117,8 @@ func init() {
 	bindServiceModuleFlags(huggingfaceCmd)
 	bindServiceModuleFlags(kubeflowCmd)
 	bindServiceModuleFlags(k8sCmd)
+	bindServiceModuleFlags(agentCmd)
+	bindServiceModuleFlags(ragCmd)
 	ollamaCmd.GroupID = servicesGroupID
 	vectordbCmd.GroupID = servicesGroupID
 	jupyterCmd.GroupID = servicesGroupID
@@ -167,6 +169,10 @@ func init() {
 	rootCmd.AddCommand(huggingfaceCmd)
 	rootCmd.AddCommand(kubeflowCmd)
 	rootCmd.AddCommand(k8sCmd)
+	agentCmd.GroupID = servicesGroupID
+	rootCmd.AddCommand(agentCmd)
+	ragCmd.GroupID = servicesGroupID
+	rootCmd.AddCommand(ragCmd)
 
 	bindForceExploitFlag(listenCmd)
 	listenCmd.GroupID = operationsGroupID

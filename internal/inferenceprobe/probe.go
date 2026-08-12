@@ -1,19 +1,24 @@
-// Package inferenceprobe verifies whether an inference endpoint performs real,
-// input-dependent inference versus returning a canned/fixture response.
+// Package inferenceprobe verifies whether an inference endpoint runs input-dependent
+// handler code versus returning a canned/fixture response.
 //
 // The GPU-bound inference servers (Triton, TF-Serving, TorchServe, BentoML, vLLM)
 // cannot be distinguished from a protocol-accurate fixture by status code alone: a
 // CPU mock happily returns 200 with a static prediction. Claiming "execution-confirmed"
-// off a 2xx would therefore over-claim against a fixture. This probe sends two distinct
-// inputs and compares the (normalized) outputs:
+// off a 2xx would therefore over-claim against a canned fixture. This probe sends two
+// distinct inputs and compares the (normalized) outputs:
 //
-//   - output VARIES with input  -> genuine, input-dependent inference -> execution-confirmed
-//   - IDENTICAL output for distinct inputs -> canned/fixture response  -> reachable (detection)
+//   - output VARIES with input  -> input-dependent handler execution -> execution-confirmed
+//   - IDENTICAL output for distinct inputs -> canned/fixture response -> reachable (detection)
 //
-// This makes the tool honest in both directions: it earns the execution-confirmed claim
-// against a real GPU-backed model, and correctly stays at detection against the CPU lab
-// fixtures — without hardcoding either outcome. Mirrors the openai-compat
-// ScoreInferenceResponse / litellm credential-gate control-probe patterns.
+// This makes the tool honest without hardcoding either outcome: it earns
+// execution-confirmed whenever output varies with input — a real GPU-backed model and a
+// CPU handler that transforms its input both pass, because both ran attacker-reachable,
+// input-sensitive code (so the lab's input-transforming serving mocks are correctly
+// execution-confirmed, matching a real handler's observable behavior) — and stays at
+// detection only for a truly canned, identical-output response. The earned claim is
+// therefore "input-dependent handler execution," NOT a warranty of real ML-model
+// semantics. Mirrors the openai-compat ScoreInferenceResponse / litellm credential-gate
+// control-probe patterns.
 package inferenceprobe
 
 import (

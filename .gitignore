@@ -37,7 +37,10 @@ tmp/
 # Separate repo — kept in workspace for convenience
 aipostex-lab/
 
-# Local-only DEF CON con-kit / operator materials — live in ~/aipostex-operator, never commit here
+# DEF CON con-kit lives in /con-kit/ — VISIBLE in the workspace, canonical source (~/aipostex-operator's
+# local mkdocs symlinks to it). It may be committed to the PRIVATE dev repo (aipostex-dev) but MUST be
+# EXCLUDED from the public release publish, like the lab's review-for-recording. Do NOT let it reach the
+# public repo. The stale root duplicates below stay ignored (superseded by con-kit/).
 /cards/
 /rtv/
 /defcon-34-*.md

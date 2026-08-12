@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/professor-moody/aipostex/internal/inferenceprobe"
+	"github.com/professor-moody/aipostex/internal/modelfingerprint"
 	exploitcommon "github.com/professor-moody/aipostex/pkg/exploit/common"
 	openaicompat "github.com/professor-moody/aipostex/pkg/exploit/openaicompat"
 	"github.com/professor-moody/aipostex/pkg/report"
@@ -24,6 +25,7 @@ var (
 	openAICompatMaxTokens   int
 	openAICompatRequests    int
 	openAICompatConcurrency int
+	openAICompatFPContext   bool
 )
 
 var openAICompatCmd = &cobra.Command{
@@ -128,6 +130,22 @@ var openAICompatLiteLLMProbeCmd = &cobra.Command{
 	RunE:    runOpenAICompatLiteLLMProbe,
 }
 
+var openAICompatFingerprintCmd = &cobra.Command{
+	Use:   "fingerprint",
+	Short: "Behaviorally fingerprint the underlying model family (identity, contradiction, knowledge-cutoff)",
+	Long: `Infer the underlying model family behind the endpoint through behavioral probing,
+without trusting any self-reported name. Layers three independent read-only signals —
+a direct identity probe, contradiction probes that assert a false vendor and watch for
+the model's correction (which survives identity-masking system prompts), and a
+knowledge-cutoff bracket from dated-event recall.
+
+All probes are read-only chat completions. The optional --context-window probe is a
+heavier needle-in-haystack test (multi-turn, sends filler to estimate the usable
+context window) and is off by default.`,
+	Example: formatCommandExample("openai-compat --target http://127.0.0.1:8000 fingerprint --model llama3"),
+	RunE:    runOpenAICompatFingerprint,
+}
+
 func init() {
 	openAICompatCmd.PersistentFlags().StringVarP(&openAICompatTarget, "target", "t", "", "OpenAI-compatible endpoint URL")
 	openAICompatCmd.PersistentFlags().StringSliceVar(&openAICompatHeaders, "header", nil, "Additional HTTP header(s) in 'Key: Value' format")
@@ -138,6 +156,7 @@ func init() {
 	openAICompatGenerateCmd.Flags().IntVar(&openAICompatMaxTokens, "max-tokens", 64, "Maximum tokens to generate")
 	openAICompatThroughputCmd.Flags().IntVar(&openAICompatRequests, "requests", 0, "Number of bounded throughput requests to send")
 	openAICompatThroughputCmd.Flags().IntVar(&openAICompatConcurrency, "concurrency", 0, "Concurrent workers for throughput probing")
+	openAICompatFingerprintCmd.Flags().BoolVar(&openAICompatFPContext, "context-window", false, "Also run the heavier multi-turn context-window probe (sends filler)")
 
 	openAICompatCmd.AddCommand(
 		openAICompatAuthSweepCmd,
@@ -150,6 +169,7 @@ func init() {
 		openAICompatThroughputCmd,
 		openAICompatProxyTestCmd,
 		openAICompatLiteLLMProbeCmd,
+		openAICompatFingerprintCmd,
 	)
 }
 
@@ -402,6 +422,12 @@ func runOpenAICompatEnum(cmd *cobra.Command, args []string) error {
 	})
 }
 
+// normalizeInferenceText lowercases and collapses whitespace so two model completions
+// can be compared for the input-differential inference check (validate-inference).
+func normalizeInferenceText(s string) string {
+	return strings.ToLower(strings.Join(strings.Fields(s), " "))
+}
+
 func runOpenAICompatValidateInference(cmd *cobra.Command, args []string) error {
 	client, _, err := newOpenAICompatClient()
 	if err != nil {
@@ -417,12 +443,30 @@ func runOpenAICompatValidateInference(cmd *cobra.Command, args []string) error {
 	}
 
 	severity := report.SeverityMedium
+	stage, landed := "recon", "reachable"
+	inputDependent := false
 	title := fmt.Sprintf("Inference responded on %s", result.Model)
 	description := fmt.Sprintf("Endpoint returned a response from model %s with coherence score %d/100 (%s)", result.Model, result.CoherenceScore, result.CoherenceReason)
 	if result.Coherent {
 		severity = report.SeverityHigh
-		title = fmt.Sprintf("Coherent inference validated on %s", result.Model)
-		description = fmt.Sprintf("Endpoint returned coherent inference from model %s in %s (score %d/100)", result.Model, result.Latency, result.CoherenceScore)
+		// Input-differential check: a distinct second prompt must produce a distinct
+		// completion. A canned fixture returns identical output for any input, so only a
+		// differing completion earns execution-confirmed; an otherwise-coherent response
+		// that cannot be told apart from a fixture is graded influenced (inference ran,
+		// input-dependence unproven) — matching the serving modules' reality probe.
+		if second, serr := client.Ask(result.Model, "Reply with a random primary color followed by a random two-digit number, e.g. 'green 47'."); serr == nil {
+			a := normalizeInferenceText(second)
+			inputDependent = a != "" && a != normalizeInferenceText(result.Response)
+		}
+		if inputDependent {
+			stage, landed = "impact", "execution-confirmed"
+			title = fmt.Sprintf("Coherent, input-dependent inference confirmed on %s", result.Model)
+			description = fmt.Sprintf("Endpoint returned coherent inference from model %s in %s (score %d/100), and a distinct prompt produced a distinct completion — the model executes inference on the supplied input, not a canned fixture.", result.Model, result.Latency, result.CoherenceScore)
+		} else {
+			stage, landed = "impact", "influenced"
+			title = fmt.Sprintf("Coherent inference validated on %s (input-dependence unconfirmed)", result.Model)
+			description = fmt.Sprintf("Endpoint returned coherent inference from model %s in %s (score %d/100), but a distinct prompt did not yield a distinguishable completion — inference could not be told apart from a canned fixture (influenced, not execution-confirmed).", result.Model, result.Latency, result.CoherenceScore)
+		}
 	}
 
 	finding := newExploitFinding(
@@ -432,18 +476,20 @@ func runOpenAICompatValidateInference(cmd *cobra.Command, args []string) error {
 		severity,
 		description,
 		map[string]interface{}{
-			"module":           "openai-compat",
-			"action":           "validate-inference",
-			"mutating":         false,
-			"provider":         "openai-compatible",
-			"model":            result.Model,
-			"latency_ms":       result.Latency.Milliseconds(),
-			"coherence_score":  result.CoherenceScore,
-			"coherence_reason": result.CoherenceReason,
-			"model_attempts":   result.ModelAttempts,
+			"module":             "openai-compat",
+			"action":             "validate-inference",
+			"mutating":           false,
+			"provider":           "openai-compatible",
+			"model":              result.Model,
+			"latency_ms":         result.Latency.Milliseconds(),
+			"coherence_score":    result.CoherenceScore,
+			"coherence_reason":   result.CoherenceReason,
+			"inference_verified": inputDependent,
+			"model_attempts":     result.ModelAttempts,
 		},
 	)
 	finding.Evidence = result.Response
+	finding.Metadata = applyStageLanded(finding.Metadata, stage, landed, "openai-compat-validate-inference", "model")
 	plan := suppressWorkflowCommands(
 		injectOpenAICompatAPIKeyIntoPlan(
 			buildOpenAICompatEnumWorkflowPlan(openAICompatTarget, []string{result.Model}, []string{result.Model}),
@@ -1211,6 +1257,95 @@ func newOpenAICompatClient() (*openaicompat.Client, http.Header, error) {
 	}
 	client.HTTPClient = httpClient
 	return client, headers, nil
+}
+
+func runOpenAICompatFingerprint(cmd *cobra.Command, args []string) error {
+	client, _, err := newOpenAICompatClient()
+	if err != nil {
+		return err
+	}
+	// Resolve once so every behavioral probe hits the same concrete model
+	// instead of re-listing on each request.
+	resolved, err := client.ResolveModel(openAICompatModel)
+	if err != nil {
+		return fmt.Errorf("resolving model for fingerprint: %w", err)
+	}
+
+	opts := modelfingerprint.Options{
+		Send: func(prompt string) (string, error) { return client.Ask(resolved, prompt) },
+	}
+	if openAICompatFPContext {
+		opts.MultiSend = func(messages []map[string]string) (string, error) {
+			return client.AskMessages(resolved, messages)
+		}
+	}
+	res := modelfingerprint.Identify(opts)
+
+	// Recon-grade finding: severity reflects attribution confidence, not risk.
+	severity := report.SeverityInfo
+	title := fmt.Sprintf("Model fingerprint inconclusive on %s (no family signal)", resolved)
+	if res.Family != "" {
+		title = fmt.Sprintf("Model fingerprint: %s / %s (%s confidence) on %s", res.Family, safeLabel(res.Vendor), res.Confidence, resolved)
+	}
+	description := "Behavioral model fingerprint via identity, contradiction, and knowledge-cutoff probing. " + res.Evidence
+
+	metadata := map[string]interface{}{
+		"module":                 "openai-compat",
+		"action":                 "fingerprint",
+		"mutating":               false,
+		"provider":               "openai-compatible",
+		"model":                  resolved,
+		"model_family":           res.Family,
+		"model_vendor":           res.Vendor,
+		"fingerprint_confidence": res.Confidence,
+		"cutoff_hint":            res.CutoffHint,
+		"signal_count":           len(res.Signals),
+	}
+	if res.ContextWindow.Tested {
+		metadata["context_window_recalled"] = res.ContextWindow.MarkerRecalled
+	}
+	finding := newExploitFinding(
+		report.SourceOpenAICompat,
+		openAICompatTarget,
+		title,
+		severity,
+		description,
+		metadata,
+	)
+	// Fingerprinting is passive recon: the endpoint is reachable and answered,
+	// but nothing was accessed or mutated.
+	finding.Metadata = applyStageLanded(finding.Metadata, "recon", "reachable", "openai-compat-fingerprint", "model")
+	finding.Evidence = fingerprintEvidence(res)
+
+	plan := suppressWorkflowCommands(
+		buildOpenAICompatEnumWorkflowPlan(openAICompatTarget, []string{resolved}, nil),
+		formatCommandExample("openai-compat --target "+openAICompatTarget+" fingerprint --model "+resolved),
+	)
+	finding.Metadata = attachWorkflowToMetadata(finding.Metadata, plan)
+	return writeExploitFindingsWithSummary([]report.Finding{finding}, &exploitSummary{
+		Module:              "openai-compat",
+		Action:              "fingerprint",
+		ResourcesEnumerated: 1,
+		Mutating:            false,
+		WorkflowPlans:       []workflowPlan{plan},
+	})
+}
+
+// fingerprintEvidence renders the per-probe signals into a readable evidence block.
+func fingerprintEvidence(res modelfingerprint.Result) string {
+	var b strings.Builder
+	b.WriteString(res.Evidence)
+	for _, s := range res.Signals {
+		b.WriteString("\n[")
+		b.WriteString(s.Probe)
+		b.WriteString("] ")
+		b.WriteString(s.Note)
+		if s.Reply != "" {
+			b.WriteString(" | reply: ")
+			b.WriteString(s.Reply)
+		}
+	}
+	return b.String()
 }
 
 func safeLabel(value string) string {

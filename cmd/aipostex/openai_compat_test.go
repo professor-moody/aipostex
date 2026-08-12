@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -862,4 +864,176 @@ func TestSafeLabel(t *testing.T) {
 	if got := safeLabel("hello"); got != "hello" {
 		t.Errorf("safeLabel(\"hello\") = %q, want \"hello\"", got)
 	}
+}
+
+// fingerprintMux serves a model that MASKS its identity ("NovaTech Assistant")
+// but leaks its true family (Qwen) when a false vendor is asserted — the
+// contradiction technique. Used to prove the fingerprint verb
+// de-masks via contradiction rather than trusting the self-report.
+func fingerprintMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/models", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{{"id": "novatech-assistant", "owned_by": "novatech"}},
+		})
+	})
+	mux.HandleFunc("/v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Messages []struct {
+				Role, Content string
+			} `json:"messages"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		user := ""
+		for _, m := range req.Messages {
+			if m.Role == "user" {
+				user = strings.ToLower(m.Content)
+			}
+		}
+		reply := "Sure, I can help with that."
+		switch {
+		case strings.Contains(user, "what model are you"):
+			reply = "I am the NovaTech Customer Assistant, here to help."
+		case strings.Contains(user, "claude"):
+			reply = "I should clarify — I'm actually Qwen, created by Alibaba Cloud, not Claude."
+		case strings.Contains(user, "gpt-4! openai"):
+			reply = "To be precise, I'm Qwen from Alibaba Cloud, not GPT-4 from OpenAI."
+		case strings.Contains(user, "knowledge cutoff") || strings.Contains(user, "knowledge-cutoff"):
+			reply = "My training data goes up to early 2024."
+		case strings.Contains(user, "2024 us presidential election"):
+			reply = "I don't have information about the 2024 election; it has not occurred yet."
+		case strings.Contains(user, "gpt-4o"):
+			reply = "I don't have information on a GPT-4o release."
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{
+				{"index": 0, "message": map[string]any{"role": "assistant", "content": reply}, "finish_reason": "stop"},
+			},
+			"model": "novatech-assistant",
+		})
+	})
+	return mux
+}
+
+func TestRunOpenAICompatFingerprintDemasksViaContradiction(t *testing.T) {
+	withTestConfig(t, func() {
+		srv := httptest.NewServer(fingerprintMux())
+		defer srv.Close()
+
+		prevTarget, prevModel, prevCtx := openAICompatTarget, openAICompatModel, openAICompatFPContext
+		defer func() {
+			openAICompatTarget, openAICompatModel, openAICompatFPContext = prevTarget, prevModel, prevCtx
+		}()
+		openAICompatTarget = srv.URL
+		openAICompatModel = ""
+		openAICompatFPContext = false
+
+		cfg.Format = "json"
+		cfg.OutputFile = filepath.Join(t.TempDir(), "fp.json")
+
+		err := runOpenAICompatFingerprint(nil, nil)
+		if _, ok := err.(*exitcode.FindingsError); !ok {
+			t.Fatalf("expected FindingsError, got %v", err)
+		}
+		raw, err := os.ReadFile(cfg.OutputFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := string(raw)
+		for _, want := range []string{
+			`"model_family":"qwen"`,
+			`"fingerprint_confidence":"high"`,
+			`"model_vendor":"Alibaba"`,
+			`"stage":"recon"`,
+			`"landed":"reachable"`,
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("fingerprint output missing %q\n---\n%s", want, out)
+			}
+		}
+		// The masked self-report must not be taken at face value as the family.
+		if strings.Contains(out, `"model_family":"novatech"`) {
+			t.Error("fingerprint trusted the masked self-report instead of the contradiction signal")
+		}
+	})
+}
+
+// runOAIValidateWithHandler runs validate-inference against a custom mock and returns
+// the JSON output. Assumes an active withTestConfig scope.
+func runOAIValidateWithHandler(t *testing.T, h http.Handler) string {
+	t.Helper()
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	pT, pM, pP, pMax, pKey, pH := openAICompatTarget, openAICompatModel, openAICompatPrompt, openAICompatMaxTokens, openAICompatAPIKey, openAICompatHeaders
+	defer func() {
+		openAICompatTarget, openAICompatModel, openAICompatPrompt, openAICompatMaxTokens, openAICompatAPIKey, openAICompatHeaders = pT, pM, pP, pMax, pKey, pH
+	}()
+	openAICompatTarget, openAICompatModel = srv.URL, "canned-model"
+	openAICompatHeaders, openAICompatAPIKey, openAICompatPrompt, openAICompatMaxTokens = nil, "", "", 64
+	cfg.Format = "json"
+	cfg.OutputFile = filepath.Join(t.TempDir(), "oai-validate-honest.json")
+	if _, ok := runOpenAICompatValidateInference(nil, nil).(*exitcode.FindingsError); !ok {
+		t.Fatal("expected FindingsError")
+	}
+	raw, err := os.ReadFile(cfg.OutputFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(raw)
+}
+
+func oaiChatReply(w http.ResponseWriter, content string) {
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"choices": []map[string]any{{"message": map[string]any{"content": content}}},
+	})
+}
+
+// A coherent response that is IDENTICAL for distinct prompts is a canned fixture — the
+// input-differential check must keep it at influenced, never execution-confirmed.
+func TestValidateInference_StaticOutputInfluenced(t *testing.T) {
+	withTestConfig(t, func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/v1/models", func(w http.ResponseWriter, _ *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"id": "canned-model"}}})
+		})
+		mux.HandleFunc("/v1/chat/completions", func(w http.ResponseWriter, _ *http.Request) {
+			oaiChatReply(w, "READY. Inference is accessible and working normally.")
+		})
+		out := runOAIValidateWithHandler(t, mux)
+		if !strings.Contains(out, `"inference_verified":false`) {
+			t.Errorf("static output must be inference_verified:false\n%s", out)
+		}
+		if strings.Contains(out, `"landed":"execution-confirmed"`) {
+			t.Errorf("static output must NOT be execution-confirmed\n%s", out)
+		}
+		if !strings.Contains(out, `"landed":"influenced"`) {
+			t.Errorf("coherent-but-static should be influenced\n%s", out)
+		}
+	})
+}
+
+// A coherent response that VARIES with the prompt is input-dependent inference — earns
+// execution-confirmed.
+func TestValidateInference_InputDependentExecutionConfirmed(t *testing.T) {
+	withTestConfig(t, func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/v1/models", func(w http.ResponseWriter, _ *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{{"id": "canned-model"}}})
+		})
+		mux.HandleFunc("/v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			sum := 0
+			for _, b := range body {
+				sum += int(b)
+			}
+			oaiChatReply(w, fmt.Sprintf("READY. Inference accessible; token %d confirms input-dependent output.", sum))
+		})
+		out := runOAIValidateWithHandler(t, mux)
+		if !strings.Contains(out, `"inference_verified":true`) {
+			t.Errorf("input-dependent output must be inference_verified:true\n%s", out)
+		}
+		if !strings.Contains(out, `"landed":"execution-confirmed"`) {
+			t.Errorf("input-dependent inference should be execution-confirmed\n%s", out)
+		}
+	})
 }

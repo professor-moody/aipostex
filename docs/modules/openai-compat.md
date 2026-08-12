@@ -14,11 +14,12 @@ The `openai-compat` module targets any API that implements the OpenAI `/v1/model
 |---|---|
 | `auth-sweep` | Classify weak authentication acceptance patterns |
 | `enum` | List available models and metadata |
-| `validate-inference` | Verify coherent inference output from a model |
+| `validate-inference` | Verify coherent, input-dependent inference from a model (a distinct second prompt must yield a distinct completion) |
 | `prompt-extract` | Attempt to extract hidden system instructions |
 | `tool-enum` | Enumerate function/tool calling behavior and test tool injection |
 | `prompt-test` | Probe prompt injection, jailbreak, and refusal-bypass resistance |
 | `litellm-probe` | Probe LiteLLM health, readiness, and model-info endpoints |
+| `fingerprint` | Behaviorally fingerprint the underlying model family (identity, contradiction, knowledge-cutoff) |
 
 ### Gated (requires `--force-exploit`)
 
@@ -74,15 +75,28 @@ The `litellm-probe` subcommand targets LiteLLM-specific endpoints that are not p
 
 If none of the endpoints respond, the command emits an Info-level finding noting the probe returned no results.
 
+## Fingerprint
+
+The `fingerprint` subcommand infers the underlying model family behind the endpoint **without trusting any self-reported name** — deployments routinely mask a model's identity with a system prompt ("You are the NovaTech Assistant"), so a single "what model are you?" is unreliable. It layers three independent read-only signals whose agreement raises confidence and whose disagreement is reported honestly:
+
+- **identity probe** — ask directly and scan the reply for vendor/family signatures.
+- **contradiction de-masking** — assert a *false* vendor and watch which vendor the model corrects to; self-correction training tends to leak the true vendor even under an identity-masking system prompt.
+- **knowledge-cutoff bracket** — estimate the training cutoff from dated-event recall, reported as a coarse bracket.
+
+Attribution is emitted with a confidence level (`high` / `medium` / `low` / `unknown`); severity reflects attribution confidence, not risk. The optional `--context-window` flag adds a heavier multi-turn needle-in-haystack probe that estimates the usable context window (it sends filler and is off by default). Fingerprinting is passive recon — it always stays **Info**, `recon` / `reachable`.
+
+The same transport-agnostic classifier backs the [agent `fingerprint`](agent.md) verb against bespoke chat apps.
+
 ## What each `landed` level means here
 
 `landed` records what actually landed on the target for each finding. The openai-compat module reaches these levels:
 
 | `landed` | What produces it in openai-compat |
 |---|---|
-| `reachable` | `enum` (model inventory), `auth-sweep` (weak-auth acceptance classes, including the inference-capable class), `validate-inference` (a model responded), `prompt-test` (jailbreak/refusal probes), `litellm-probe` (LiteLLM endpoint/topology/secret disclosure), and `tool-enum` results that only detect support — the API responded but the module does not stamp a stronger claim on these paths. |
+| `reachable` | `enum` (model inventory), `auth-sweep` (weak-auth acceptance classes, including the inference-capable class), `validate-inference` when the endpoint responds but not coherently, `prompt-test` (jailbreak/refusal probes), `litellm-probe` (LiteLLM endpoint/topology/secret disclosure), `fingerprint` (behavioral model attribution — passive recon), and `tool-enum` results that only detect support — the API responded but the module does not stamp a stronger claim on these paths. |
 | `read-confirmed` | `prompt-extract` when a probe returns content matching a hidden-instruction marker (a system prompt was read back), and `tool-enum` when tool calling is confirmed supported. |
-| `execution-confirmed` | the gated `generate`, `proxy-test`, and `throughput` subcommands, where inference actually ran and returned output, plus `tool-enum` when an injected or forced tool call is proven to execute. |
+| `influenced` | `validate-inference` when the model responds coherently but a distinct second prompt does not yield a distinguishable completion — inference ran but could not be told apart from a canned fixture. |
+| `execution-confirmed` | `validate-inference` when the coherent response is confirmed **input-dependent** (a distinct prompt produces a distinct completion — the same reality probe the serving modules use); the gated `generate`, `proxy-test`, and `throughput` subcommands, where inference actually ran and returned output; plus `tool-enum` when an injected or forced tool call is proven to execute. |
 
 This module tops out at `execution-confirmed` — inference ran — and does not reach `takeover-capable`.
 
@@ -139,6 +153,9 @@ The console is manual interaction — the operator drives every request and turn
 
 # Probe LiteLLM-specific endpoints
 ./aipostex openai-compat --target http://127.0.0.1:4000 litellm-probe
+
+# Behaviorally fingerprint the underlying model family
+./aipostex openai-compat --target http://127.0.0.1:8000 fingerprint --model llama3
 ```
 
 ## Workflow Progression
@@ -148,6 +165,7 @@ discover network (discovers OpenAI-compatible on :8000/:4000/:1234)
   → openai-compat auth-sweep (classify auth posture)
   → openai-compat litellm-probe (LiteLLM targets on :4000)
     → openai-compat enum (list models, value scoring)
+      → openai-compat fingerprint --model <name> (identify the model family)
       → openai-compat validate-inference --model <name>
         → openai-compat generate --model <name> --prompt "..." (gated proof)
         → openai-compat prompt-extract --model <name>

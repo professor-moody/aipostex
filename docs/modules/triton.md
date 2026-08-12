@@ -69,7 +69,7 @@ If shared memory status endpoints expose region data (names, keys, offsets, byte
 |---|---|
 | `reachable` | `enum` (server metadata/health), `models` and `model-config` (model inventory and config disclosure), `shm-probe` (exposed shared-memory regions), and any gated write whose request did not succeed. |
 | `influenced` | `model-load` / `model-unload` when Triton accepts the lifecycle request but no post-load inference verification is performed. |
-| `execution-confirmed` | `infer` when the inference reality probe confirms real, input-dependent inference (output varies for distinct inputs); `model-load` when `--payload` is supplied and the loaded model successfully serves a follow-up inference request. |
+| `execution-confirmed` | `infer` when the inference reality probe confirms input-dependent handler execution (output varies for distinct inputs); `model-load` when `--payload` is supplied and the same input-differential probe confirms the loaded model returns input-dependent output — a bare 2xx with a static prediction stays `influenced`. |
 
 This module has no `read-confirmed` step and does not reach `takeover-capable`: reads (`models`, `model-config`, `shm-probe`) stay at `reachable` (detection), lifecycle writes without verification stay `influenced`, and `model-load` reaches `own/execution-confirmed` only when the repository model is loaded and then answers through the inference API. Note the inference-reality gate on standalone `infer` — a canned/fixture response that does not vary with input stays at `reachable` rather than over-claiming execution.
 

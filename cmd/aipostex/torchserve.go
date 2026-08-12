@@ -579,7 +579,7 @@ func runTSRegister(cmd *cobra.Command, args []string) error {
 	if handlerVerified {
 		severity = report.SeverityCritical
 		title = fmt.Sprintf("TorchServe registered model handler executed: %s", requestedModel)
-		description = fmt.Sprintf("Model registration from URL was accepted (status=%d), the registered model %q was reachable through the inference API, and an inference reality probe (mutated-input differential) confirmed the handler returned input-dependent output. This proves the newly registered TorchServe handler executed real inference — not a canned fixture; no separate OS command output is claimed.", result.StatusCode, requestedModel)
+		description = fmt.Sprintf("Model registration from URL was accepted (status=%d), the registered model %q was reachable through the inference API, and an inference reality probe (mutated-input differential) confirmed the handler returned input-dependent output. This proves input-dependent handler execution — the newly registered handler ran attacker-reachable code, not a canned fixture. The differential does not assert the handler performs real ML inference (a CPU handler that transforms its input passes too), and no separate OS command output is claimed.", result.StatusCode, requestedModel)
 		if ssrfVerified {
 			description += fmt.Sprintf(" The target also fetched the operator callback URL from %s.", oobHit.RemoteAddr)
 		}

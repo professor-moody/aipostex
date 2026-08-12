@@ -68,7 +68,7 @@ GET /info
 
 ## What each `landed` level means here
 
-Findings carry a `landed` axis recording what actually landed on the target. The strongest level comes from confirmed real inference through `generate`.
+Findings carry a `landed` axis recording what actually landed on the target. The strongest level comes from `generate`, where the inference reality probe confirms input-dependent generation.
 
 | `landed` | What produces it in huggingface |
 |---|---|
@@ -76,7 +76,7 @@ Findings carry a `landed` axis recording what actually landed on the target. The
 | `influenced` | `embed` when a TEI endpoint accepts input and returns an embedding vector. |
 | `read-confirmed` | `generate` when a supplied credential (`--header 'Authorization: ...'`) is accepted and replayed against the endpoint — credential-replay confirmed without a confirmed real completion. |
 | `takeover-capable` | `model-download` when a weight/checkpoint file such as `model.safetensors` or `pytorch_model.bin` is actually read under the configured caps. |
-| `execution-confirmed` | `generate` when the TGI backend returns a real model completion — inference actually executed on the target. |
+| `execution-confirmed` | `generate` when the inference reality probe confirms the completion is input-dependent (output varies for distinct inputs) — the backend executed input-dependent generation, not a canned fixture (it does not warrant real ML-model semantics). |
 
 Ceiling: `takeover-capable` for model file reads, `execution-confirmed` for inference. The module makes no persistent write.
 

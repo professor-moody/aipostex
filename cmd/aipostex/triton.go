@@ -371,10 +371,11 @@ func runTritonModelLoad(cmd *cobra.Command, args []string) error {
 	success := loadErr == nil
 	verificationRequested := strings.TrimSpace(tritonPayload) != ""
 	var (
-		detail      triton.ModelInfo
-		inferResult triton.InferResult
-		verifyErr   string
-		verified    bool
+		detail        triton.ModelInfo
+		inferResult   triton.InferResult
+		verifyErr     string
+		verified      bool
+		probeEvidence string
 	)
 	addVerifyErr := func(msg string) {
 		if strings.TrimSpace(msg) == "" {
@@ -395,10 +396,22 @@ func runTritonModelLoad(cmd *cobra.Command, args []string) error {
 		inferResult, inferErr = client.Infer(tritonModel, json.RawMessage(tritonPayload))
 		if inferErr != nil {
 			addVerifyErr(fmt.Sprintf("infer: %v", inferErr))
-		} else if inferResult.Success {
-			verified = true
-		} else {
+		} else if !inferResult.Success {
 			addVerifyErr(fmt.Sprintf("infer returned status %d", inferResult.StatusCode))
+		} else {
+			// Input-differential reality probe (matches `triton infer` and the other
+			// serving modules): send a mutated input and only claim execution-confirmed
+			// when output VARIES — a bare 2xx with a static prediction is a canned
+			// fixture, not proof the loaded handler ran input-dependent code.
+			probe := inferenceprobe.Verify(json.RawMessage(tritonPayload), func(input []byte) (string, int, error) {
+				r, e := client.Infer(tritonModel, json.RawMessage(input))
+				return r.Body, r.StatusCode, e
+			})
+			verified = probe.Real
+			probeEvidence = probe.Evidence
+			if !probe.Real {
+				addVerifyErr("inference returned identical output for distinct inputs (canned fixture; input-dependent handler execution not confirmed)")
+			}
 		}
 	}
 
@@ -421,8 +434,8 @@ func runTritonModelLoad(cmd *cobra.Command, args []string) error {
 	title := fmt.Sprintf("Triton model load request accepted (unverified): %s", tritonModel)
 	description := fmt.Sprintf("Model load request for %s accepted (success=%t); load was not verified against inference.", tritonModel, success)
 	if verified {
-		title = fmt.Sprintf("Triton model loaded and inferable: %s", tritonModel)
-		description = fmt.Sprintf("Model load request for %s succeeded, model metadata was reachable, and an inference request returned HTTP %d. This proves the repository model became runnable through Triton's inference API.", tritonModel, inferResult.StatusCode)
+		title = fmt.Sprintf("Triton model loaded and handler execution confirmed: %s", tritonModel)
+		description = fmt.Sprintf("Model load request for %s succeeded, model metadata was reachable, and an input-differential inference probe confirmed the loaded model returned input-dependent output (%s). This proves the repository model became runnable and executes input-dependent handler code through Triton's inference API.", tritonModel, probeEvidence)
 	} else if verificationRequested && verifyErr != "" {
 		description = fmt.Sprintf("Model load request for %s accepted (success=%t), but post-load inference verification did not complete: %s", tritonModel, success, verifyErr)
 	}

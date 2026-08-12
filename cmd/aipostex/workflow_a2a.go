@@ -128,6 +128,12 @@ func buildA2AOffensiveWorkflowPlan(target, action, anchor string) workflowPlan {
 			rec(base+"task-send --message 'follow-up extraction' --force-exploit", "Submit a follow-up task to continue extraction.", true, 20),
 			rec(base+"mcp-pivot --preset tool-enum --force-exploit", "Pivot cross-protocol if the agent exposes MCP-backed tools.", true, 30),
 		}
+	case "register":
+		rationale = "A rogue agent was accepted into the orchestrator's registry; confirm it wins routing and drive tasks to attacker-controlled infrastructure."
+		recs = []workflowRecommendation{
+			rec(base+"skills", "Re-enumerate the registry to confirm the rogue agent is listed and discoverable.", false, 10),
+			rec(base+"task-send --message 'password reset help' --force-exploit", "Submit a task matching the rogue agent's advertised skills to confirm it wins routing.", true, 20),
+		}
 	default:
 		return workflowPlan{}
 	}
