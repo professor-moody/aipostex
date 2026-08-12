@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2617,6 +2617,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#crescendo-multi-turn-escalation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crescendo (multi-turn escalation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#session-probe-predictable-session-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session-probe (predictable session IDs)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fragment-cross-turn-fragmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fragment (cross-turn fragmentation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#guardrail-defensive-posture-profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4098,6 +4131,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#crescendo-multi-turn-escalation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crescendo (multi-turn escalation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#session-probe-predictable-session-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session-probe (predictable session IDs)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fragment-cross-turn-fragmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fragment (cross-turn fragmentation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#guardrail-defensive-posture-profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4197,6 +4263,18 @@
 <td>Test direct prompt-injection resistance with an input-filter-bypass matrix</td>
 </tr>
 <tr>
+<td><code>crescendo</code></td>
+<td>Multi-turn (crescendo) prompt injection — escalate across turns to beat a per-message guardrail</td>
+</tr>
+<tr>
+<td><code>session-probe</code></td>
+<td>Sample the agent's session identifiers and check whether they are predictable (guessable)</td>
+</tr>
+<tr>
+<td><code>fragment</code></td>
+<td>Cross-turn fragmentation — split the injected token across turns to evade a content filter</td>
+</tr>
+<tr>
 <td><code>guardrail</code></td>
 <td>Profile the agent's defensive posture (secret-disclosure / override / jailbreak / over-refusal)</td>
 </tr>
@@ -4272,6 +4350,18 @@
 <td><code>inject</code></td>
 <td><code>--marker</code> (unique token a successful injection makes the model emit; default: a built-in distinctive token)</td>
 </tr>
+<tr>
+<td><code>crescendo</code></td>
+<td><code>--marker</code> (unique token the crescendo makes the model emit; default: a built-in distinctive token)</td>
+</tr>
+<tr>
+<td><code>session-probe</code></td>
+<td><code>--samples</code> (number of session IDs to sample; default 6), <code>--session-field</code> (dot-path(s) to the session ID; default: <code>session_id</code>, <code>sessionId</code>, …)</td>
+</tr>
+<tr>
+<td><code>fragment</code></td>
+<td><code>--marker</code> (token to fragment), <code>--fragments</code> (number of pieces; default 3)</td>
+</tr>
 </tbody>
 </table>
 <h2 id="configurable-transport">Configurable transport<a class="headerlink" href="#configurable-transport" title="Permanent link">&para;</a></h2>
@@ -4337,6 +4427,67 @@
 <li><strong>filter held / no compliance</strong> — nothing produced the marker → <strong>Info</strong>, <code>recon</code> / <code>reachable</code>.</li>
 </ul>
 <p>Whether a given model complies is the model's business; the result is reported honestly either way. Read-only: only chat prompts are sent.</p>
+<h2 id="crescendo-multi-turn-escalation">Crescendo (multi-turn escalation)<a class="headerlink" href="#crescendo-multi-turn-escalation" title="Permanent link">&para;</a></h2>
+<p>Where <code>inject</code> fires a <strong>single-shot</strong> matrix, <code>crescendo</code> runs a <strong>multi-turn escalation</strong>. It first fires a single-shot direct control ask, then walks a conversation ladder — <code>rapport</code> → <code>capability-prime</code> → <code>format-prime</code> → <code>objective</code> — sending the growing transcript each turn so a <strong>stateless</strong> <code>/chat</code> agent still receives full context. Only the final rung asks the model to emit the <code>--marker</code>, phrased in the built-up "diagnostic / log-correlation" context.</p>
+<p>The signal is the difference between the control and the ramp: if the <strong>direct ask is refused</strong> (a per-message input filter catches the bare instruction) but the <strong>ramp succeeds</strong>, the multi-turn escalation beat a guardrail a single message could not.</p>
+<ul>
+<li><strong>escalation broke the guardrail</strong> — the direct ask was refused, but the ramp made the model emit the marker → <strong>High</strong>, <code>impact</code> / <code>influenced</code>. The headline names the rung it broke on.</li>
+<li><strong>model emitted the marker via the ramp</strong> — the ramp worked but the direct ask also would have (no guardrail to beat) → <strong>Medium</strong>, <code>impact</code> / <code>influenced</code>.</li>
+<li><strong>resisted</strong> — no rung produced the marker → <strong>Info</strong>, <code>recon</code> / <code>reachable</code>.</li>
+</ul>
+<p>Against a <strong>stateful</strong> agent the transcript flattening is mildly redundant but still coherent. Read-only: only chat prompts are sent.</p>
+<h2 id="session-probe-predictable-session-ids">Session-probe (predictable session IDs)<a class="headerlink" href="#session-probe-predictable-session-ids" title="Permanent link">&para;</a></h2>
+<p><code>session-probe</code> samples the session identifier the agent returns across several benign chats (<code>--samples</code>, read from <code>--session-field</code> / common defaults) and classifies the scheme:</p>
+<table>
+<thead>
+<tr>
+<th>Scheme</th>
+<th>Predictable?</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>uuid</code></td>
+<td>No</td>
+<td>UUIDv4-style — secure (the honest negative)</td>
+</tr>
+<tr>
+<td><code>sequential</code></td>
+<td><strong>Yes</strong></td>
+<td>integer IDs — adjacent sessions are directly guessable</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td><strong>Yes</strong></td>
+<td>epoch-scale increasing — a narrow, enumerable space</td>
+</tr>
+<tr>
+<td><code>short</code></td>
+<td><strong>Yes</strong></td>
+<td>short / low-entropy — brute-forceable</td>
+</tr>
+<tr>
+<td><code>opaque</code></td>
+<td>No</td>
+<td>high-entropy non-UUID — no predictability proven</td>
+</tr>
+<tr>
+<td><code>none</code></td>
+<td>—</td>
+<td>the endpoint exposes no session identifier</td>
+</tr>
+</tbody>
+</table>
+<p>A predictable scheme is a <strong>cross-session enumeration precondition</strong>: an attacker who can guess other users' session IDs can reach their conversations on a stateful agent. Predictable IDs are flagged <strong>Medium</strong>; everything else is <code>Info</code>. The probe stays <code>recon</code> / <code>reachable</code> — it identifies the scheme but does <strong>not</strong> access another session (that requires a stateful target). Read-only.</p>
+<h2 id="fragment-cross-turn-fragmentation">Fragment (cross-turn fragmentation)<a class="headerlink" href="#fragment-cross-turn-fragmentation" title="Permanent link">&para;</a></h2>
+<p><code>fragment</code> splits the marker into <code>--fragments</code> pieces and delivers them across separate turns ("store fragment A: …", "store fragment B: …"), then a trigger turn asks the model to concatenate them and reply with the result. A single-shot control asks for the intact token first. The technique targets a <strong>content filter that scans each message</strong> for the whole token/instruction: no single turn carries it, but the model reassembles it.</p>
+<ul>
+<li><strong>fragmentation beat the filter</strong> — the intact ask was refused, but the fragmented delivery reassembled and emitted the marker → <strong>High</strong>, <code>impact</code> / <code>influenced</code>.</li>
+<li><strong>model reassembled the token</strong> — reassembly worked but the intact ask also would have → <strong>Medium</strong>, <code>impact</code> / <code>influenced</code>.</li>
+<li><strong>resisted</strong> — the model did not reassemble/emit → <strong>Info</strong>, <code>recon</code> / <code>reachable</code>.</li>
+</ul>
+<p>Complements <code>crescendo</code> (which escalates <em>context</em> across turns) — <code>fragment</code> splits a single payload to evade per-message <em>content</em> scanning. Read-only: only chat prompts are sent.</p>
 <h2 id="guardrail-defensive-posture-profile">Guardrail (defensive-posture profile)<a class="headerlink" href="#guardrail-defensive-posture-profile" title="Permanent link">&para;</a></h2>
 <p><code>guardrail</code> is a <strong>breadth</strong> read that complements the depth of <code>extract</code> and <code>inject</code>. It runs one probe per control axis and reports the agent's defensive disposition:</p>
 <table>
@@ -4367,7 +4518,7 @@
 </table>
 <p>The probes are benign characterization prompts, not harmful content. The output is a compact posture — <code>hardened: …</code> or <code>WEAK: obeys instruction-override; …</code> — plus per-axis flags (<code>secret_refused</code>, <code>override_susceptible</code>, <code>jailbreak_susceptible</code>, <code>over_refusal</code>). It is a fast triage before choosing the deeper <code>extract</code> (weak output filter) or <code>inject</code> (weak input filter). Stays <code>recon</code> / <code>reachable</code> — <strong>except</strong> the secret-disclosure probe, which is honestly graded <code>read-confirmed</code> if it actually recovers sensitive content. Read-only.</p>
 <h2 id="what-each-landed-level-means-here">What each <code>landed</code> level means here<a class="headerlink" href="#what-each-landed-level-means-here" title="Permanent link">&para;</a></h2>
-<p>The <code>landed</code> axis records what actually landed on the target. The <code>agent</code> module tops out at <code>read-confirmed</code>; <code>inject</code> reaches the <code>impact</code> <strong>stage</strong> but stays at <code>influenced</code> (attacker-controlled output, no code execution or confirmed read).</p>
+<p>The <code>landed</code> axis records what actually landed on the target. The <code>agent</code> module tops out at <code>read-confirmed</code>; <code>inject</code> and <code>crescendo</code> reach the <code>impact</code> <strong>stage</strong> but stay at <code>influenced</code> (attacker-controlled output, no code execution or confirmed read).</p>
 <table>
 <thead>
 <tr>
@@ -4378,7 +4529,7 @@
 <tbody>
 <tr>
 <td><code>reachable</code></td>
-<td><code>probe</code> (agent answered), <code>enum</code> (capabilities described), <code>fingerprint</code> (behavioral attribution), <code>guardrail</code> (posture profile with no sensitive content recovered), <code>extract</code> when <strong>no</strong> sensitive content is recovered, and <code>inject</code> when no framing emits the marker (filter held, or bypassed but the model did not comply).</td>
+<td><code>probe</code> (agent answered), <code>enum</code> (capabilities described), <code>fingerprint</code> (behavioral attribution), <code>guardrail</code> (posture profile with no sensitive content recovered), <code>extract</code> when <strong>no</strong> sensitive content is recovered, and <code>inject</code>/<code>crescendo</code> when no framing/rung emits the marker (filter held, or bypassed but the model did not comply).</td>
 </tr>
 <tr>
 <td><code>read-confirmed</code></td>
@@ -4386,7 +4537,7 @@
 </tr>
 <tr>
 <td><code>influenced</code></td>
-<td><code>inject</code> when a framing makes the model emit the injected marker — the input guardrail was bypassed and the model produced attacker-controlled output (<code>impact</code> stage).</td>
+<td><code>inject</code> when a framing makes the model emit the injected marker, <code>crescendo</code> when the multi-turn ramp does, and <code>fragment</code> when cross-turn reassembly emits it — the guardrail was bypassed and the model produced attacker-controlled output (<code>impact</code> stage). <code>session-probe</code> stays <code>reachable</code> (it identifies a predictable scheme but accesses no other session).</td>
 </tr>
 </tbody>
 </table>
@@ -4406,12 +4557,21 @@
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Direct prompt-injection matrix (input-filter bypass; confirmed via a marker in the reply)</span>
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8002/chat<span class="w"> </span>inject
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Defensive-posture profile (secret-disclosure / override / jailbreak / over-refusal)</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8002/chat<span class="w"> </span>guardrail
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Multi-turn (crescendo) injection — escalate across turns to beat a per-message guardrail</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8002/chat<span class="w"> </span>crescendo
 <a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Non-default transport (custom body + reply field)</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://host/api/chat<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">  </span>--request-template<span class="w"> </span><span class="s1">&#39;{&quot;message&quot;:&quot;{{PROMPT}}&quot;}&#39;</span><span class="w"> </span>--response-field<span class="w"> </span>content<span class="w"> </span>extract
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Cross-turn fragmentation — split the token across turns to evade a content filter</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8002/chat<span class="w"> </span>fragment
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="c1"># Session-ID predictability (cross-session enumeration precondition)</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8002/chat<span class="w"> </span>session-probe
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="c1"># Defensive-posture profile (secret-disclosure / override / jailbreak / over-refusal)</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:8002/chat<span class="w"> </span>guardrail
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="c1"># Non-default transport (custom body + reply field)</span>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>aipostex<span class="w"> </span>agent<span class="w"> </span>--target<span class="w"> </span>http://host/api/chat<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">  </span>--request-template<span class="w"> </span><span class="s1">&#39;{&quot;message&quot;:&quot;{{PROMPT}}&quot;}&#39;</span><span class="w"> </span>--response-field<span class="w"> </span>content<span class="w"> </span>extract
 </code></pre></div>
 <h2 id="workflow-progression">Workflow Progression<a class="headerlink" href="#workflow-progression" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>discover network (discovers a bespoke /chat app)
@@ -4482,7 +4642,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
