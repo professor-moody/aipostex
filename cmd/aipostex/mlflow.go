@@ -154,8 +154,9 @@ This is a read-only probing operation.`,
 }
 
 var mlflowTamperProofCmd = &cobra.Command{
-	Use:   "tamper-proof",
-	Short: "Prove write access by creating an experiment, run, and parameter",
+	Use:         "tamper-proof",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Prove write access by creating an experiment, run, and parameter",
 	Long: `Create a proof experiment, run, and log a parameter on the MLflow server.
 This proves that an attacker can tamper with the ML pipeline by creating
 arbitrary experiments and injecting data.
@@ -180,8 +181,9 @@ Read-only with respect to the target; nothing is written back.`,
 }
 
 var mlflowUploadArtifactCmd = &cobra.Command{
-	Use:   "upload-artifact",
-	Short: "Write an artifact to the MLflow proxied-artifact store (requires --force-exploit)",
+	Use:         "upload-artifact",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Write an artifact to the MLflow proxied-artifact store (requires --force-exploit)",
 	Long: `Write a bounded artifact to the MLflow proxied-artifact store via the real
 mlflow-artifacts REST API (PUT /api/2.0/mlflow-artifacts/artifacts/<path>) and read it
 back to confirm the write. A confirmed read-back proves an unauthenticated write to the
@@ -192,8 +194,9 @@ execution. Requires --force-exploit.`,
 }
 
 var mlflowBulkDownloadCmd = &cobra.Command{
-	Use:   "bulk-download",
-	Short: "Recursively download capped artifacts from a run or model version",
+	Use:         "bulk-download",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Recursively download capped artifacts from a run or model version",
 	Long: `Recursively list and download capped MLflow artifact files from a run, or from
 the run backing a registered model version. This is a bulk exfiltration action:
 it is read-only, bounded by --max-files/--max-bytes/--per-file-bytes, and
@@ -206,8 +209,9 @@ requires --force-exploit.`,
 }
 
 var mlflowSwapModelCmd = &cobra.Command{
-	Use:   "swap-model",
-	Short: "Register a new model version pointing to an attacker-controlled artifact source",
+	Use:         "swap-model",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Register a new model version pointing to an attacker-controlled artifact source",
 	Long: `Create a new model version in the MLflow registry that redirects inference
 to an attacker-supplied artifact URI. This proves that an adversary with
 write access to the registry can hijack model serving pipelines.
@@ -218,8 +222,9 @@ This is a destructive action and requires --force-exploit.`,
 }
 
 var mlflowHookCmd = &cobra.Command{
-	Use:   "hook",
-	Short: "Install a model-version hook URL through MLflow registry metadata",
+	Use:         "hook",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Install a model-version hook URL through MLflow registry metadata",
 	Long: `Write an operator-controlled hook URL into a real MLflow model-version tag.
 MLOps controllers that watch registry metadata may consume that tag and call back
 to the supplied --callback-url. A tag write alone proves MLflow registry influence;

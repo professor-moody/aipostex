@@ -17,8 +17,9 @@ var (
 )
 
 var mcpSandboxEscapeCmd = &cobra.Command{
-	Use:   "sandbox-escape",
-	Short: "Probe an MCP filesystem tool for a path-based sandbox escape (requires --force-exploit)",
+	Use:         "sandbox-escape",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Probe an MCP filesystem tool for a path-based sandbox escape (requires --force-exploit)",
 	Long: `Test whether an MCP filesystem read tool enforces its advertised directory boundary. Sends a
 prefix-check-bypass path (allowed-prefix + traversal) and a bare absolute path, and checks whether
 the tool returns content from outside the sandbox (e.g. /etc/passwd) — the class of flaw assigned
@@ -30,8 +31,9 @@ Reads only, but gated because it deliberately reaches outside the advertised san
 }
 
 var mcpSSTICmd = &cobra.Command{
-	Use:   "ssti",
-	Short: "Probe an MCP rendering/formatting tool for server-side template injection (requires --force-exploit)",
+	Use:         "ssti",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Probe an MCP rendering/formatting tool for server-side template injection (requires --force-exploit)",
 	Long: `Send template-injection payloads to an MCP rendering/formatting tool and check the output for
 evaluation. Prioritizes the Jinja2 lipsum.__globals__ signal — which only exists inside the
 server's Python runtime, so it cannot be hallucinated — over bare arithmetic. A globals leak

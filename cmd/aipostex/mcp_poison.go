@@ -12,8 +12,9 @@ import (
 )
 
 var mcpPoisonCmd = &cobra.Command{
-	Use:   "poison",
-	Short: "Send an MCP exploit probe",
+	Use:         "poison",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send an MCP exploit probe",
 	Long: `Send an MCP exploit probe to a remote endpoint.
 
 This is an active exploit action and requires --force-exploit.

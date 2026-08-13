@@ -369,13 +369,17 @@ func trimRunawayTurns(reply string) string {
 
 func newLLMChatShellCmd(p llmChatProvider, example string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "shell",
-		Short: fmt.Sprintf("Interactive chat REPL against the %s model (operator console)", p.module),
+		Use:         "shell",
+		Annotations: map[string]string{"aipostex.gated": "true"},
+		Short:       fmt.Sprintf("Interactive chat REPL against the %s model (operator console)", p.module),
 		Long: fmt.Sprintf(`Open an interactive chat loop against the %s target through the tool.
 
 Type prompts; the tool sends them (with conversation context where the API
 supports it) and prints the model's reply. Works authenticated or not. Responses
 are captured so any secrets the model discloses surface in the loot index on exit.
+
+Driving inference against the target is an active action, so it requires
+--force-exploit.
 
   aipostex %s`, p.module, example),
 		Args: cobra.NoArgs,
@@ -559,8 +563,9 @@ func hfGeneratePayload(_ string, history []chatMsg, maxTokens int) map[string]an
 
 func newJupyterShellCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "shell",
-		Short: "Interactive Python REPL on a Jupyter kernel (operator console)",
+		Use:         "shell",
+		Annotations: map[string]string{"aipostex.gated": "true"},
+		Short:       "Interactive Python REPL on a Jupyter kernel (operator console)",
 		Long: `Open an interactive Python REPL against a Jupyter kernel through the tool.
 
 Each line you type is executed in the kernel; stdout/results print back. Uses an
@@ -629,8 +634,9 @@ Code execution is an active operation — requires --force-exploit.
 
 func newMCPShellCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "shell",
-		Short: "Interactive MCP tool-caller (operator console)",
+		Use:         "shell",
+		Annotations: map[string]string{"aipostex.gated": "true"},
+		Short:       "Interactive MCP tool-caller (operator console)",
 		Long: `Open an interactive MCP tool-caller against the server through the tool.
 
 ":tools" lists the server's tools. Then invoke one as:  <tool> {"arg":"value"}
@@ -790,8 +796,9 @@ func parseToolArgs(argsJSON string) (map[string]any, error) {
 
 func newA2AShellCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "shell",
-		Short: "Interactive A2A task console (operator console)",
+		Use:         "shell",
+		Annotations: map[string]string{"aipostex.gated": "true"},
+		Short:       "Interactive A2A task console (operator console)",
 		Long: `Open an interactive task console against an A2A agent through the tool.
 
 Each line is submitted to the agent as a task message; the agent's response

@@ -38,8 +38,9 @@ var (
 )
 
 var requestCmd = &cobra.Command{
-	Use:   "request METHOD PATH-OR-URL",
-	Short: "Issue an arbitrary HTTP request to a service (operator console)",
+	Use:         "request METHOD PATH-OR-URL",
+	Annotations: map[string]string{"aipostex.gated": "conditional"},
+	Short:       "Issue an arbitrary HTTP request to a service (operator console)",
 	Long: `Issue an arbitrary HTTP request to a service through the tool.
 
 The operator supplies the method and path (or a full URL); the tool makes the
@@ -402,8 +403,9 @@ func bearerHeaderResolver(headerFlags func() []string, apiKey func() string) fun
 
 func newModuleRequestCmd(b moduleRequestBinding) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "request METHOD PATH-OR-URL",
-		Short: fmt.Sprintf("Issue an arbitrary HTTP request to the %s target (operator console)", b.module),
+		Use:         "request METHOD PATH-OR-URL",
+		Annotations: map[string]string{"aipostex.gated": "conditional"},
+		Short:       fmt.Sprintf("Issue an arbitrary HTTP request to the %s target (operator console)", b.module),
 		Long: fmt.Sprintf(`Issue an arbitrary HTTP request to the %s target through the tool.
 
 Reuses this module's --target/--header%s, so after running the module's verbs you

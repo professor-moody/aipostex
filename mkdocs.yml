@@ -135,6 +135,7 @@ nav:
     - Safety Model: operator-guide/safety.md
     - OPSEC & Stealth: operator-guide/opsec.md
     - Network Discovery: operator-guide/network-discovery.md
+    - Driving From an AI Agent: operator-guide/ai-agent.md
   - Development:
     - Contributing: development/contributing.md
     - Adding Modules: development/adding-modules.md

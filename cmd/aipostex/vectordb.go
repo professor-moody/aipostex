@@ -115,8 +115,9 @@ This is a read-only operation.`,
 }
 
 var vdbInjectCmd = &cobra.Command{
-	Use:   "inject",
-	Short: "Inject crafted documents into a vector store (RAG poisoning test)",
+	Use:         "inject",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Inject crafted documents into a vector store (RAG poisoning test)",
 	Long: `Insert crafted documents/entities into a vector store to test RAG poisoning susceptibility.
 
 This is an active exploit action and requires --force-exploit.`,
@@ -125,8 +126,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var vdbMetaInjectCmd = &cobra.Command{
-	Use:   "metadata-inject",
-	Short: "Test metadata field injection in vector stores",
+	Use:         "metadata-inject",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Test metadata field injection in vector stores",
 	Long: `Insert a document with a prompt injection payload in a metadata field, then
 verify the payload is returned unsanitized. Tests whether metadata fields can
 carry prompt injection payloads through RAG pipelines.
@@ -137,8 +139,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var vdbRAGVerifyCmd = &cobra.Command{
-	Use:   "rag-verify",
-	Short: "End-to-end RAG poisoning proof: inject into vectordb, verify via LLM",
+	Use:         "rag-verify",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "End-to-end RAG poisoning proof: inject into vectordb, verify via LLM",
 	Long: `Inject a canary document into a vector store, then query a connected LLM
 endpoint to verify the injected content surfaces in the model's response.
 This proves full RAG poisoning — that an attacker who can write to the vector

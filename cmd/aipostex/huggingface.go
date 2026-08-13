@@ -101,8 +101,9 @@ This is a read-only probing operation.`,
 }
 
 var hfModelDownloadCmd = &cobra.Command{
-	Use:   "model-download",
-	Short: "Download bounded model files from Hub-compatible storage (gated)",
+	Use:         "model-download",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Download bounded model files from Hub-compatible storage (gated)",
 	Long: `Resolve the served model ID from /info (or use --model-id) and download capped
 chunks of candidate files from a Hugging Face Hub-compatible
 /<model>/resolve/<revision>/<file> path.
@@ -113,8 +114,9 @@ This is an active artifact exfiltration action and requires --force-exploit.`,
 }
 
 var hfGenerateCmd = &cobra.Command{
-	Use:   "generate",
-	Short: "Send a text generation request to a TGI server (gated)",
+	Use:         "generate",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send a text generation request to a TGI server (gated)",
 	Long: `Send a generation request to a TGI /generate endpoint.
 
 This is an active exploit action and requires --force-exploit.`,
@@ -123,8 +125,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var hfEmbedCmd = &cobra.Command{
-	Use:   "embed",
-	Short: "Send an embedding request to a TEI server (gated)",
+	Use:         "embed",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send an embedding request to a TEI server (gated)",
 	Long: `Send an embed request to a TEI /embed endpoint.
 
 This is an active exploit action and requires --force-exploit.`,

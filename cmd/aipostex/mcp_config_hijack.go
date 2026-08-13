@@ -16,8 +16,9 @@ import (
 )
 
 var mcpConfigHijackCmd = &cobra.Command{
-	Use:   "config-hijack",
-	Short: "Write a hijacked MCP server entry into a local config",
+	Use:         "config-hijack",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Write a hijacked MCP server entry into a local config",
 	Long: `Write or replace one server entry in a local MCP configuration file.
 
 The original config is backed up first, the modified config is reloaded through

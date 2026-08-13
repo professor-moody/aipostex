@@ -114,8 +114,9 @@ This is a read-only probing operation.`,
 }
 
 var kfRunPipelineCmd = &cobra.Command{
-	Use:   "run-pipeline",
-	Short: "Create a new pipeline run (gated)",
+	Use:         "run-pipeline",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Create a new pipeline run (gated)",
 	Long: `Create a new pipeline run via the Kubeflow Pipelines API.
 
 This is an active exploit action and requires --force-exploit.`,

@@ -120,8 +120,9 @@ This is a read-only probing operation.`,
 }
 
 var mcpChainCmd = &cobra.Command{
-	Use:   "chain",
-	Short: "Automated multi-step credential exfiltration kill chain",
+	Use:         "chain",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Automated multi-step credential exfiltration kill chain",
 	Long: `Automate the full MCP credential exfiltration kill chain:
 enumerate → identify high-value tools → env probe → cloud metadata → credential chain.
 
@@ -131,8 +132,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var mcpSamplingCmd = &cobra.Command{
-	Use:   "sampling",
-	Short: "Probe for server->client sampling abuse (requires --force-exploit)",
+	Use:         "sampling",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Probe for server->client sampling abuse (requires --force-exploit)",
 	Long: `Advertise the MCP ` + "`sampling`" + ` client capability, then invoke the server's
 tools and watch for a server-initiated sampling/createMessage request — the
 server trying to drive the connected client's LLM (exfiltrating the client's
@@ -148,8 +150,9 @@ it invokes tools, this is an active action and requires --force-exploit.`,
 }
 
 var mcpRootsCmd = &cobra.Command{
-	Use:   "roots",
-	Short: "Probe for server->client filesystem-roots harvesting (requires --force-exploit)",
+	Use:         "roots",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Probe for server->client filesystem-roots harvesting (requires --force-exploit)",
 	Long: `Advertise the MCP ` + "`roots`" + ` client capability, then invoke the server's tools
 and watch for a server-initiated roots/list request — the server asking the
 connected client to disclose its local filesystem roots (project directories,
@@ -176,8 +179,9 @@ This is a read-only probing operation; no tool is invoked.`,
 }
 
 var mcpLoggingCmd = &cobra.Command{
-	Use:   "logging",
-	Short: "Raise the server log level and capture leaked log output (requires --force-exploit)",
+	Use:         "logging",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Raise the server log level and capture leaked log output (requires --force-exploit)",
 	Long: `Send logging/setLevel to raise the server's verbosity, then invoke its tools and
 capture any logging notifications it pushes to the connected client. Server log
 output is operator-facing detail — paths, arguments, identifiers, sometimes
@@ -189,8 +193,9 @@ Changing the log level is server-side state, so this requires --force-exploit.`,
 }
 
 var mcpSubscribeCmd = &cobra.Command{
-	Use:   "subscribe",
-	Short: "Establish a resources/subscribe push channel (requires --force-exploit)",
+	Use:         "subscribe",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Establish a resources/subscribe push channel (requires --force-exploit)",
 	Long: `Subscribe to the server's resources. An accepted subscription is a standing read
 channel: the server pushes an update notification on every change to that
 resource, with no repeated polling and no new request.
@@ -222,8 +227,9 @@ Enforcement and discovery are read-only.`,
 }
 
 var mcpElicitationCmd = &cobra.Command{
-	Use:   "elicitation",
-	Short: "Probe for server->client elicitation phishing (requires --force-exploit)",
+	Use:         "elicitation",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Probe for server->client elicitation phishing (requires --force-exploit)",
 	Long: `Advertise the MCP ` + "`elicitation`" + ` client capability, then invoke the server's
 tools and watch for a server-initiated elicitation/create request — the server
 prompting the connected client's USER for input mid-tool-call. A malicious

@@ -56,6 +56,18 @@ func New(name, version string) *Server {
 	return &Server{Name: name, Version: version, index: map[string]int{}, Logf: func(string, ...interface{}) {}}
 }
 
+// ToolNames returns the registered tool names in registration order, so callers can
+// assert what surface they have exposed without going through the protocol.
+func (s *Server) ToolNames() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	names := make([]string, 0, len(s.tools))
+	for _, t := range s.tools {
+		names = append(names, t.Name)
+	}
+	return names
+}
+
 // Register adds a tool (last registration of a name wins).
 func (s *Server) Register(t Tool) {
 	s.mu.Lock()

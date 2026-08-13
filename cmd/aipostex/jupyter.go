@@ -41,14 +41,19 @@ var jupyterEnumCmd = &cobra.Command{Use: "enum", Short: "Enumerate Jupyter serve
 var jupyterKernelsCmd = &cobra.Command{Use: "kernels", Short: "List active kernels", Long: "List the kernels currently running on the server.\n\nA live kernel is an execution context that already exists: it can be attached to\nand used to run code without starting anything new. The list also shows which\nlanguages and environments are available.\n\nThis is a read-only probing operation.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 kernels"), RunE: runJupyterKernels}
 var jupyterNotebooksCmd = &cobra.Command{Use: "notebooks", Short: "List notebook files", Long: "List notebook files visible to the server.\n\nNotebooks are where data-science credentials live in practice — API keys, tokens,\nand connection strings pasted into cells for convenience. This lists the files;\nadd --mine-secrets to fetch each notebook and scan its cells for credentials,\nwhich surface into the credential index.\n\nThis is a read-only probing operation.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 notebooks"), RunE: runJupyterNotebooks}
 var jupyterReadCmd = &cobra.Command{Use: "read-notebook", Short: "Read a notebook by path", Long: "Read a single notebook file by path.\n\nReturns the notebook's cells — source, outputs, and any secrets embedded in\neither. Cell outputs matter as much as source: a printed dataframe or an echoed\nenvironment variable persists in the file long after the code ran.\n\nThis is a read-only probing operation.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 read-notebook --path demo.ipynb"), RunE: runJupyterReadNotebook}
-var jupyterExecCmd = &cobra.Command{Use: "exec", Short: "Execute code in an existing kernel", Long: "Execute code in an existing kernel.\n\nThis is an active exploit action and requires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 exec --kernel kernel-1 --code \"print('hi')\" --force-exploit"), RunE: runJupyterExec}
-var jupyterStartKernelCmd = &cobra.Command{Use: "start-kernel", Short: "Start a new kernel", Long: "Start a new kernel on the Jupyter server.\n\nThis is an active exploit action and requires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 start-kernel --force-exploit"), RunE: runJupyterStartKernel}
-var jupyterRevshellProofCmd = &cobra.Command{Use: "reverse-shell-proof", Short: "Prove outbound socket capability via kernel", Long: "Execute a safe payload that proves the Jupyter kernel can open outbound sockets.\nUses a non-routable address (TEST-NET) to avoid actual reverse shell.\n\nRequires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 reverse-shell-proof --kernel kernel-1 --force-exploit"), RunE: runJupyterRevshellProof}
-var jupyterPipProofCmd = &cobra.Command{Use: "pip-proof", Short: "Prove pip install capability via kernel", Long: "Execute a pip dry-run install to prove the kernel can install packages.\nNo packages are actually installed.\n\nRequires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 pip-proof --kernel kernel-1 --force-exploit"), RunE: runJupyterPipProof}
+var jupyterExecCmd = &cobra.Command{Use: "exec",
+	Annotations: map[string]string{"aipostex.gated": "true"}, Short: "Execute code in an existing kernel", Long: "Execute code in an existing kernel.\n\nThis is an active exploit action and requires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 exec --kernel kernel-1 --code \"print('hi')\" --force-exploit"), RunE: runJupyterExec}
+var jupyterStartKernelCmd = &cobra.Command{Use: "start-kernel",
+	Annotations: map[string]string{"aipostex.gated": "true"}, Short: "Start a new kernel", Long: "Start a new kernel on the Jupyter server.\n\nThis is an active exploit action and requires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 start-kernel --force-exploit"), RunE: runJupyterStartKernel}
+var jupyterRevshellProofCmd = &cobra.Command{Use: "reverse-shell-proof",
+	Annotations: map[string]string{"aipostex.gated": "true"}, Short: "Prove outbound socket capability via kernel", Long: "Execute a safe payload that proves the Jupyter kernel can open outbound sockets.\nUses a non-routable address (TEST-NET) to avoid actual reverse shell.\n\nRequires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 reverse-shell-proof --kernel kernel-1 --force-exploit"), RunE: runJupyterRevshellProof}
+var jupyterPipProofCmd = &cobra.Command{Use: "pip-proof",
+	Annotations: map[string]string{"aipostex.gated": "true"}, Short: "Prove pip install capability via kernel", Long: "Execute a pip dry-run install to prove the kernel can install packages.\nNo packages are actually installed.\n\nRequires --force-exploit.", Example: formatCommandExample("jupyter --target http://127.0.0.1:8888 pip-proof --kernel kernel-1 --force-exploit"), RunE: runJupyterPipProof}
 
 var jupyterPersistCmd = &cobra.Command{
-	Use:   "persist",
-	Short: "Install persistent access via a Jupyter startup script",
+	Use:         "persist",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Install persistent access via a Jupyter startup script",
 	Long: `Deploys a Jupyter IPython startup script that phones home to --callback-url
 on every kernel restart. This is a destructive post-exploitation action.
 
@@ -58,8 +63,9 @@ Requires --force-exploit.`,
 }
 
 var jupyterRevshellCmd = &cobra.Command{
-	Use:   "revshell",
-	Short: "Deploy a real reverse shell via kernel (requires --force-exploit)",
+	Use:         "revshell",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Deploy a real reverse shell via kernel (requires --force-exploit)",
 	Long: `Execute a Python reverse shell payload in the kernel. Requires a TCP listener
 running at --callback-url tcp://HOST:PORT.
 

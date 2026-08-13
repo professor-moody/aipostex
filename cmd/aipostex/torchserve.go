@@ -81,8 +81,9 @@ This is a read-only probing operation.`,
 }
 
 var tsPredictCmd = &cobra.Command{
-	Use:   "predict",
-	Short: "Send a prediction request via the inference API",
+	Use:         "predict",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send a prediction request via the inference API",
 	Long: `Send a prediction request to test inference access.
 
 This is an active exploit action and requires --force-exploit.`,
@@ -91,8 +92,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var tsRegisterCmd = &cobra.Command{
-	Use:   "register",
-	Short: "Attempt to register a model from URL (SSRF/RCE vector)",
+	Use:         "register",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Attempt to register a model from URL (SSRF/RCE vector)",
 	Long: `Attempt to register a model from a URL. This is the critical ShellTorch attack vector
 (CVE-2023-43654, CVE-2024-35195) that enables SSRF and arbitrary code execution.
 
@@ -102,8 +104,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var tsScaleCmd = &cobra.Command{
-	Use:   "scale",
-	Short: "Scale model workers to prove management write access",
+	Use:         "scale",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Scale model workers to prove management write access",
 	Long: `Scale the number of workers for a model, proving management API write access.
 
 This is an active exploit action and requires --force-exploit.`,
@@ -112,8 +115,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var tsUnregisterCmd = &cobra.Command{
-	Use:   "unregister",
-	Short: "Unregister a model to prove destructive access",
+	Use:         "unregister",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Unregister a model to prove destructive access",
 	Long: `Unregister (delete) a model from TorchServe, proving destructive management API access.
 
 This is an active exploit action and requires --force-exploit.`,

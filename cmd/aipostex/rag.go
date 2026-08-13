@@ -81,8 +81,9 @@ This is a read-only probing operation.`,
 }
 
 var ragPoisonCmd = &cobra.Command{
-	Use:   "poison",
-	Short: "Ingest a document and verify surfacing + injection compliance (ingestion / indirect prompt injection)",
+	Use:         "poison",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Ingest a document and verify surfacing + injection compliance (ingestion / indirect prompt injection)",
 	Long: `Ingest an attacker-controlled document into the knowledge base, then (if --trigger-query is
 given) query that topic to verify the poisoned document surfaces in the retrieved citations.
 

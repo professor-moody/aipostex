@@ -4,9 +4,14 @@ Run aipostex as an MCP server so an LLM or agent can drive it.
 
 ## Overview
 
-`serve` exposes a curated set of aipostex capabilities as [Model Context Protocol](mcp.md) tools over **stdio**, so an LLM or agent framework can drive reconnaissance and bounded exploitation. It speaks newline-delimited JSON-RPC 2.0 on stdin/stdout (the MCP stdio transport) with **no SDK dependency** — a small in-tree server handles the core methods (`initialize`, `tools/list`, `tools/call`, `ping`).
+`serve` exposes 17 curated aipostex capabilities as [Model Context Protocol](mcp.md) tools over **stdio**, so an LLM or agent framework can drive reconnaissance and bounded exploitation. It speaks newline-delimited JSON-RPC 2.0 on stdin/stdout (the MCP stdio transport) with **no SDK dependency** — a small in-tree server handles the core methods (`initialize`, `tools/list`, `tools/call`, `ping`).
 
 Wire it into an MCP client (e.g. Claude) as a stdio server running `aipostex serve`.
+
+!!! tip "Give the model doctrine, not just schemas"
+    Tool schemas tell a model *what it can call*; they do not tell it what a result is
+    allowed to claim. See [Driving aipostex from an AI Agent](../operator-guide/ai-agent.md),
+    or point a skill-aware client at the shipped skill in `.claude/skills/aipostex/`.
 
 ```bash
 aipostex serve
@@ -39,6 +44,24 @@ aipostex serve
 | `rag_map` | Map a black-box RAG knowledge base via a recon-query battery, flagging documents that leak secrets. |
 
 The `agent_*` tools accept the configurable transport: `target` (required), optional `request_template` (JSON body with a `{{PROMPT}}` placeholder) and `response_field` (dot-path to the reply text).
+
+### Read-only — infrastructure
+
+| Tool | What it does |
+|---|---|
+| `mcp_enum` | Enumerate an MCP server's tools, prompts, resources, and resource templates. Args: `target` (required). |
+| `mcp_read` | Retrieve resource bodies and prompt templates (`resources/read`, `prompts/get`) — actual data, so secrets in it are real. |
+| `mcp_auth_posture` | Whether an unauthenticated request is accepted, plus any advertised OAuth metadata. Does not attempt registration. |
+| `ollama_enum` | Models available and models currently loaded on an Ollama instance. |
+| `ollama_prompts` | The system prompts configured on those models. |
+| `mlflow_experiments` | Experiments on a tracking server. |
+| `mlflow_runs` | Runs for an experiment, with parameters and artifact URIs. Args: `target`, `experiment_id` (required). |
+| `ray_jobs` | Jobs on a Ray dashboard, with entrypoints and runtime environments. |
+| `k8s_posture` | Namespaces visible and what the identity may do (`SelfSubjectRulesReview`). Args: `target` (required), `token`, `namespace`, `insecure`. |
+
+`k8s_posture` needs `insecure: true` against clusters using a self-signed API-server
+certificate (k3s and most self-managed clusters), which is the equivalent of the CLI's
+`--insecure`.
 
 ### Gated (mutating)
 

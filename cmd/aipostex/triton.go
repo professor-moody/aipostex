@@ -80,8 +80,9 @@ This is a read-only probing operation.`,
 }
 
 var tritonInferCmd = &cobra.Command{
-	Use:   "infer",
-	Short: "Send an inference request to a model",
+	Use:         "infer",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send an inference request to a model",
 	Long: `Send an inference request to test model access.
 
 This is an active exploit action and requires --force-exploit.`,
@@ -90,8 +91,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var tritonModelLoadCmd = &cobra.Command{
-	Use:   "model-load",
-	Short: "Attempt to load a model from the repository",
+	Use:         "model-load",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Attempt to load a model from the repository",
 	Long: `Attempt to load a model from the model repository, proving write access to model lifecycle.
 
 This is an active exploit action and requires --force-exploit.`,
@@ -100,8 +102,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var tritonModelUnloadCmd = &cobra.Command{
-	Use:   "model-unload",
-	Short: "Attempt to unload a model",
+	Use:         "model-unload",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Attempt to unload a model",
 	Long: `Attempt to unload a model, proving destructive access to the model lifecycle.
 
 This is an active exploit action and requires --force-exploit.`,

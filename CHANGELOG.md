@@ -2,6 +2,35 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.13.0] — 2026-08-13
+
+**Making aipostex usable *by* an AI, not just *for* one.**
+
+### Added
+
+- **A shipped skill** at `.claude/skills/aipostex/` — the doctrine an agent needs before
+  driving the tool: authorization as a precondition, the honesty rule, how to read `stage`
+  and `landed`, the operating loop, credential chaining, and the mistakes that turn a correct
+  tool into a dishonest report. Alongside it, a generated reference of all 201 verbs across 28
+  command groups with gating marked, held in step with the command tree by a test.
+- **[Driving aipostex from an AI Agent](operator-guide/ai-agent.md)** — the same doctrine as
+  documentation, for clients that do not read skills.
+- **Declarative gating.** Every command now carries an `aipostex.gated` annotation, so whether
+  a verb requires `--force-exploit` is machine-readable rather than inferred. `request` is
+  marked `conditional`: safe HTTP methods run read-only, unsafe ones are gated.
+- **Nine infrastructure tools on `aipostex serve`**, taking it from 8 tools to 17: `mcp_enum`,
+  `mcp_read`, `mcp_auth_posture`, `ollama_enum`, `ollama_prompts`, `mlflow_experiments`,
+  `mlflow_runs`, `ray_jobs`, `k8s_posture`. All read-only; the mutating gate is unchanged.
+  Previously `serve` reached only the model and agent layer, which is backwards for a tool
+  whose identity is the infrastructure-to-impact chain.
+
+### Fixed
+
+- **Eleven gated verbs never documented that they were gated** — `listen webhook`/`dns`/`tcp`,
+  `gradio queue-probe`/`serve-probe`/`upload-file`, `ray runtime-env`, and the shared LLM
+  `shell`. They refused without `--force-exploit` and said so nowhere. Surfaced by making
+  gating declarative; inferring it from help text disagreed with reality on 11 of 187 verbs.
+
 ## [v1.12.0] — 2026-08-13
 
 **Examples that are guaranteed to run.**

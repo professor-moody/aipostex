@@ -40,39 +40,43 @@ All listeners require --force-exploit.`,
 }
 
 var listenWebhookCmd = &cobra.Command{
-	Use:   "webhook",
-	Short: "Start an HTTP webhook listener for POST callbacks",
-	Long: `Start an HTTP listener that accepts POST requests and logs the body,
-headers, and remote address of each callback as a finding.
-Supports optional TLS via --tls-cert and --tls-key.
+	Use:         "webhook",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Start an HTTP webhook listener for POST callbacks",
+	Long: `Start an HTTP webhook listener that records inbound callbacks.
 
-Runs until interrupted (Ctrl-C).`,
+Out-of-band confirmation: a target that calls back proves it reached the network,
+which turns an inferred SSRF or injection into an observed one.
+
+This binds a local port and receives traffic, so it requires --force-exploit.`,
 	Example: formatCommandExample("listen webhook --port 8443 --force-exploit"),
 	RunE:    runListenWebhook,
 }
 
 var listenTCPCmd = &cobra.Command{
-	Use:   "tcp",
-	Short: "Start a raw TCP listener for reverse shells",
-	Long: `Start a raw TCP socket listener. Each incoming connection is logged
-as a finding with the remote address and first bytes received.
+	Use:         "tcp",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Start a raw TCP listener for reverse shells",
+	Long: `Start a raw TCP listener that records inbound connections.
 
-Runs until interrupted (Ctrl-C).`,
+The most general callback channel: any target able to open a socket can prove it,
+which is what a reverse-shell or exfiltration path needs.
+
+This binds a local port and receives traffic, so it requires --force-exploit.`,
 	Example: formatCommandExample("listen tcp --port 4444 --force-exploit"),
 	RunE:    runListenTCP,
 }
 
 var listenDNSCmd = &cobra.Command{
-	Use:   "dns",
-	Short: "Start a DNS canary listener for lookup callbacks",
-	Long: `Start a minimal UDP DNS server that responds to all queries with a
-configurable IP and logs each lookup as a finding. Use this with DNS
-canary domains to confirm outbound DNS resolution from exploit targets.
+	Use:         "dns",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Start a DNS canary listener for lookup callbacks",
+	Long: `Start a DNS listener that records inbound lookups.
 
-Default port is 5353 (does not require root). Use --port 53 with
-elevated privileges for real DNS interception.
+DNS often escapes egress filtering that blocks HTTP, so a lookup can confirm
+out-of-band interaction where a webhook callback never arrives.
 
-Runs until interrupted (Ctrl-C).`,
+This binds a local port and receives traffic, so it requires --force-exploit.`,
 	Example: formatCommandExample("listen dns --port 5353 --respond-ip 10.0.0.1 --force-exploit"),
 	RunE:    runListenDNS,
 }

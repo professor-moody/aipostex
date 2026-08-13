@@ -104,8 +104,9 @@ This is a read-only probing operation.`,
 }
 
 var raySubmitCmd = &cobra.Command{
-	Use:   "submit",
-	Short: "Submit a bounded exploit job",
+	Use:         "submit",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Submit a bounded exploit job",
 	Long: `Submit a bounded exploit job through the Ray jobs API.
 
 This is an active exploit action and requires --force-exploit.`,
@@ -114,8 +115,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var rayPipInjectCmd = &cobra.Command{
-	Use:   "pip-inject",
-	Short: "Prove pip injection via runtime_env",
+	Use:         "pip-inject",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Prove pip injection via runtime_env",
 	Long: `Submit a job with runtime_env.pip containing a test package, proving that
 arbitrary pip packages can be injected into cluster workers.
 
@@ -125,8 +127,9 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var rayClusterInfoCmd = &cobra.Command{
-	Use:   "cluster-info",
-	Short: "Exfiltrate cluster resource and node information",
+	Use:         "cluster-info",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Exfiltrate cluster resource and node information",
 	Long: `Submit a job that collects ray.cluster_resources() and ray.nodes() output,
 proving full cluster visibility including node IPs, CPU/GPU counts, and alive status.
 
@@ -136,21 +139,25 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var rayRuntimeEnvCmd = &cobra.Command{
-	Use:   "runtime-env",
-	Short: "Validate bounded runtime_env submission or injection surfaces",
+	Use:         "runtime-env",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Validate bounded runtime_env submission or injection surfaces",
 	Long: `Validate the bounded runtime_env submission and injection surface.
 
 runtime_env is how Ray ships dependencies and environment variables to workers,
 which makes it the cluster's code-and-config injection point. This checks whether
 that surface accepts caller-supplied content — the precondition for the
-pip-inject chain — without installing anything.`,
+pip-inject chain — without installing anything.
+
+This drives execution against the target, so it requires --force-exploit.`,
 	Example: formatCommandExample("ray --target http://127.0.0.1:8265 runtime-env --job-id job-1 --force-exploit"),
 	RunE:    runRayRuntimeEnv,
 }
 
 var rayBeaconCmd = &cobra.Command{
-	Use:   "beacon",
-	Short: "Submit a beacon job that calls back to --callback-url on interval (requires --force-exploit)",
+	Use:         "beacon",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Submit a beacon job that calls back to --callback-url on interval (requires --force-exploit)",
 	Long: `Submit a Ray job with a Python beacon payload that periodically POSTs system
 information to the specified --callback-url webhook. The beacon persists until
 the job is killed or the interval expires.

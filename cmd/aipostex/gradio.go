@@ -83,24 +83,30 @@ you name.`,
 }
 
 var gradioQueueProbeCmd = &cobra.Command{
-	Use:   "queue-probe",
-	Short: "Run a bounded queue-backed execution probe",
+	Use:         "queue-probe",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Run a bounded queue-backed execution probe",
 	Long: `Run a bounded execution probe against the queue-backed prediction path.
 
 Modern Gradio apps run predictions through an event queue rather than a direct
 call, so an app can look unreachable on the direct path while remaining fully
 callable through the queue. This probes that path explicitly and reports whether
-queued execution actually completes.`,
+queued execution actually completes.
+
+This drives execution against the target, so it requires --force-exploit.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 queue-probe --api-name predict --input-json '[\"hello\"]' --force-exploit"),
 	RunE:    runGradioQueueProbe,
 }
 
 var gradioUploadFileCmd = &cobra.Command{
-	Use:   "upload-file",
-	Short: "Probe the global Gradio /upload surface with a tiny operator-marked file",
+	Use:         "upload-file",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Probe the global Gradio /upload surface with a tiny operator-marked file",
 	Long: `Upload a tiny operator-marked file through the global Gradio /upload endpoint.
 This tests whether the global upload surface is reachable, not a specific API route.
-The --api-name and --fn-index selectors are not applicable here.`,
+The --api-name and --fn-index selectors are not applicable here.
+
+This drives execution against the target, so it requires --force-exploit.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 upload-file --force-exploit"),
 	RunE:    runGradioUploadFile,
 }
@@ -131,14 +137,17 @@ return content, turning a leaked handle into a demonstrated read.`,
 }
 
 var gradioServeProbeCmd = &cobra.Command{
-	Use:   "serve-probe",
-	Short: "Validate bounded re-serve or alternate file-read paths for a Gradio handle",
+	Use:         "serve-probe",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Validate bounded re-serve or alternate file-read paths for a Gradio handle",
 	Long: `Validate bounded re-serve and alternate file-read paths for a Gradio file
 handle.
 
 Answers whether a file the app served once can be served again — or reached by a
 different route than the one that produced it. That distinguishes an incidental
-one-shot reference from a durable read surface.`,
+one-shot reference from a durable read surface.
+
+This drives execution against the target, so it requires --force-exploit.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 serve-probe --file /tmp/gradio/demo.txt --force-exploit"),
 	RunE:    runGradioServeProbe,
 }

@@ -69,8 +69,9 @@ This is a read-only probing operation.`,
 }
 
 var bentoPredictCmd = &cobra.Command{
-	Use:   "predict",
-	Short: "Send a prediction request to a BentoML endpoint",
+	Use:         "predict",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send a prediction request to a BentoML endpoint",
 	Long: `Send a prediction request to test inference access.
 
 This is an active exploit action and requires --force-exploit.`,

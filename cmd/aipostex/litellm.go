@@ -96,8 +96,9 @@ This is a read-only probing operation.`,
 }
 
 var litellmKeyGenCmd = &cobra.Command{
-	Use:   "key-gen",
-	Short: "Generate a persistent backdoor API key via the admin API",
+	Use:         "key-gen",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Generate a persistent backdoor API key via the admin API",
 	Long: `Attempt to create a new virtual API key through the LiteLLM admin key
 generation endpoint. A successful call proves admin-level access and
 creates a persistent credential for continued access.

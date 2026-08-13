@@ -79,8 +79,9 @@ resource). Safe and read-only; no --force-exploit required.`,
 }
 
 var k8sSecretReadCmd = &cobra.Command{
-	Use:   "secret-read",
-	Short: "Exfiltrate and decode Secrets from a namespace (requires --force-exploit)",
+	Use:         "secret-read",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Exfiltrate and decode Secrets from a namespace (requires --force-exploit)",
 	Long: `List every Secret in --namespace and base64-decode its data to plaintext.
 Recovering credentials is an active exfiltration step, so it requires --force-exploit.`,
 	Example: formatCommandExample("k8s --target https://127.0.0.1:6443 --insecure secret-read --namespace ml-prod --force-exploit"),
@@ -88,8 +89,9 @@ Recovering credentials is an active exfiltration step, so it requires --force-ex
 }
 
 var k8sArtifactReadCmd = &cobra.Command{
-	Use:   "artifact-read",
-	Short: "Harvest model-artifact locations from cluster metadata (requires --force-exploit)",
+	Use:         "artifact-read",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Harvest model-artifact locations from cluster metadata (requires --force-exploit)",
 	Long: `Read ConfigMaps and InferenceService specs in --namespace to recover model
 names, registry endpoints, and object-store storageUris — the coordinates an attacker
 needs to pull proprietary models. Requires --force-exploit.`,
@@ -98,8 +100,9 @@ needs to pull proprietary models. Requires --force-exploit.`,
 }
 
 var k8sPodExecCmd = &cobra.Command{
-	Use:   "pod-exec",
-	Short: "Execute a command inside a pod (requires --force-exploit)",
+	Use:         "pod-exec",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Execute a command inside a pod (requires --force-exploit)",
 	Long: `Open an exec stream (WebSocket v5.channel.k8s.io) into a pod and run --command.
 If --pod is omitted, the first pod in --namespace is targeted. Arbitrary in-pod
 command execution is the takeover step, so it requires --force-exploit.`,
@@ -119,8 +122,9 @@ cannot self-review (401/403) is reported honestly as such. Read-only; no --force
 }
 
 var k8sSALootCmd = &cobra.Command{
-	Use:   "sa-loot",
-	Short: "Steal a pod's service-account token and escalate to its identity (requires --force-exploit)",
+	Use:         "sa-loot",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Steal a pod's service-account token and escalate to its identity (requires --force-exploit)",
 	Long: `Exec into a pod (--pod, or the first pod in --namespace), read its mounted
 service-account token, re-authenticate to the API server as that ServiceAccount, and
 map what it can do (SelfSubjectRulesReview). If the stolen identity can write
@@ -132,8 +136,9 @@ escalation. Lateral movement WITHIN the cluster (steal + re-auth); requires
 }
 
 var k8sPersistCmd = &cobra.Command{
-	Use:   "persist",
-	Short: "Deploy a bounded persistence workload with the current/stolen identity (requires --force-exploit)",
+	Use:         "persist",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Deploy a bounded persistence workload with the current/stolen identity (requires --force-exploit)",
 	Long: `Deploy a bounded, benign, self-healing Deployment (a labelled busybox canary that
 prints a marker then sleeps — no reverse shell, no host access) under the current or
 stolen identity, then confirm the cluster runs it. This proves persistence: a workload

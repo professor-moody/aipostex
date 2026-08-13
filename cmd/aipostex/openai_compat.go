@@ -100,8 +100,9 @@ targeted injection afterwards.`,
 }
 
 var openAICompatThroughputCmd = &cobra.Command{
-	Use:   "throughput",
-	Short: "Measure bounded inference throughput",
+	Use:         "throughput",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Measure bounded inference throughput",
 	Long: `Measure bounded inference throughput with explicit request and concurrency limits.
 
 This is a higher-noise exploit action and requires --force-exploit.`,
@@ -110,8 +111,9 @@ This is a higher-noise exploit action and requires --force-exploit.`,
 }
 
 var openAICompatProxyTestCmd = &cobra.Command{
-	Use:   "proxy-test",
-	Short: "Prove the endpoint can proxy inference",
+	Use:         "proxy-test",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Prove the endpoint can proxy inference",
 	Long: `Prove the endpoint can act as an inference proxy by sending a bounded test prompt and capturing the returned response.
 
 This is a higher-noise exploit action and requires --force-exploit.`,
@@ -120,8 +122,9 @@ This is a higher-noise exploit action and requires --force-exploit.`,
 }
 
 var openAICompatGenerateCmd = &cobra.Command{
-	Use:   "generate",
-	Short: "Send an operator-supplied prompt to an OpenAI-compatible model",
+	Use:         "generate",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send an operator-supplied prompt to an OpenAI-compatible model",
 	Long: `Send an operator-supplied prompt through an OpenAI-compatible chat/completions
 endpoint and capture the returned response.
 

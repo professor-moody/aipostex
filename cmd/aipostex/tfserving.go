@@ -90,8 +90,9 @@ This is a read-only probing operation.`,
 }
 
 var tfservingPredictCmd = &cobra.Command{
-	Use:   "predict",
-	Short: "Send an inference request to a model",
+	Use:         "predict",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Send an inference request to a model",
 	Long: `Send an inference request to test unauthenticated model access.
 
 This is an active exploit action and requires --force-exploit.`,

@@ -93,3 +93,33 @@ func TestServeTool_RagQuery(t *testing.T) {
 		t.Errorf("rag_query text = %q", text)
 	}
 }
+
+// TestServeRegistersInfrastructureTools guards the surface itself: `serve` covered only the
+// model and agent layer for a long time, which made "an agent can drive aipostex" true only
+// for bespoke agents. These are the infrastructure tools that closed that gap.
+func TestServeRegistersInfrastructureTools(t *testing.T) {
+	srv := mcpserver.New("aipostex-test", "test")
+	registerServeTools(srv)
+	registerServeInfraTools(srv)
+
+	got := map[string]bool{}
+	for _, name := range srv.ToolNames() {
+		got[name] = true
+	}
+	for _, want := range []string{
+		"mcp_enum", "mcp_read", "mcp_auth_posture",
+		"ollama_enum", "ollama_prompts",
+		"mlflow_experiments", "mlflow_runs",
+		"ray_jobs", "k8s_posture",
+	} {
+		if !got[want] {
+			t.Errorf("serve does not register the %q tool", want)
+		}
+	}
+	// The model/agent tools must survive alongside them.
+	for _, want := range []string{"fingerprint_model", "agent_probe", "rag_query", "rag_poison"} {
+		if !got[want] {
+			t.Errorf("serve lost the %q tool", want)
+		}
+	}
+}

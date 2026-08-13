@@ -123,8 +123,9 @@ an otherwise auth-claiming agent. Safe and read-only; no --force-exploit require
 }
 
 var a2aMsgIntegrityCmd = &cobra.Command{
-	Use:   "msg-integrity",
-	Short: "Test whether the agent verifies message integrity (requires --force-exploit)",
+	Use:         "msg-integrity",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Test whether the agent verifies message integrity (requires --force-exploit)",
 	Long: `Submit a benign message under a chosen integrity condition. --mode bad-sig
 attaches a present-but-invalid signature header; acceptance proves the verification
 path is absent or decorative. --mode unsigned documents the no-mandatory-signature
@@ -134,8 +135,9 @@ gap. Submits a task, so requires --force-exploit.`,
 }
 
 var a2aSenderSpoofCmd = &cobra.Command{
-	Use:   "sender-spoof",
-	Short: "Forge a self-asserted sender identity and detect if behavior depends on it (requires --force-exploit)",
+	Use:         "sender-spoof",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Forge a self-asserted sender identity and detect if behavior depends on it (requires --force-exploit)",
 	Long: `Submit the same message twice — once with no sender identity and once with a
 forged sender id in caller/agent headers — and compare. A behavioral difference proves
 the agent acts on an unverified, self-asserted sender. Submits tasks, so requires --force-exploit.`,
@@ -144,8 +146,9 @@ the agent acts on an unverified, self-asserted sender. Submits tasks, so require
 }
 
 var a2aDelegateProbeCmd = &cobra.Command{
-	Use:   "delegate-probe",
-	Short: "Test whether the agent delegates to a caller-supplied peer (requires --force-exploit)",
+	Use:         "delegate-probe",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Test whether the agent delegates to a caller-supplied peer (requires --force-exploit)",
 	Long: `Instruct the target to delegate a subtask to a caller-supplied --peer-url. If the agent
 attempts the outbound delegation to an arbitrary, un-allowlisted peer, that's a confused-deputy /
 delegation weakness. Single-node (does not map the mesh). Submits a task; requires --force-exploit.`,
@@ -154,8 +157,9 @@ delegation weakness. Single-node (does not map the mesh). Submits a task; requir
 }
 
 var a2aCardSpoofCmd = &cobra.Command{
-	Use:   "card-spoof",
-	Short: "Test whether the agent fetches/trusts a caller-supplied agent card (requires --force-exploit)",
+	Use:         "card-spoof",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Test whether the agent fetches/trusts a caller-supplied agent card (requires --force-exploit)",
 	Long: `Instruct the target to fetch and trust an agent card at an attacker-controlled --card-url.
 Agent cards are unauthenticated discovery documents; an agent that ingests a caller-supplied card is
 hijackable. Submitting the instruction and getting acceptance is reported as influenced; pass an
@@ -168,8 +172,9 @@ https://. Single-node. Submits a task; requires --force-exploit.`,
 }
 
 var a2aRegisterCmd = &cobra.Command{
-	Use:   "register",
-	Short: "Register a rogue agent with an orchestrator's registry (requires --force-exploit)",
+	Use:         "register",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Register a rogue agent with an orchestrator's registry (requires --force-exploit)",
 	Long: `Post an attacker-controlled agent card to an A2A orchestrator's registration endpoint
 (--register-path, default /agents/register). If the orchestrator accepts unauthenticated
 registrations, the rogue agent — pointed at --agent-url (attacker infra) and advertising --skill
@@ -198,8 +203,9 @@ This is a read-only probing operation.`,
 }
 
 var a2aTaskSendCmd = &cobra.Command{
-	Use:   "task-send",
-	Short: "Submit an unauthenticated A2A message/task (requires --force-exploit)",
+	Use:         "task-send",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Submit an unauthenticated A2A message/task (requires --force-exploit)",
 	Long: `Submit a JSON-RPC message/task request to the agent root. This is an active
 exploit action that tests whether task submission is accepted without
 authentication.`,
@@ -222,8 +228,9 @@ This is a read-only probing operation.`,
 }
 
 var a2aTaskCancelCmd = &cobra.Command{
-	Use:   "task-cancel",
-	Short: "Cancel an A2A task (requires --force-exploit)",
+	Use:         "task-cancel",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Cancel an A2A task (requires --force-exploit)",
 	Long: `Submit a JSON-RPC task cancellation request. This is an active, DoS-style
 action and requires --force-exploit.`,
 	Example: formatCommandExample("a2a --target http://127.0.0.1:8000 task-cancel --task-id probe-1 --force-exploit"),
@@ -231,8 +238,9 @@ action and requires --force-exploit.`,
 }
 
 var a2aStreamProbeCmd = &cobra.Command{
-	Use:   "stream-probe",
-	Short: "Subscribe to an A2A streaming message/task (requires --force-exploit)",
+	Use:         "stream-probe",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Subscribe to an A2A streaming message/task (requires --force-exploit)",
 	Long: `Open an SSE stream to the agent and observe intermediate reasoning or
 tool-call events. Response is bounded by --max-bytes (default 32KB).
 Requires --force-exploit.`,
@@ -241,8 +249,9 @@ Requires --force-exploit.`,
 }
 
 var a2aPushHijackCmd = &cobra.Command{
-	Use:   "push-hijack",
-	Short: "Register a canary A2A task webhook (requires --force-exploit)",
+	Use:         "push-hijack",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Register a canary A2A task webhook (requires --force-exploit)",
 	Long: `Register an attacker-controlled URL for task status notifications. The
 default --webhook-url is a non-resolving canary domain for safe probing. Registration
 being accepted is reported as influenced; pass an http:// --callback-url to stand up an
@@ -256,8 +265,9 @@ Requires --force-exploit.`,
 }
 
 var a2aMCPPivotCmd = &cobra.Command{
-	Use:   "mcp-pivot",
-	Short: "Cross-protocol probe: drive A2A task into MCP-backed tool (requires --force-exploit)",
+	Use:         "mcp-pivot",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Cross-protocol probe: drive A2A task into MCP-backed tool (requires --force-exploit)",
 	Long: `Issue an A2A message/task with a preset payload that asks the agent to invoke
 its MCP-backed tools. Presets:
   tool-enum   — asks the agent to list its tools / functions
@@ -269,8 +279,9 @@ Requires --force-exploit.`,
 }
 
 var a2aScrapeLoopCmd = &cobra.Command{
-	Use:   "scrape-loop",
-	Short: "Continuous task submission loop for data exfiltration (requires --force-exploit)",
+	Use:         "scrape-loop",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Continuous task submission loop for data exfiltration (requires --force-exploit)",
 	Long: `Submit a series of extraction prompts to the agent via A2A messages/tasks and
 collect responses. Each prompt is sent as a separate task. Useful for
 systematic data extraction from agents with access to sensitive tools
@@ -282,8 +293,9 @@ This is a destructive action and requires --force-exploit.`,
 }
 
 var a2aToolInjectCmd = &cobra.Command{
-	Use:   "tool-inject",
-	Short: "Inject a tool call via task message to test blind forwarding (requires --force-exploit)",
+	Use:         "tool-inject",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Inject a tool call via task message to test blind forwarding (requires --force-exploit)",
 	Long: `Send a task message that instructs the agent to invoke a named tool with
 attacker-supplied arguments. This probes whether the agent blindly
 forwards tool invocations without input validation or authorization checks.
@@ -294,8 +306,9 @@ Requires --force-exploit.`,
 }
 
 var a2aReplayCmd = &cobra.Command{
-	Use:   "replay",
-	Short: "Replay a message to test deterministic or stateless behavior (requires --force-exploit)",
+	Use:         "replay",
+	Annotations: map[string]string{"aipostex.gated": "true"},
+	Short:       "Replay a message to test deterministic or stateless behavior (requires --force-exploit)",
 	Long: `Re-send a message to the agent and compare the response to a previous
 task's output. Deterministic agents that lack session binding may be
 vulnerable to replay-based attacks where captured messages can be
