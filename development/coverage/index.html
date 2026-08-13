@@ -4082,6 +4082,54 @@
 <td>Better route-specific exploit chaining, richer handle parsing</td>
 <td>Deeper upload/read/serve exploit coverage</td>
 </tr>
+<tr>
+<td><strong>LiteLLM</strong></td>
+<td>Enum (readiness/health/models/model-info), config-extract (per-model <code>litellm_params</code> incl. embedded credentials), budget-probe (spend/TPM/RPM), proxy-chain (upstream provider topology + <code>api_base</code>), <strong>key-gen</strong> (gated virtual-key minting), <code>request</code>/<code>shell</code> operator console</td>
+<td>Richer provider-credential correlation</td>
+<td>Cross-provider abuse chaining</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong></td>
+<td>rbac-probe (anonymous posture classification), access-review (<code>SelfSubjectRulesReview</code>), enum (workloads + ML custom resources, <code>--all-namespaces</code>), <strong>secret-read</strong> (base64-decoded to plaintext), artifact-read (model locations from ConfigMaps/InferenceServices), <strong>pod-exec</strong> (in-pod RCE over the API server exec stream), <strong>sa-loot</strong> (service-account token theft + re-auth + privilege-escalation detection), <strong>persist</strong> (self-healing workload)</td>
+<td>Broader CRD coverage across serving stacks</td>
+<td>Cluster-wide takeover workflows</td>
+</tr>
+<tr>
+<td><strong>A2A</strong></td>
+<td>Agent-card enum, skills, task-send/status/cancel, auth-probe (is advertised auth enforced), <strong>msg-integrity</strong>, <strong>sender-spoof</strong>, <strong>delegate-probe</strong> (confused deputy), <strong>card-spoof</strong>, <strong>push-hijack</strong>, replay, register (rogue agent), stream-probe, tool-inject, scrape-loop, mcp-pivot, shell; 14 templates</td>
+<td>Deeper multi-agent mesh mapping</td>
+<td>Full mesh compromise chains</td>
+</tr>
+<tr>
+<td><strong>Agent (bespoke)</strong></td>
+<td>Probe, enum (conversational tool discovery), <strong>extract</strong> (system prompt/config/credentials with an output-filter-bypass matrix), <strong>inject</strong> (input-filter-bypass matrix), <strong>crescendo</strong> (multi-turn escalation), <strong>fragment</strong> (cross-turn token splitting), <strong>session-probe</strong> (session-id predictability), <strong>guardrail</strong> (secret-disclosure / override / jailbreak / over-refusal profile), <strong>fingerprint</strong> (behavioral model-family attribution)</td>
+<td>Broader transport auto-detection</td>
+<td>Automated multi-agent injection chains</td>
+</tr>
+<tr>
+<td><strong>RAG (black-box)</strong></td>
+<td>Query (answer + source citations), <strong>map</strong> (recon-query battery over the knowledge base, flagging documents that leak secrets), <strong>poison</strong> (attacker-document ingestion + surfacing/compliance verification)</td>
+<td>Retrieval-ranking manipulation</td>
+<td>Persistent corpus compromise</td>
+</tr>
+<tr>
+<td><strong>HuggingFace</strong></td>
+<td>Enum (TGI/TEI auto-detect, model id/version), models, metrics, generate, embed, <strong>model-download</strong> (capped chunked retrieval from Hub-compatible storage), <code>request</code>/<code>shell</code></td>
+<td>Broader serving-stack detection</td>
+<td>Weight-level supply-chain work</td>
+</tr>
+<tr>
+<td><strong>Kubeflow</strong></td>
+<td>Enum (API reachability + version, v1beta1/v2beta1), pipelines (definitions + parameters), runs, experiments, notebooks, <strong>run-pipeline</strong> (gated pipeline-run injection)</td>
+<td>Artifact-store pivoting</td>
+<td>Pipeline supply-chain compromise</td>
+</tr>
+<tr>
+<td><strong>Weights &amp; Biases</strong></td>
+<td>Enum (server metadata + authenticated viewer identity), projects, runs, artifacts, <strong>secrets</strong> (credential scan over run configs and summaries)</td>
+<td>Artifact-lineage correlation</td>
+<td>Cross-project data exfiltration</td>
+</tr>
 </tbody>
 </table>
 <p>Fingerprinting now distinguishes <code>confirmed</code>, <code>suspected</code>, and <code>ambiguous</code> matches. Generic probes are preserved where useful, but weak-only hits are downgraded instead of being presented as authoritative service identity. Ambiguous or proxy-like ports are no longer skipped during network assessment: aipostex expands template coverage across each plausible HTTP service identity and marks resulting findings with <code>fingerprint_status=ambiguous</code>, <code>coverage_expanded=true</code>, <code>candidate_services</code>, and <code>identity_confidence=ambiguous</code>. Clear non-HTTP identities such as PostgreSQL/pgvector are preserved for module enumeration, but HTTP templates are not sprayed at those ports; the output records an informational skip instead.</p>
