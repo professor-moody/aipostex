@@ -2,6 +2,25 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.8.0] — 2026-08-12
+
+**MCP data retrieval + sampling-abuse probe** — the MCP module now retrieves what it enumerates,
+and detects a server that turns the client's own model against it.
+
+### Added
+
+- **`mcp enum --read`** — beyond listing, RETRIEVES each resource (`resources/read`) and prompt
+  (`prompts/get`), graded `access`/`read-confirmed`. Required prompt arguments are filled with a
+  probe value so retrieval succeeds. Evidence is unredacted, so credential-bearing resource data
+  and server-supplied prompt injections surface into the credential index.
+- **`mcp sampling`** (gated) — probes for server→client sampling abuse. Advertises the `sampling`
+  client capability, invokes each tool (or `--tool`), and captures a server-initiated
+  `sampling/createMessage` request — a malicious server driving the connected client's LLM
+  (context exfiltration or free-proxy abuse), which a `tools/list` enumeration cannot see. Over
+  Streamable HTTP the request rides the standalone GET event stream, so the probe watches that
+  stream alongside the tool call. Graded High, `access`/`influenced`: the server's behavior is
+  confirmed, but aipostex never answers the request, so victim-client compliance is not claimed.
+
 ## [v1.7.1] — 2026-08-12
 
 **Honesty & correctness fixes** (from an external review; grading truthfulness).

@@ -30,6 +30,8 @@ var (
 	mcpSchemaField  string
 	mcpChainCloud   string
 	mcpSkipMetadata bool
+	mcpEnumRead     bool
+	mcpSamplingTool string
 
 	mcpHijackServer    string
 	mcpHijackCommand   string
@@ -126,6 +128,23 @@ This is an active exploit action and requires --force-exploit.`,
 	RunE:    runMCPChain,
 }
 
+var mcpSamplingCmd = &cobra.Command{
+	Use:   "sampling",
+	Short: "Probe for server->client sampling abuse (requires --force-exploit)",
+	Long: `Advertise the MCP ` + "`sampling`" + ` client capability, then invoke the server's
+tools and watch for a server-initiated sampling/createMessage request — the
+server trying to drive the connected client's LLM (exfiltrating the client's
+context, or using the victim's model as a free proxy). This is the abuse the
+sampling capability was designed to make possible, and it is invisible to a
+tools/list enumeration.
+
+aipostex advertises sampling but never answers the request, so a positive result
+confirms the server's abuse behavior, not a victim client's compliance. Because
+it invokes tools, this is an active action and requires --force-exploit.`,
+	Example: formatCommandExample("mcp --target http://127.0.0.1:3000 sampling --force-exploit"),
+	RunE:    runMCPSampling,
+}
+
 // mcpSchemaAliasCmd catches the intuitive-but-nonexistent `mcp schema` and points at the
 // real schema-poisoning path (poison modes) instead of cobra's bare "unknown command".
 var mcpSchemaAliasCmd = &cobra.Command{
@@ -146,6 +165,7 @@ func init() {
 	mcpCmd.PersistentFlags().StringVar(&mcpTransport, "transport", "http", "Transport type: http, stdio")
 	mcpCmd.PersistentFlags().StringVar(&mcpStdioCmd, "stdio-command", "", "Command to start a stdio MCP server (used with --transport stdio)")
 	mcpCmd.PersistentFlags().StringSliceVar(&mcpStdioArgs, "stdio-args", nil, "Arguments for the stdio MCP server command")
+	mcpEnumCmd.Flags().BoolVar(&mcpEnumRead, "read", false, "Also RETRIEVE each resource (resources/read) and prompt (prompts/get), not just list them")
 
 	mcpAnalyzeCmd.Flags().StringVar(&mcpConfig, "config", "", "Path to an MCP config file")
 	mcpConfigHijackCmd.Flags().StringVar(&mcpConfig, "config", "", "Path to an MCP config file")
@@ -169,8 +189,9 @@ func init() {
 	mcpEnvExtractCmd.Flags().StringVar(&mcpTool, "tool", "", "Specific tool to probe (empty = all)")
 	mcpChainCmd.Flags().StringVar(&mcpChainCloud, "cloud", "all", "Cloud provider to probe: aws, gcp, azure, all")
 	mcpChainCmd.Flags().BoolVar(&mcpSkipMetadata, "skip-metadata", false, "Skip cloud metadata probing")
+	mcpSamplingCmd.Flags().StringVar(&mcpSamplingTool, "tool", "", "Specific tool to invoke (empty = every enumerated tool)")
 
-	mcpCmd.AddCommand(mcpAnalyzeCmd, mcpConfigHijackCmd, mcpEnumCmd, mcpPoisonCmd, mcpEnvExtractCmd, mcpChainCmd, mcpSchemaAliasCmd)
+	mcpCmd.AddCommand(mcpAnalyzeCmd, mcpConfigHijackCmd, mcpEnumCmd, mcpPoisonCmd, mcpEnvExtractCmd, mcpChainCmd, mcpSamplingCmd, mcpSchemaAliasCmd)
 }
 
 func runMCPEnum(cmd *cobra.Command, args []string) error {
@@ -412,6 +433,15 @@ func runMCPEnum(cmd *cobra.Command, args []string) error {
 		finding.Metadata = applyStageLanded(finding.Metadata, "access", "reachable", "mcp-enum", append([]string{"resource"}, resourceLabels...)...)
 		findings = append(findings, finding)
 	}
+
+	// --read: retrieve (not just list) each resource and prompt. resources/read and
+	// prompts/get return the actual data/template body — a direct read + injection
+	// vector distinct from enumeration. Content recovered => access/read-confirmed;
+	// secrets in it surface downstream via credchain (evidence is never redacted).
+	if mcpEnumRead {
+		findings = append(findings, mcpRetrieveResourcesAndPrompts(client, resources, prompts, transport)...)
+	}
+
 	summaryPlan = buildMCPEnumWorkflowPlan(mcpTarget, categorySet)
 	findings[0].Metadata = attachWorkflowToMetadata(findings[0].Metadata, summaryPlan)
 
@@ -425,6 +455,185 @@ func runMCPEnum(cmd *cobra.Command, args []string) error {
 		WorkflowFailures:    countNonNilErrors(toolsErr, mcpRequiredCapabilityError(promptsErr), mcpRequiredCapabilityError(resourcesErr)),
 		WorkflowPlans:       []workflowPlan{summaryPlan},
 	})
+}
+
+// runMCPSampling advertises the sampling client capability and invokes each tool
+// (or a single --tool) to see whether the server responds with a server-initiated
+// sampling/createMessage — server->client LLM abuse. The request bytes are kept
+// as raw evidence; credchain surfaces anything sensitive the server tried to feed
+// the client's model.
+func runMCPSampling(cmd *cobra.Command, args []string) error {
+	if err := requireForceExploit("mcp sampling"); err != nil {
+		return err
+	}
+	if strings.TrimSpace(mcpTarget) == "" && !strings.EqualFold(mcpTransport, "stdio") {
+		return missingFlagError("target", formatCommandExample("mcp --target http://127.0.0.1:3000 sampling --force-exploit"))
+	}
+	client, err := mcpClientFactory()
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	client.AdvertiseSampling = true // must be set before Initialize so the offer is sent
+	if err := client.Initialize(); err != nil {
+		return fmt.Errorf("initializing MCP session: %w", err)
+	}
+
+	tools, toolsErr := client.ListTools()
+	if toolsErr != nil {
+		warnf("listing tools: %v", outcomeAnnotate(toolsErr))
+	}
+	if strings.TrimSpace(mcpSamplingTool) != "" {
+		tools = filterToolsByName(tools, mcpSamplingTool)
+		if len(tools) == 0 {
+			return fmt.Errorf("tool %q not found on the target", mcpSamplingTool)
+		}
+	}
+	transport := mcp.InferTransport(mcpTarget)
+
+	var findings []report.Finding
+	observedCount := 0
+	for _, t := range tools {
+		probeArgs := mcp.BuildToolArguments(t, "aipostex sampling probe", []string{"input", "prompt", "query", "text", "message", "content", "q"})
+		obs, probeErr := client.ProbeToolSampling(t.Name, probeArgs)
+		if probeErr != nil && !obs.Observed {
+			warnf("probing tool %s: %v", t.Name, outcomeAnnotate(probeErr))
+		}
+		if !obs.Observed {
+			continue
+		}
+		observedCount++
+		f := newExploitFinding(
+			report.SourceMCP,
+			mcpTarget,
+			fmt.Sprintf("MCP sampling abuse: server drives client LLM via %s", t.Name),
+			report.SeverityHigh,
+			fmt.Sprintf("Invoking tool %s produced a server-initiated sampling/createMessage request. The server attempts to invoke the connected client's LLM (server->client abuse: client-context exfiltration, or using the victim's model as a proxy). aipostex advertised sampling but did not answer the request, so client-side impact was not exercised.", t.Name),
+			map[string]interface{}{
+				"module": "mcp", "action": "sampling", "mutating": false,
+				"provider": "mcp", "transport": transport, "tool": t.Name,
+			},
+		)
+		f.Evidence = obs.Request
+		// Confirmed the server's abuse behavior (it issued the client-directed
+		// request); we did NOT run the client LLM, so this is access/influenced,
+		// never execution-confirmed.
+		f.Metadata = applyStageLanded(f.Metadata, "access", "influenced", "mcp-sampling", "sampling")
+		findings = append(findings, f)
+	}
+
+	summary := newExploitFinding(
+		report.SourceMCP,
+		mcpTarget,
+		"MCP sampling probe complete",
+		report.SeverityInfo,
+		fmt.Sprintf("Advertised the sampling capability and invoked %d tool(s); %d issued a server-initiated sampling/createMessage request.", len(tools), observedCount),
+		map[string]interface{}{
+			"module": "mcp", "action": "sampling", "mutating": false,
+			"provider": "mcp", "transport": transport,
+			"tools_probed": len(tools), "sampling_observed": observedCount,
+		},
+	)
+	summary.Metadata = applyStageLanded(summary.Metadata, "recon", "reachable", "mcp-sampling", "endpoint")
+	findings = append(findings, summary)
+
+	infof("Probed %d MCP tool(s) for sampling abuse on %s", len(tools), mcpTarget)
+	return writeExploitFindingsWithSummary(findings, &exploitSummary{
+		Module:              "mcp",
+		Action:              "sampling",
+		ResourcesEnumerated: len(tools),
+		PartialFailures:     countNonNilErrors(toolsErr),
+		Mutating:            false,
+	})
+}
+
+// filterToolsByName returns the tools whose name matches want (case-insensitive).
+func filterToolsByName(tools []mcp.Tool, want string) []mcp.Tool {
+	var out []mcp.Tool
+	for _, t := range tools {
+		if strings.EqualFold(t.Name, want) {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// mcpRetrieveResourcesAndPrompts reads each resource (resources/read) and fetches
+// each prompt (prompts/get), emitting one access/read-confirmed finding per item
+// whose body is actually recovered — the retrieval counterpart to enum's listing.
+// The resource data / prompt template is where secrets and server-side injections
+// live; nothing is redacted, so credchain surfaces any secrets from the evidence.
+func mcpRetrieveResourcesAndPrompts(client *mcp.Client, resources []mcp.Resource, prompts []mcp.Prompt, transport string) []report.Finding {
+	var out []report.Finding
+	for _, r := range resources {
+		contents, err := client.ReadResource(r.URI)
+		if err != nil {
+			warnf("reading resource %s: %v", r.URI, err)
+			continue
+		}
+		var b strings.Builder
+		for _, c := range contents {
+			switch {
+			case c.Text != "":
+				b.WriteString(c.Text)
+				b.WriteString("\n")
+			case c.Blob != "":
+				fmt.Fprintf(&b, "[binary blob: %d base64 chars, mime %s]\n", len(c.Blob), c.MimeType)
+			}
+		}
+		body := strings.TrimSpace(b.String())
+		if body == "" {
+			continue
+		}
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			fmt.Sprintf("MCP resource read: %s", r.Name),
+			report.SeverityMedium,
+			fmt.Sprintf("resources/read returned %d content item(s) for %s", len(contents), r.URI),
+			map[string]interface{}{
+				"module": "mcp", "action": "read-resource", "mutating": false,
+				"provider": "mcp", "transport": transport, "resource": r.URI,
+			})
+		f.Evidence = body
+		f.Metadata = applyStageLanded(f.Metadata, "access", "read-confirmed", "mcp-read", "resource")
+		out = append(out, f)
+	}
+	for _, p := range prompts {
+		// prompts/get rejects missing required arguments, so fill every declared
+		// argument with a probe value — the rendered template (with its embedded
+		// context/secrets/injection) is what we're after, not a specific answer.
+		var args map[string]any
+		if len(p.Arguments) > 0 {
+			args = make(map[string]any, len(p.Arguments))
+			for _, a := range p.Arguments {
+				args[a.Name] = "aipostex-probe"
+			}
+		}
+		_, messages, err := client.GetPrompt(p.Name, args)
+		if err != nil {
+			warnf("fetching prompt %s: %v", p.Name, err)
+			continue
+		}
+		var b strings.Builder
+		for _, m := range messages {
+			fmt.Fprintf(&b, "[%s] %s\n", m.Role, m.Content.Text)
+		}
+		body := strings.TrimSpace(b.String())
+		if body == "" {
+			continue
+		}
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			fmt.Sprintf("MCP prompt retrieved: %s", p.Name),
+			report.SeverityMedium,
+			fmt.Sprintf("prompts/get returned %d message(s) for template %s", len(messages), p.Name),
+			map[string]interface{}{
+				"module": "mcp", "action": "get-prompt", "mutating": false,
+				"provider": "mcp", "transport": transport, "prompt": p.Name,
+			})
+		f.Evidence = body
+		f.Metadata = applyStageLanded(f.Metadata, "access", "read-confirmed", "mcp-read", "prompt")
+		out = append(out, f)
+	}
+	return out
 }
 
 func mcpOptionalCapabilityUnsupported(err error) bool {

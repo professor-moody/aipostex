@@ -15,7 +15,7 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | Subcommand | Description |
 |---|---|
 | `analyze` | Analyze a local MCP configuration file |
-| `enum` | Enumerate a remote MCP HTTP/SSE endpoint |
+| `enum` | Enumerate a remote MCP HTTP/SSE endpoint (add `--read` to also **retrieve** resources + prompts) |
 | `env-extract` | Extract environment variables from MCP server processes via tool reflection and error leakage |
 
 ### Gated (requires `--force-exploit`)
@@ -27,6 +27,7 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | `chain` | Automated multi-step credential exfiltration kill chain |
 | `sandbox-escape` | Probe an MCP filesystem read tool for a path-based sandbox escape (CVE-2025-53109 / -53110 class) |
 | `ssti` | Probe an MCP rendering/formatting tool for server-side template injection (Jinja2) |
+| `sampling` | Advertise the `sampling` capability and detect a server that drives the client's LLM (server-initiated `sampling/createMessage`) |
 
 ## Flags
 
@@ -37,6 +38,7 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | `--target` | For `enum`, `poison` | MCP server URL (e.g., `http://127.0.0.1:3000`) |
 | `--header` | No | Custom HTTP headers. Repeatable. |
 | `--config` | For `analyze`, `config-hijack` | Path to MCP config file |
+| `--read` | No (`enum`) | Also **retrieve** each resource (`resources/read`) and prompt (`prompts/get`), not just list them |
 
 ### Config-Hijack Flags
 
@@ -61,6 +63,19 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | `--url` | For `ssrf-cloud` | Custom SSRF target URL instead of a built-in cloud alias |
 | `--command` | For `cmd-inject` | Command to inject |
 | `--path` | For `path-traversal` | Path traversal string |
+
+## Reading resources & prompts (`enum --read`)
+
+`enum` alone lists an MCP server's **tools**, **resources**, and **prompts** — but a bare list is only names/URIs. `enum --read` goes one step further and **retrieves** them:
+
+- **`resources/read`** — fetches each listed resource's actual body (a file, config, or record the server exposes). Reading server-side data you may not be meant to see is a direct data-access vector distinct from enumeration.
+- **`prompts/get`** — renders each listed prompt template. A server-supplied prompt can embed system context, credentials, or a **prompt injection** the client's model would execute — retrieving the template surfaces it.
+
+Each item whose body is recovered is graded `access` / `read-confirmed` (you read the data). Nothing is redacted; any secrets in the content surface downstream through the credential index (`report view --credentials`). Resources/prompts the server does not expose are simply skipped (honest — a server with tools only has nothing to read here).
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 enum --read
+```
 
 ## Poison Modes
 
@@ -135,6 +150,19 @@ The `ssti` subcommand (gated) sends template-injection payloads to an MCP **rend
 Grading is honest about *how strongly* injection was proven: a globals leak confirms an SSTI that reaches the Python runtime (a code-execution surface) → **High**, `impact` / `read-confirmed`; a bare-arithmetic evaluation alone → **Medium**, `impact` / `influenced`; literal, un-evaluated output → **Info**, `reachable`.
 
 Flags: `--tool` (auto-detected if empty), `--arg` (name of the tool argument that gets rendered, default `content`).
+
+## Sampling Abuse
+
+MCP **sampling** lets a server ask the connected *client* to run an LLM completion (`sampling/createMessage`). A malicious server abuses it in the reverse direction of everything else here — instead of the client driving the server, the **server drives the client's model**: it can exfiltrate the client's conversation context or use the victim's paid model as a free proxy. This surface is invisible to `enum` — a `tools/list` shows nothing, because the abuse only happens when a tool is *invoked*.
+
+The `sampling` subcommand (gated) advertises the `sampling` client capability during `initialize` — the precondition for a server to attempt the abuse — then invokes each tool (or a single `--tool`) and watches the response for a **server-initiated** `sampling/createMessage` request. The request bytes are kept as raw evidence, so credchain surfaces anything sensitive the server tried to feed the model.
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 sampling --force-exploit
+aipostex mcp --target http://127.0.0.1:3000 sampling --tool summarize --force-exploit
+```
+
+Grading is deliberately conservative: aipostex advertises sampling but **never answers** the request, so a hit confirms the *server's* abuse behavior, not a victim client's compliance. A captured server-initiated request → **High**, `access` / `influenced`; the run always emits an `info` summary of how many tools were probed and how many issued a request. Over Streamable HTTP the SDK delivers a server→client request on the standalone GET event stream (not the tool-call response), so aipostex opens that stream alongside the tool call and watches both — a `create_message`-abusing tool that flushes the request and then blocks is still caught. stdio servers are probed best-effort. Because it invokes tools, this is an active action and requires `--force-exploit`.
 
 ## Examples
 
