@@ -2,6 +2,33 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.11.0] — 2026-08-13
+
+**A single source of truth for module identity, enforced by tests.**
+
+### Added
+
+- **Typed source registry** (`pkg/report/registry.go`) — every finding source is declared once,
+  with its kind (module / operator / infrastructure), the CLI command that emits it, its
+  documentation page, and its capability-matrix label. Module identity was previously implied by
+  agreement between the Source constants, the display-key map, the published JSON schema, the
+  module docs, the capability matrix, and the command tree, with nothing enforcing that they
+  agreed.
+- **Consistency tests** that bind every one of those sites back to the registry: each Source
+  constant must be registered, the published schema enum must match it exactly, and every module
+  must have its docs page, its display keys, a capability-matrix row, and a command actually
+  registered on the root command. Each invariant was verified by introducing the drift it targets
+  and confirming the test fails.
+
+### Fixed
+
+- **The capability matrix was missing eight modules** — `litellm`, `k8s`, `a2a`, `agent`, `rag`,
+  `huggingface`, `kubeflow`, and `wandb` had shipped without ever being listed on the page a
+  reader consults to learn what the tool covers. Rows are written from each module's real verb
+  set.
+- Two files had reached `main` unformatted because the lint job never checked formatting. Both
+  are gofmt'd and `gofmt` is now enabled in `.golangci.yml`.
+
 ## [v1.10.0] — 2026-08-13
 
 **The remaining MCP protocol surfaces + a documented CLI** — completes MCP coverage and gives

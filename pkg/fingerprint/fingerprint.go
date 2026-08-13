@@ -1367,8 +1367,8 @@ func BuiltinProbes() []ServiceProbe {
 			Probes: []HTTPProbe{
 				{
 					Method: "POST", Path: "/graphql",
-					Headers:     map[string]string{"Content-Type": "application/json"},
-					Body:        `{"query":"query Viewer { viewer { username entity } }"}`,
+					Headers: map[string]string{"Content-Type": "application/json"},
+					Body:    `{"query":"query Viewer { viewer { username entity } }"}`,
 					// `"viewer":` matches a real wandb viewer object; a non-wandb GraphQL
 					// endpoint that 200s with "Cannot query field 'viewer'" won't contain it.
 					MatchStatus: 200, MatchBody: `"viewer":`, Specificity: 90,

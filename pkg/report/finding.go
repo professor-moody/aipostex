@@ -147,11 +147,11 @@ func IsValidSeverity(sev string) bool {
 // when rendering findings. Modules declare their own priority keys here so
 // the console writer doesn't need hardcoded lists.
 var moduleDisplayKeys = map[string][]string{
-	SourceFingerprint:  {"service", "host", "port", "match_kind", "confidence", "specificity", "ambiguity_reason", "proxy_likely"},
-	SourceOllama:       {"module", "action", "provider", "model", "version", "model_count", "layer_count", "total_bytes", "bytes_read", "downloadable", "output_dir", "mutating", "payload_preset", "stage", "landed", "chain_source"},
-	SourceVectorDB:     {"module", "action", "provider", "version", "collection", "collection_count", "count", "class", "sensitivity_hints", "artifact_kind", "mutating", "stage", "landed"},
-	SourceJupyter:      {"module", "action", "provider", "kernel", "kernel_count", "path", "session_count", "version", "mutating", "stage", "landed"},
-	SourceMCP:          {"module", "action", "provider", "transport", "tool_count", "prompt_count", "resource_count", "tools_probed", "server_requests_observed", "auth_enforced", "issuer", "registration_endpoint", "client_id",
+	SourceFingerprint: {"service", "host", "port", "match_kind", "confidence", "specificity", "ambiguity_reason", "proxy_likely"},
+	SourceOllama:      {"module", "action", "provider", "model", "version", "model_count", "layer_count", "total_bytes", "bytes_read", "downloadable", "output_dir", "mutating", "payload_preset", "stage", "landed", "chain_source"},
+	SourceVectorDB:    {"module", "action", "provider", "version", "collection", "collection_count", "count", "class", "sensitivity_hints", "artifact_kind", "mutating", "stage", "landed"},
+	SourceJupyter:     {"module", "action", "provider", "kernel", "kernel_count", "path", "session_count", "version", "mutating", "stage", "landed"},
+	SourceMCP: {"module", "action", "provider", "transport", "tool_count", "prompt_count", "resource_count", "tools_probed", "server_requests_observed", "auth_enforced", "issuer", "registration_endpoint", "client_id",
 		"completion_ref", "argument", "completions_probed", "completions_disclosed", "log_level",
 		"subscriptions_attempted", "subscriptions_accepted", "server", "config_source", "env_key", "capability", "capability_labels", "confidence", "tool", "prompt", "resource", "endpoint", "mode", "target_alias", "escaped", "escape_technique", "ssti_confirmed", "ssti_signal", "stage", "landed"},
 	SourceOpenAICompat: {"module", "action", "provider", "model", "model_family", "model_vendor", "fingerprint_confidence", "cutoff_hint", "context_window_recalled", "version", "model_count", "accepted_pattern_count", "acceptance_class", "auth_pattern", "backend_failure_class", "coherence_score", "inference_verified", "rate_limit_signal", "throughput_score", "value_score", "status", "success", "max_tokens", "mutating", "stage", "landed"},

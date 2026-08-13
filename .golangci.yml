@@ -41,5 +41,11 @@ linters:
           - staticcheck
         text: 'QF|ST1005'
 
+formatters:
+  # gofmt is a project convention but nothing enforced it, so two files reached
+  # main unformatted — the lint job passes without checking formatting.
+  enable:
+    - gofmt
+
 run:
   timeout: 5m
