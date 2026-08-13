@@ -2635,6 +2635,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#legacy-tool-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy tool names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3934,6 +3945,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#legacy-tool-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy tool names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4038,6 +4060,37 @@ description, and its own gating. Positional arguments, where a verb takes them, 
 space-separated <code>args</code> string.</p>
 <p>The tool returns exactly what the CLI printed — findings with their <code>stage</code>/<code>landed</code> grades,
 the summary, and any Next Actions — so a model reads the same output an operator would.</p>
+<h3 id="legacy-tool-names">Legacy tool names<a class="headerlink" href="#legacy-tool-names" title="Permanent link">&para;</a></h3>
+<p>Generating the surface renamed four tools that existed when it was hand-written. Those names
+still resolve, as <strong>deprecated aliases</strong> that redirect to the generated tool — a model that
+learned an old name gets a redirect rather than "unknown tool" — but new callers should use
+the generated name:</p>
+<table>
+<thead>
+<tr>
+<th>Deprecated</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fingerprint_model</code></td>
+<td><code>openai_compat_fingerprint</code></td>
+</tr>
+<tr>
+<td><code>mcp_read</code></td>
+<td><code>mcp_enum</code> with <code>read: true</code></td>
+</tr>
+<tr>
+<td><code>mcp_auth_posture</code></td>
+<td><code>mcp_auth</code></td>
+</tr>
+<tr>
+<td><code>k8s_posture</code></td>
+<td><code>k8s_rbac_probe</code> (or <code>k8s_access_review</code> / <code>k8s_enum</code>)</td>
+</tr>
+</tbody>
+</table>
 <h3 id="gating">Gating<a class="headerlink" href="#gating" title="Permanent link">&para;</a></h3>
 <p>Verbs that require <code>--force-exploit</code> are marked mutating (MCP <code>destructiveHint</code>) and <strong>refuse
 unless called with <code>"confirm": true</code></strong>. 90 of the 201 tools are gated this way.</p>
