@@ -50,15 +50,32 @@ templates (--query-template with {{QUERY}}, --ingest-template with {{TITLE}}/{{C
 }
 
 var ragQueryCmd = &cobra.Command{
-	Use:     "query",
-	Short:   "Send one query and surface the answer + source citations (and any leaked secrets)",
+	Use:   "query",
+	Short: "Send one query and surface the answer + source citations (and any leaked secrets)",
+	Long: `Send one query to the RAG application and surface the answer with its source
+citations.
+
+Citations are the point: they name the documents the system retrieved, which
+exposes the private knowledge base a black-box chat interface is otherwise
+hiding. Any secrets in the answer or the cited sources are captured into the
+credential index.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample(`rag --target http://127.0.0.1:8091 query --query "sql service account password"`),
 	RunE:    runRagQuery,
 }
 
 var ragMapCmd = &cobra.Command{
-	Use:     "map",
-	Short:   "Map the knowledge base via a recon-query battery, flagging documents that leak secrets",
+	Use:   "map",
+	Short: "Map the knowledge base via a recon-query battery, flagging documents that leak secrets",
+	Long: `Map the knowledge base by running a battery of recon queries.
+
+A single query returns a slice of the corpus; a battery covers it. Each query's
+citations expand the picture of what the index holds, and documents whose content
+leaks credentials or sensitive data are flagged — turning an opaque assistant
+into an inventory of its underlying documents.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample(`rag --target http://127.0.0.1:8091 map`),
 	RunE:    runRagMap,
 }

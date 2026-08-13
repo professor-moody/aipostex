@@ -38,22 +38,43 @@ Examples:
 }
 
 var tritonEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate Triton server metadata",
+	Use:   "enum",
+	Short: "Enumerate Triton server metadata",
+	Long: `Enumerate Triton server metadata, health status, and enabled extensions.
+
+The extension list is the offensive detail: it declares which optional APIs this
+build exposes — including shared-memory and model-repository control, the
+surfaces behind the IPC and model-load chains.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("triton --target http://127.0.0.1:8000 enum"),
 	RunE:    runTritonEnum,
 }
 
 var tritonModelsCmd = &cobra.Command{
-	Use:     "models",
-	Short:   "List all loaded models",
+	Use:   "models",
+	Short: "List all loaded models",
+	Long: `List all loaded models with their metadata.
+
+Names the models currently in memory and their versions — the identifiers needed
+for inference, configuration reads, and lifecycle operations.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("triton --target http://127.0.0.1:8000 models"),
 	RunE:    runTritonModels,
 }
 
 var tritonModelConfigCmd = &cobra.Command{
-	Use:     "model-config",
-	Short:   "Get detailed model configuration",
+	Use:   "model-config",
+	Short: "Get detailed model configuration",
+	Long: `Retrieve a model's full configuration: instance groups, scheduling, and
+optimization settings.
+
+The configuration shows how and where the model executes — GPU placement,
+batching, and backend — revealing what the server actually runs and which knobs
+a write-capable caller could turn.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("triton --target http://127.0.0.1:8000 model-config --model resnet50"),
 	RunE:    runTritonModelConfig,
 }

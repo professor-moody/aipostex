@@ -49,29 +49,56 @@ Submitting a Ray job requires --force-exploit.`,
 }
 
 var rayEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate Ray dashboard metadata",
+	Use:   "enum",
+	Short: "Enumerate Ray dashboard metadata",
+	Long: `Enumerate Ray dashboard metadata and version.
+
+The dashboard is the cluster's control plane and is routinely exposed without
+authentication. Reachability here is what makes everything else possible: the
+same interface that reports cluster state also accepts job submissions.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("ray --target http://127.0.0.1:8265 enum"),
 	RunE:    runRayEnum,
 }
 
 var rayJobsCmd = &cobra.Command{
-	Use:     "jobs",
-	Short:   "List visible Ray jobs",
+	Use:   "jobs",
+	Short: "List visible Ray jobs",
+	Long: `List the jobs visible on the cluster.
+
+Job entries carry more than status — they include entrypoints and runtime
+environments, and those environment blocks are a recurring home for credentials
+passed into workers. Job ids from here drive the log and artifact verbs.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("ray --target http://127.0.0.1:8265 jobs"),
 	RunE:    runRayJobs,
 }
 
 var rayJobLogsCmd = &cobra.Command{
-	Use:     "job-logs",
-	Short:   "Read bounded job detail or logs for a Ray job",
+	Use:   "job-logs",
+	Short: "Read bounded job detail or logs for a Ray job",
+	Long: `Read bounded job detail and logs for a Ray job.
+
+Logs are where training jobs print what they touch: dataset paths, storage URIs,
+and — frequently — tokens echoed by libraries at startup. Reading them turns a
+job listing into concrete infrastructure detail.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("ray --target http://127.0.0.1:8265 job-logs --job-id job-1"),
 	RunE:    runRayJobLogs,
 }
 
 var rayJobArtifactsCmd = &cobra.Command{
-	Use:     "job-artifacts",
-	Short:   "Extract bounded artifact or log references from a Ray job",
+	Use:   "job-artifacts",
+	Short: "Extract bounded artifact or log references from a Ray job",
+	Long: `Extract bounded artifact and log references from a Ray job.
+
+Correlates a job to the concrete paths it produced or consumed, so the model
+files and datasets behind a training run can be located rather than guessed.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("ray --target http://127.0.0.1:8265 job-artifacts --job-id job-1"),
 	RunE:    runRayJobArtifacts,
 }
@@ -109,8 +136,14 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var rayRuntimeEnvCmd = &cobra.Command{
-	Use:     "runtime-env",
-	Short:   "Validate bounded runtime_env submission or injection surfaces",
+	Use:   "runtime-env",
+	Short: "Validate bounded runtime_env submission or injection surfaces",
+	Long: `Validate the bounded runtime_env submission and injection surface.
+
+runtime_env is how Ray ships dependencies and environment variables to workers,
+which makes it the cluster's code-and-config injection point. This checks whether
+that surface accepts caller-supplied content — the precondition for the
+pip-inject chain — without installing anything.`,
 	Example: formatCommandExample("ray --target http://127.0.0.1:8265 runtime-env --job-id job-1 --force-exploit"),
 	RunE:    runRayRuntimeEnv,
 }

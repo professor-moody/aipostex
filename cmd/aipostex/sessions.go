@@ -34,6 +34,7 @@ var (
 var sessionsCmd = &cobra.Command{
 	Use:     "sessions",
 	Short:   "Manage engagement sessions",
+	Example: formatCommandExample("sessions start acme-engagement"),
 	Long:    `Start, stop, list, and inspect engagement sessions that group findings across multiple commands.`,
 	GroupID: operationsGroupID,
 }
@@ -55,29 +56,50 @@ stop' ends it.`,
 }
 
 var sessionsPruneCmd = &cobra.Command{
-	Use:     "prune",
-	Short:   "Delete stopped sessions that captured no findings",
+	Use:   "prune",
+	Short: "Delete stopped sessions that captured no findings",
+	Long: `Delete stopped sessions that captured no findings.
+
+Housekeeping for the engagement store: probing runs that landed nothing still
+leave session directories behind. Pruning clears the empty ones so the session
+list reflects work that actually produced evidence. Sessions holding findings are
+never removed.`,
 	Example: formatCommandExample("sessions prune"),
 	RunE:    runSessionsPrune,
 }
 
 var sessionsStopCmd = &cobra.Command{
-	Use:     "stop",
-	Short:   "Stop an active session",
+	Use:   "stop",
+	Short: "Stop an active session",
+	Long: `Stop an active session.
+
+Ends accumulation: after stopping, bare module commands no longer append their
+findings to the engagement. The session and everything it captured remain on
+disk — only the recording stops.`,
 	Example: formatCommandExample("sessions stop --id ses-abc123"),
 	RunE:    runSessionsStop,
 }
 
 var sessionsListCmd = &cobra.Command{
-	Use:     "list",
-	Short:   "List all sessions",
+	Use:   "list",
+	Short: "List all sessions",
+	Long: `List all sessions.
+
+Shows every engagement recorded on this box with its state and finding count, so
+you can see which session is currently accumulating and which past runs hold
+evidence worth reporting on.`,
 	Example: formatCommandExample("sessions list"),
 	RunE:    runSessionsList,
 }
 
 var sessionsShowCmd = &cobra.Command{
-	Use:     "show",
-	Short:   "Show details for a session",
+	Use:   "show",
+	Short: "Show details for a session",
+	Long: `Show the details for a session.
+
+Reports what a single engagement captured — its findings, the credentials looted
+into it, and its lifecycle state — without leaving the CLI or re-rendering a
+report.`,
 	Example: formatCommandExample("sessions show --id ses-abc123"),
 	RunE:    runSessionsShow,
 }

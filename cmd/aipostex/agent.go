@@ -14,14 +14,14 @@ import (
 )
 
 var (
-	agentTarget       string
-	agentPath         string
-	agentMethod       string
-	agentReqTemplate  string
-	agentRespFields   []string
-	agentHeaders      []string
-	agentAPIKey       string
-	agentGoal         string
+	agentTarget          string
+	agentPath            string
+	agentMethod          string
+	agentReqTemplate     string
+	agentRespFields      []string
+	agentHeaders         []string
+	agentAPIKey          string
+	agentGoal            string
 	agentFPContext       bool
 	agentInjectMarker    string
 	agentCrescendoMarker string
@@ -53,15 +53,33 @@ OpenAI API. All probes are read-only chat requests.`,
 }
 
 var agentProbeCmd = &cobra.Command{
-	Use:     "probe",
-	Short:   "Send a benign message to confirm the agent is reachable and capture its reply",
+	Use:   "probe",
+	Short: "Send a benign message to confirm the agent is reachable and capture its reply",
+	Long: `Send one benign message to the agent and capture its reply.
+
+The baseline step for a bespoke chat application: it confirms the configured
+transport actually works (request template, placeholder, and response field
+paths) and records what a normal answer looks like, which every later probe is
+compared against. Run this first — if the transport is wrong, every other verb
+reports a false negative.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("agent --target http://127.0.0.1:8002/chat probe"),
 	RunE:    runAgentProbe,
 }
 
 var agentEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Ask the agent to describe its tools and capabilities",
+	Use:   "enum",
+	Short: "Ask the agent to describe its tools and capabilities",
+	Long: `Ask the agent to describe its own tools and capabilities.
+
+A bespoke agent exposes no protocol-level tool listing, so its tools are
+enumerated conversationally — the agent is asked what it can do, and named
+tools or functions in the reply are surfaced as findings. What comes back
+defines the blast radius: an agent that can read files, call internal APIs, or
+run code is a very different target from one that only chats.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("agent --target http://127.0.0.1:8002/chat enum"),
 	RunE:    runAgentEnum,
 }

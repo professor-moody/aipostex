@@ -79,19 +79,39 @@ Examples:
 var vdbEnumCmd = &cobra.Command{
 	Use:   "enum",
 	Short: "Enumerate collections and object counts",
-	RunE:  runVDBEnum,
+	Long: `List the collections a vector database exposes, with per-collection object
+counts. Counts matter offensively: they tell you which collection holds the
+corpus worth extracting, before you pull any records.
+
+This is a read-only probing operation.`,
+	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --provider weaviate enum"),
+	RunE:    runVDBEnum,
 }
 
 var vdbExtractCmd = &cobra.Command{
 	Use:   "extract",
 	Short: "Extract records from a collection",
-	RunE:  runVDBExtract,
+	Long: `Pull records out of a collection. A vector database backing a RAG pipeline
+holds the ingested source documents — the private corpus the application was
+built to answer from — so extraction reads the data itself, not just metadata.
+
+Use --collection to target one collection and --limit to bound the pull. This is
+a read-only operation; nothing is written to the target.`,
+	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --provider weaviate extract --collection Documents --limit 25"),
+	RunE:    runVDBExtract,
 }
 
 var vdbSearchCmd = &cobra.Command{
 	Use:   "search-sensitive",
 	Short: "Search extracted records for sensitive data patterns",
-	RunE:  runVDBSearch,
+	Long: `Extract records and match them against sensitive-data patterns (credentials,
+keys, tokens, personal data), so a large corpus is triaged to the parts worth an
+operator's attention. Matches are surfaced as findings with the raw value intact,
+so anything credential-shaped reaches the credential index.
+
+This is a read-only operation.`,
+	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --provider weaviate search-sensitive --collection Documents"),
+	RunE:    runVDBSearch,
 }
 
 var vdbInjectCmd = &cobra.Command{

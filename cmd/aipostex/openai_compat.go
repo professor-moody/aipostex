@@ -45,29 +45,56 @@ higher-noise throughput or proxy validation.`,
 }
 
 var openAICompatAuthSweepCmd = &cobra.Command{
-	Use:     "auth-sweep",
-	Short:   "Classify weak-auth acceptance on the endpoint",
+	Use:   "auth-sweep",
+	Short: "Classify weak-auth acceptance on the endpoint",
+	Long: `Classify how the endpoint responds to weak or absent authentication.
+
+OpenAI-compatible servers are frequently deployed with authentication disabled,
+left at a default key, or accepting any bearer token. This sweeps those cases and
+classifies which one is true, which decides whether the inference surface is
+open to anyone who can reach it.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("openai-compat --target http://127.0.0.1:8000 auth-sweep"),
 	RunE:    runOpenAICompatAuthSweep,
 }
 
 var openAICompatEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate exposed models and normalized model metadata",
+	Use:   "enum",
+	Short: "Enumerate exposed models and normalized model metadata",
+	Long: `List the models the endpoint exposes, with normalized metadata.
+
+Model ids are the currency of an OpenAI-compatible API — every later request
+names one. Normalizing across implementations (vLLM, LiteLLM, llama.cpp, and
+others) means the same enumeration works regardless of what is actually serving.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("openai-compat --target http://127.0.0.1:8000 enum"),
 	RunE:    runOpenAICompatEnum,
 }
 
 var openAICompatValidateCmd = &cobra.Command{
-	Use:     "validate-inference",
-	Short:   "Validate that the endpoint returns coherent inference output",
+	Use:   "validate-inference",
+	Short: "Validate that the endpoint returns coherent inference output",
+	Long: `Verify the endpoint returns coherent, input-dependent inference.
+
+A 200 response is not proof of a working model: gateways return canned text,
+stubs echo, and dead backends still answer. This sends a second, distinct prompt
+and requires a distinct completion, so generation is only claimed when output
+actually depends on input. An honest negative is reported when it does not.`,
 	Example: formatCommandExample("openai-compat --target http://127.0.0.1:8000 validate-inference --model llama3"),
 	RunE:    runOpenAICompatValidateInference,
 }
 
 var openAICompatPromptExtractCmd = &cobra.Command{
-	Use:     "prompt-extract",
-	Short:   "Run a bounded hidden-instruction extraction attempt",
+	Use:   "prompt-extract",
+	Short: "Run a bounded hidden-instruction extraction attempt",
+	Long: `Run a bounded attempt to extract the endpoint's hidden system instructions.
+
+If the deployment injects a system prompt, that prompt is the application's
+private configuration — its rules, its persona, and sometimes its internal
+context and keys. Recovering it is both a disclosure in itself and the map for
+targeted injection afterwards.`,
 	Example: formatCommandExample("openai-compat --target http://127.0.0.1:8000 prompt-extract --model llama3"),
 	RunE:    runOpenAICompatPromptExtract,
 }
@@ -124,8 +151,15 @@ and refusal-bypass heuristics without mutating target state.`,
 }
 
 var openAICompatLiteLLMProbeCmd = &cobra.Command{
-	Use:     "litellm-probe",
-	Short:   "Probe LiteLLM-specific health, readiness, and model-info endpoints",
+	Use:   "litellm-probe",
+	Short: "Probe LiteLLM-specific health, readiness, and model-info endpoints",
+	Long: `Probe the LiteLLM-specific health, readiness, and model-info endpoints.
+
+Confirms whether an OpenAI-compatible front end is actually LiteLLM, and pulls
+the proxy-specific detail those endpoints expose — backend topology and, in
+misconfigured deployments, upstream provider credentials.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("openai-compat --target http://127.0.0.1:4000 litellm-probe"),
 	RunE:    runOpenAICompatLiteLLMProbe,
 }

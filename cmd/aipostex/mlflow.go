@@ -54,50 +54,101 @@ enumerate the exposed registry, download bounded artifacts, or run gated registr
 }
 
 var mlflowEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate MLflow tracking metadata",
+	Use:   "enum",
+	Short: "Enumerate MLflow tracking metadata",
+	Long: `Enumerate MLflow tracking server metadata and version.
+
+Establishes whether the tracking server answers unauthenticated — MLflow ships
+with no auth, so an exposed tracking server hands over the organization's whole
+experiment history. Sensitive params and tags found on enumerated runs are
+extracted here, and those routinely carry storage URIs and credentials.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 enum"),
 	RunE:    runMLflowEnum,
 }
 
 var mlflowExperimentsCmd = &cobra.Command{
-	Use:     "experiments",
-	Short:   "List experiments and bounded run counts",
+	Use:   "experiments",
+	Short: "List experiments and bounded run counts",
+	Long: `List experiments with bounded run counts.
+
+Experiments are the top-level index of the ML work: their names describe what the
+organization is building, and the run counts show which lines of work are active
+rather than abandoned. This is the entry point for drilling into runs.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 experiments --limit 5"),
 	RunE:    runMLflowExperiments,
 }
 
 var mlflowRunsCmd = &cobra.Command{
-	Use:     "runs",
-	Short:   "List visible runs for an experiment",
+	Use:   "runs",
+	Short: "List visible runs for an experiment",
+	Long: `List the visible runs for an experiment.
+
+Runs carry the operational detail of training: parameters, metrics, tags, and an
+artifact URI. That artifact URI is the pivot — it frequently names remote storage
+(S3, GCS, Snowflake) and the parameters routinely embed connection strings, which
+are surfaced as their own High-severity findings and fed to the credential index.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 runs --experiment demo --limit 5"),
 	RunE:    runMLflowRuns,
 }
 
 var mlflowArtifactsCmd = &cobra.Command{
-	Use:     "artifacts",
-	Short:   "List a bounded artifact tree for a run",
+	Use:   "artifacts",
+	Short: "List a bounded artifact tree for a run",
+	Long: `List a bounded artifact tree for a run.
+
+Artifacts are the run's outputs — model files, datasets, and configs. Walking the
+tree shows exactly what is retrievable and where the model binaries live, without
+downloading anything yet.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 artifacts --run-id run-1"),
 	RunE:    runMLflowArtifacts,
 }
 
 var mlflowRegistryCmd = &cobra.Command{
-	Use:     "registry",
-	Short:   "Enumerate exposed MLflow registry models",
+	Use:   "registry",
+	Short: "Enumerate exposed MLflow registry models",
+	Long: `Enumerate registered models in the MLflow model registry.
+
+The registry is the production side of MLflow: it names the models promoted for
+deployment, so it distinguishes an experimental artifact from the model actually
+serving traffic.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 registry"),
 	RunE:    runMLflowRegistry,
 }
 
 var mlflowModelVersionsCmd = &cobra.Command{
-	Use:     "model-versions",
-	Short:   "Enumerate MLflow model versions for a registered model",
+	Use:   "model-versions",
+	Short: "Enumerate MLflow model versions for a registered model",
+	Long: `Enumerate the versions of a registered model.
+
+Versions carry stage assignments (staging, production) and the source run behind
+each. That mapping — which version is live, and which run produced it — is what
+turns a registry listing into a concrete target.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 model-versions --model demo-model"),
 	RunE:    runMLflowModelVersions,
 }
 
 var mlflowModelArtifactsCmd = &cobra.Command{
-	Use:     "model-artifacts",
-	Short:   "Pivot from a model version into bounded artifact paths",
+	Use:   "model-artifacts",
+	Short: "Pivot from a model version into bounded artifact paths",
+	Long: `Pivot from a model version into its bounded artifact paths.
+
+Resolves the version back to its source run and lists that run's artifacts, so a
+registered production model resolves to the concrete files behind it. Sensitive
+params and tags on the resolved run are extracted along the way.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 model-artifacts --model demo-model --version 3"),
 	RunE:    runMLflowModelArtifacts,
 }
@@ -115,8 +166,15 @@ This is a mutating action and requires --force-exploit.`,
 }
 
 var mlflowDownloadArtifactCmd = &cobra.Command{
-	Use:     "download-artifact",
-	Short:   "Download a bounded artifact path from a run",
+	Use:   "download-artifact",
+	Short: "Download a bounded artifact path from a run",
+	Long: `Download a bounded artifact path from a run.
+
+Retrieves the actual bytes — a model file, dataset, or config — rather than just
+listing them. This is what makes an artifact finding a demonstrated read instead
+of an inferred one; use it on paths surfaced by the artifacts verb.
+
+Read-only with respect to the target; nothing is written back.`,
 	Example: formatCommandExample("mlflow --target http://127.0.0.1:5000 download-artifact --run-id run-1 --artifact-path model/MLmodel"),
 	RunE:    runMLflowDownloadArtifact,
 }

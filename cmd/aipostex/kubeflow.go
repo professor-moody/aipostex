@@ -44,36 +44,71 @@ Examples:
 }
 
 var kfEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate Kubeflow Pipelines API reachability and version",
+	Use:   "enum",
+	Short: "Enumerate Kubeflow Pipelines API reachability and version",
+	Long: `Probe the Kubeflow Pipelines API for reachability and detect its version.
+
+Establishes whether the pipelines control plane answers unauthenticated, and
+which API generation it speaks (v1beta1 vs v2beta1) — the two differ enough that
+every later call depends on knowing which one is live.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("kubeflow --target http://127.0.0.1:8080 enum"),
 	RunE:    runKFEnum,
 }
 
 var kfPipelinesCmd = &cobra.Command{
-	Use:     "pipelines",
-	Short:   "List accessible ML pipelines",
+	Use:   "pipelines",
+	Short: "List accessible ML pipelines",
+	Long: `List accessible ML pipelines and their parameters.
+
+Pipeline definitions describe the organization's training and deployment
+workflows, and their parameters routinely name data sources, image registries,
+and storage buckets. Reading them is reconnaissance of the whole ML supply chain.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("kubeflow --target http://127.0.0.1:8080 pipelines"),
 	RunE:    runKFPipelines,
 }
 
 var kfRunsCmd = &cobra.Command{
-	Use:     "runs",
-	Short:   "List pipeline runs",
+	Use:   "runs",
+	Short: "List pipeline runs",
+	Long: `List pipeline runs with status, correlated to their pipelines.
+
+Runs show which pipelines actually execute and how recently — the difference
+between a defined workflow and a live one — and their run parameters capture the
+concrete arguments used in production.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("kubeflow --target http://127.0.0.1:8080 runs"),
 	RunE:    runKFRuns,
 }
 
 var kfExperimentsCmd = &cobra.Command{
-	Use:     "experiments",
-	Short:   "List experiments",
+	Use:   "experiments",
+	Short: "List experiments",
+	Long: `List Kubeflow experiments.
+
+Experiments group runs by project and reveal the naming and structure of the
+organization's ML work, which is what makes later targeting specific rather than
+generic.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("kubeflow --target http://127.0.0.1:8080 experiments"),
 	RunE:    runKFExperiments,
 }
 
 var kfNotebooksCmd = &cobra.Command{
-	Use:     "notebooks",
-	Short:   "List Kubeflow Notebooks in a namespace",
+	Use:   "notebooks",
+	Short: "List Kubeflow Notebooks in a namespace",
+	Long: `List Kubeflow Notebooks in a namespace.
+
+Kubeflow notebooks are long-lived pods with mounted data and cluster
+credentials — an interactive execution environment inside the cluster. Listing
+them identifies those footholds and the namespaces they live in.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("kubeflow --target http://127.0.0.1:8080 notebooks --namespace kubeflow"),
 	RunE:    runKFNotebooks,
 }

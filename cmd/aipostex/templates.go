@@ -30,8 +30,14 @@ Examples:
 }
 
 var templatesLintCmd = &cobra.Command{
-	Use:     "lint",
-	Short:   "Lint vulnerability templates for safety and advisory metadata",
+	Use:   "lint",
+	Short: "Lint vulnerability templates for safety and advisory metadata",
+	Long: `Lint the vulnerability templates for safety and advisory metadata.
+
+Checks the corpus for the properties the scanner depends on: that each template
+declares the metadata used for grading and reporting, and that none carries an
+unsafe or mutating request in a detection-only path. Run this after adding or
+editing templates.`,
 	Example: formatCommandExample("templates lint"),
 	RunE:    runTemplatesLint,
 }

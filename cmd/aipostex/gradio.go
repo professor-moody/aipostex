@@ -51,22 +51,46 @@ Queue and upload proofs require --force-exploit.`,
 }
 
 var gradioEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate Gradio config and endpoints",
+	Use:   "enum",
+	Short: "Enumerate Gradio config and endpoints",
+	Long: `Discover a Gradio app's configuration: version, title, endpoints, and
+capabilities.
+
+The config document is the whole map of the app — every callable API route and
+the component types behind it. Component types are what matter offensively: a
+File component implies file read/serve paths, and a Textbox wired to a model
+implies an inference surface worth injecting into.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 enum"),
 	RunE:    runGradioEnum,
 }
 
 var gradioPredictCmd = &cobra.Command{
-	Use:     "predict",
-	Short:   "Call a bounded Gradio prediction surface",
+	Use:   "predict",
+	Short: "Call a bounded Gradio prediction surface",
+	Long: `Call a bounded Gradio prediction endpoint.
+
+Invokes a discovered API route with operator-supplied input and captures the
+response. This is how a Gradio-fronted model is actually exercised — the route
+either accepts the call (proving an unauthenticated inference surface) or
+rejects it, and either way the response is recorded as evidence.
+
+Bounded and read-only with respect to the target's data; it calls only the route
+you name.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 predict --api-name predict --input-json '[\"hello\"]'"),
 	RunE:    runGradioPredict,
 }
 
 var gradioQueueProbeCmd = &cobra.Command{
-	Use:     "queue-probe",
-	Short:   "Run a bounded queue-backed execution probe",
+	Use:   "queue-probe",
+	Short: "Run a bounded queue-backed execution probe",
+	Long: `Run a bounded execution probe against the queue-backed prediction path.
+
+Modern Gradio apps run predictions through an event queue rather than a direct
+call, so an app can look unreachable on the direct path while remaining fully
+callable through the queue. This probes that path explicitly and reports whether
+queued execution actually completes.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 queue-probe --api-name predict --input-json '[\"hello\"]' --force-exploit"),
 	RunE:    runGradioQueueProbe,
 }
@@ -82,22 +106,39 @@ The --api-name and --fn-index selectors are not applicable here.`,
 }
 
 var gradioDownloadFileCmd = &cobra.Command{
-	Use:     "download-file",
-	Short:   "Download a bounded file reference",
+	Use:   "download-file",
+	Short: "Download a bounded file reference",
+	Long: `Download a bounded file by its Gradio file reference.
+
+Gradio serves files through reference paths handed out by the app. If those
+references are guessable or leak in a response, the file route becomes a read
+primitive — this verb resolves one and captures the bytes as evidence.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 download-file --file /tmp/gradio/demo.txt"),
 	RunE:    runGradioDownloadFile,
 }
 
 var gradioFileChainCmd = &cobra.Command{
-	Use:     "file-chain",
-	Short:   "Drive a discovered Gradio file handle through a bounded read chain",
+	Use:   "file-chain",
+	Short: "Drive a discovered Gradio file handle through a bounded read chain",
+	Long: `Drive a discovered file handle through the bounded read chain, correlating file
+paths across Gradio's serving routes.
+
+A single file reference can be reachable through several routes (direct file,
+component-scoped, or re-served). Walking the chain shows which of those actually
+return content, turning a leaked handle into a demonstrated read.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 file-chain --file /tmp/gradio/demo.txt"),
 	RunE:    runGradioFileChain,
 }
 
 var gradioServeProbeCmd = &cobra.Command{
-	Use:     "serve-probe",
-	Short:   "Validate bounded re-serve or alternate file-read paths for a Gradio handle",
+	Use:   "serve-probe",
+	Short: "Validate bounded re-serve or alternate file-read paths for a Gradio handle",
+	Long: `Validate bounded re-serve and alternate file-read paths for a Gradio file
+handle.
+
+Answers whether a file the app served once can be served again — or reached by a
+different route than the one that produced it. That distinguishes an incidental
+one-shot reference from a durable read surface.`,
 	Example: formatCommandExample("gradio --target http://127.0.0.1:7860 serve-probe --file /tmp/gradio/demo.txt --force-exploit"),
 	RunE:    runGradioServeProbe,
 }

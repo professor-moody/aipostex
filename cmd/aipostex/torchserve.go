@@ -53,15 +53,29 @@ Examples:
 }
 
 var tsEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate TorchServe models and health",
+	Use:   "enum",
+	Short: "Enumerate TorchServe models and health",
+	Long: `List models from the management API and check inference health.
+
+TorchServe splits its surfaces across ports: an inference API and a management
+API. Reaching the management API unauthenticated is the finding that matters —
+that is the surface which can register, scale, and delete models.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("torchserve --target http://127.0.0.1:8081 enum"),
 	RunE:    runTSEnum,
 }
 
 var tsModelsCmd = &cobra.Command{
-	Use:     "models",
-	Short:   "Get detailed model information",
+	Use:   "models",
+	Short: "Get detailed model information",
+	Long: `Retrieve detailed model information: handler, runtime, workers, and batch size.
+
+The handler is the interesting field — it names the Python entry point that runs
+on every inference, and so is the target of a handler-based execution chain.
+Worker and runtime detail show whether the model is actually live.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("torchserve --target http://127.0.0.1:8081 models --model resnet"),
 	RunE:    runTSModels,
 }
@@ -108,8 +122,14 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var tsMetricsCmd = &cobra.Command{
-	Use:     "metrics",
-	Short:   "Extract metrics from TorchServe metrics API",
+	Use:   "metrics",
+	Short: "Extract metrics from TorchServe metrics API",
+	Long: `Retrieve metrics from the TorchServe metrics API.
+
+Exposes per-model request and latency counters without authentication,
+confirming which models serve real traffic.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("torchserve --target http://127.0.0.1:8081 metrics"),
 	RunE:    runTSMetrics,
 }

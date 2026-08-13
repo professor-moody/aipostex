@@ -32,6 +32,8 @@ var (
 	mcpSkipMetadata bool
 	mcpEnumRead     bool
 	mcpSamplingTool string
+	mcpLogLevel     string
+	mcpResourceURI  string
 
 	mcpHijackServer    string
 	mcpHijackCommand   string
@@ -145,6 +147,59 @@ it invokes tools, this is an active action and requires --force-exploit.`,
 	RunE:    runMCPSampling,
 }
 
+var mcpRootsCmd = &cobra.Command{
+	Use:   "roots",
+	Short: "Probe for server->client filesystem-roots harvesting (requires --force-exploit)",
+	Long: `Advertise the MCP ` + "`roots`" + ` client capability, then invoke the server's tools
+and watch for a server-initiated roots/list request — the server asking the
+connected client to disclose its local filesystem roots (project directories,
+mounted shares). That is reconnaissance of the CLIENT machine, and it is
+invisible to a tools/list enumeration.
+
+aipostex advertises roots but never answers, so no path is actually disclosed.
+Because it invokes tools, this is an active action and requires --force-exploit.`,
+	Example: formatCommandExample("mcp --target http://127.0.0.1:3000 roots --force-exploit"),
+	RunE:    runMCPRoots,
+}
+
+var mcpCompleteCmd = &cobra.Command{
+	Use:   "complete",
+	Short: "Enumerate argument values through completion/complete",
+	Long: `Ask the server to complete every declared prompt argument and resource-template
+argument. A server that answers completions discloses server-side values —
+record IDs, usernames, file paths — that no list method exposes, which makes
+completion a quiet enumeration primitive.
+
+This is a read-only probing operation; no tool is invoked.`,
+	Example: formatCommandExample("mcp --target http://127.0.0.1:3000 complete"),
+	RunE:    runMCPComplete,
+}
+
+var mcpLoggingCmd = &cobra.Command{
+	Use:   "logging",
+	Short: "Raise the server log level and capture leaked log output (requires --force-exploit)",
+	Long: `Send logging/setLevel to raise the server's verbosity, then invoke its tools and
+capture any logging notifications it pushes to the connected client. Server log
+output is operator-facing detail — paths, arguments, identifiers, sometimes
+secrets — that the protocol surface does not otherwise expose.
+
+Changing the log level is server-side state, so this requires --force-exploit.`,
+	Example: formatCommandExample("mcp --target http://127.0.0.1:3000 logging --force-exploit"),
+	RunE:    runMCPLogging,
+}
+
+var mcpSubscribeCmd = &cobra.Command{
+	Use:   "subscribe",
+	Short: "Establish a resources/subscribe push channel (requires --force-exploit)",
+	Long: `Subscribe to the server's resources. An accepted subscription is a standing read
+channel: the server pushes an update notification on every change to that
+resource, with no repeated polling and no new request.
+
+Subscribing writes server-side state, so this requires --force-exploit.`,
+	Example: formatCommandExample("mcp --target http://127.0.0.1:3000 subscribe --force-exploit"),
+	RunE:    runMCPSubscribe,
+}
+
 var mcpAuthCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Probe the MCP endpoint's authorization posture (OAuth)",
@@ -228,8 +283,13 @@ func init() {
 	mcpChainCmd.Flags().BoolVar(&mcpSkipMetadata, "skip-metadata", false, "Skip cloud metadata probing")
 	mcpSamplingCmd.Flags().StringVar(&mcpSamplingTool, "tool", "", "Specific tool to invoke (empty = every enumerated tool)")
 	mcpElicitationCmd.Flags().StringVar(&mcpSamplingTool, "tool", "", "Specific tool to invoke (empty = every enumerated tool)")
+	mcpRootsCmd.Flags().StringVar(&mcpSamplingTool, "tool", "", "Specific tool to invoke (empty = every enumerated tool)")
+	mcpLoggingCmd.Flags().StringVar(&mcpSamplingTool, "tool", "", "Specific tool to invoke (empty = every enumerated tool)")
+	mcpLoggingCmd.Flags().StringVar(&mcpLogLevel, "level", "debug", "Log level to request: debug, info, notice, warning, error, critical, alert, emergency")
+	mcpSubscribeCmd.Flags().StringVar(&mcpResourceURI, "uri", "", "Resource URI to subscribe to (empty = every listed resource)")
 
-	mcpCmd.AddCommand(mcpAnalyzeCmd, mcpConfigHijackCmd, mcpEnumCmd, mcpPoisonCmd, mcpEnvExtractCmd, mcpChainCmd, mcpSamplingCmd, mcpElicitationCmd, mcpAuthCmd, mcpSchemaAliasCmd)
+	mcpCmd.AddCommand(mcpAnalyzeCmd, mcpConfigHijackCmd, mcpEnumCmd, mcpPoisonCmd, mcpEnvExtractCmd, mcpChainCmd,
+		mcpSamplingCmd, mcpElicitationCmd, mcpRootsCmd, mcpCompleteCmd, mcpLoggingCmd, mcpSubscribeCmd, mcpAuthCmd, mcpSchemaAliasCmd)
 }
 
 func runMCPEnum(cmd *cobra.Command, args []string) error {
@@ -472,6 +532,30 @@ func runMCPEnum(cmd *cobra.Command, args []string) error {
 		findings = append(findings, finding)
 	}
 
+	// Parameterized resources are served from resources/templates/list, which
+	// resources/list does not include — a server can expose an entire templated
+	// data surface (records://customers/{id}) that a plain enumeration misses.
+	resourceTemplates, _ := client.ListResourceTemplates()
+	for _, tmpl := range resourceTemplates {
+		finding := newExploitFinding(
+			report.SourceMCP,
+			mcpTarget,
+			fmt.Sprintf("MCP resource template exposed: %s", tmpl.Name),
+			report.SeverityInfo,
+			fmt.Sprintf("Remote MCP endpoint exposes parameterized resource %s — a templated data surface not returned by resources/list.", tmpl.URI),
+			map[string]interface{}{
+				"module":    "mcp",
+				"action":    "enum",
+				"mutating":  false,
+				"provider":  "mcp",
+				"transport": transport,
+				"resource":  tmpl.URI,
+			},
+		)
+		finding.Metadata = applyStageLanded(finding.Metadata, "access", "reachable", "mcp-enum", "resource")
+		findings = append(findings, finding)
+	}
+
 	// --read: retrieve (not just list) each resource and prompt. resources/read and
 	// prompts/get return the actual data/template body — a direct read + injection
 	// vector distinct from enumeration. Content recovered => access/read-confirmed;
@@ -498,13 +582,14 @@ func runMCPEnum(cmd *cobra.Command, args []string) error {
 // serverRequestProbeConfig parameterizes the two server->client request probes
 // (sampling and elicitation), which share the same GET-stream capture machinery.
 type serverRequestProbeConfig struct {
-	action     string                                                                 // "sampling" / "elicitation"
-	capLabel   string                                                                 // capability label on findings
-	advertise  func(*mcp.Client)                                                      // set the client capability before Initialize
+	action     string            // "sampling" / "elicitation" / "roots" / "logging"
+	capLabel   string            // capability label on findings
+	advertise  func(*mcp.Client) // set the client capability before Initialize
 	probe      func(*mcp.Client, string, map[string]any) (mcp.ServerRequestObservation, error)
-	title      func(tool string) string                                               // finding title
-	desc       func(tool string) string                                               // finding description
-	summaryFmt string                                                                 // Sprintf(count-probed, count-observed)
+	severity   string // severity for an observed request (default High)
+	title      func(tool string) string
+	desc       func(tool string) string
+	summaryFmt string // Sprintf(count-probed, count-observed)
 }
 
 func runMCPServerRequestProbe(cfg serverRequestProbeConfig) error {
@@ -548,11 +633,15 @@ func runMCPServerRequestProbe(cfg serverRequestProbeConfig) error {
 			continue
 		}
 		observedCount++
+		severity := cfg.severity
+		if severity == "" {
+			severity = report.SeverityHigh
+		}
 		f := newExploitFinding(
 			report.SourceMCP,
 			mcpTarget,
 			cfg.title(t.Name),
-			report.SeverityHigh,
+			severity,
 			cfg.desc(t.Name),
 			map[string]interface{}{
 				"module": "mcp", "action": cfg.action, "mutating": false,
@@ -729,11 +818,30 @@ func runMCPSampling(cmd *cobra.Command, args []string) error {
 		capLabel:  "sampling",
 		advertise: func(c *mcp.Client) { c.AdvertiseSampling = true },
 		probe:     (*mcp.Client).ProbeToolSampling,
-		title:     func(tool string) string { return fmt.Sprintf("MCP sampling abuse: server drives client LLM via %s", tool) },
+		title: func(tool string) string {
+			return fmt.Sprintf("MCP sampling abuse: server drives client LLM via %s", tool)
+		},
 		desc: func(tool string) string {
 			return fmt.Sprintf("Invoking tool %s produced a server-initiated sampling/createMessage request. The server attempts to invoke the connected client's LLM (server->client abuse: client-context exfiltration, or using the victim's model as a proxy). aipostex advertised sampling but did not answer the request, so client-side impact was not exercised.", tool)
 		},
 		summaryFmt: "Advertised the sampling capability and invoked %d tool(s); %d issued a server-initiated sampling/createMessage request.",
+	})
+}
+
+func runMCPRoots(cmd *cobra.Command, args []string) error {
+	return runMCPServerRequestProbe(serverRequestProbeConfig{
+		action:    "roots",
+		capLabel:  "roots",
+		advertise: func(c *mcp.Client) { c.AdvertiseRoots = true },
+		probe:     (*mcp.Client).ProbeToolRoots,
+		severity:  report.SeverityMedium,
+		title: func(tool string) string {
+			return fmt.Sprintf("MCP roots harvesting: server enumerates client filesystem via %s", tool)
+		},
+		desc: func(tool string) string {
+			return fmt.Sprintf("Invoking tool %s produced a server-initiated roots/list request. The server asks the connected client to disclose its filesystem roots — reconnaissance of the CLIENT machine's local paths (project directories, mounted shares), which no tools/list enumeration reveals. aipostex advertised roots but did not answer, so no path was actually disclosed.", tool)
+		},
+		summaryFmt: "Advertised the roots capability and invoked %d tool(s); %d issued a server-initiated roots/list request.",
 	})
 }
 
@@ -743,11 +851,228 @@ func runMCPElicitation(cmd *cobra.Command, args []string) error {
 		capLabel:  "elicitation",
 		advertise: func(c *mcp.Client) { c.AdvertiseElicitation = true },
 		probe:     (*mcp.Client).ProbeToolElicitation,
-		title:     func(tool string) string { return fmt.Sprintf("MCP elicitation abuse: server phishes client user via %s", tool) },
+		title: func(tool string) string {
+			return fmt.Sprintf("MCP elicitation abuse: server phishes client user via %s", tool)
+		},
 		desc: func(tool string) string {
 			return fmt.Sprintf("Invoking tool %s produced a server-initiated elicitation/create request. The server attempts to prompt the connected client's USER for input mid-tool-call (server->client abuse: phishing for credentials/secrets, or injecting an approval). aipostex advertised elicitation but did not answer the request, so no user was actually prompted.", tool)
 		},
 		summaryFmt: "Advertised the elicitation capability and invoked %d tool(s); %d issued a server-initiated elicitation/create request.",
+	})
+}
+
+// runMCPComplete enumerates argument values through completion/complete. A server
+// that answers completions discloses server-side values (record IDs, names, paths)
+// that no list method exposes — read-only enumeration, no tool invocation.
+func runMCPComplete(cmd *cobra.Command, args []string) error {
+	if strings.TrimSpace(mcpTarget) == "" && !strings.EqualFold(mcpTransport, "stdio") {
+		return missingFlagError("target", formatCommandExample("mcp --target http://127.0.0.1:3000 complete"))
+	}
+	client, err := mcpClientFactory()
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	if err := client.Initialize(); err != nil {
+		return fmt.Errorf("initializing MCP session: %w", err)
+	}
+	prompts, _ := client.ListPrompts()
+	resources, _ := client.ListResources()
+	// Parameterized resources live behind resources/templates/list, not
+	// resources/list — that is exactly where completable arguments are.
+	templates, _ := client.ListResourceTemplates()
+	targets := mcp.CompletionTargets(prompts, append(resources, templates...))
+	transport := mcp.InferTransport(mcpTarget)
+
+	var findings []report.Finding
+	disclosed := 0
+	unsupported := false
+	for _, tgt := range targets {
+		res, err := client.Complete(tgt[0], tgt[1], tgt[2], "")
+		if err != nil {
+			if mcpOptionalCapabilityUnsupported(err) {
+				unsupported = true
+				break // the server has no completion handler at all
+			}
+			warnf("completing %s[%s]: %v", tgt[1], tgt[2], outcomeAnnotate(err))
+			continue
+		}
+		if len(res.Values) == 0 {
+			continue
+		}
+		disclosed++
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			fmt.Sprintf("MCP completion disclosed values: %s[%s]", tgt[1], tgt[2]),
+			report.SeverityMedium,
+			fmt.Sprintf("completion/complete returned %d value(s) for argument %q of %s. Completion answers enumerate server-side values that no list method exposes.", len(res.Values), tgt[2], tgt[1]),
+			map[string]interface{}{
+				"module": "mcp", "action": "complete", "mutating": false,
+				"provider": "mcp", "transport": transport, "completion_ref": tgt[1], "argument": tgt[2],
+			})
+		f.Evidence = mcp.FormatCompletionValues(res)
+		f.Metadata = applyStageLanded(f.Metadata, "access", "read-confirmed", "mcp-complete", "completion")
+		findings = append(findings, f)
+	}
+
+	summaryDesc := fmt.Sprintf("Probed %d completable argument(s); %d disclosed values.", len(targets), disclosed)
+	if unsupported {
+		summaryDesc = "The server does not implement completion/complete."
+	}
+	summary := newExploitFinding(report.SourceMCP, mcpTarget,
+		"MCP completion probe complete", report.SeverityInfo, summaryDesc,
+		map[string]interface{}{
+			"module": "mcp", "action": "complete", "mutating": false,
+			"provider": "mcp", "transport": transport,
+			"completions_probed": len(targets), "completions_disclosed": disclosed,
+		})
+	summary.Metadata = applyStageLanded(summary.Metadata, "recon", "reachable", "mcp-complete", "endpoint")
+	findings = append(findings, summary)
+
+	infof("Probed %d completable argument(s) on %s", len(targets), mcpTarget)
+	return writeExploitFindingsWithSummary(findings, &exploitSummary{
+		Module: "mcp", Action: "complete", ResourcesEnumerated: len(targets), Mutating: false,
+	})
+}
+
+// runMCPLogging raises the server's log level and captures what its logs push to
+// a connected client. Changing the level is server-side state, so it is gated.
+func runMCPLogging(cmd *cobra.Command, args []string) error {
+	if err := requireForceExploit("mcp logging"); err != nil {
+		return err
+	}
+	if strings.TrimSpace(mcpTarget) == "" && !strings.EqualFold(mcpTransport, "stdio") {
+		return missingFlagError("target", formatCommandExample("mcp --target http://127.0.0.1:3000 logging --force-exploit"))
+	}
+	client, err := mcpClientFactory()
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	if err := client.Initialize(); err != nil {
+		return fmt.Errorf("initializing MCP session: %w", err)
+	}
+	transport := mcp.InferTransport(mcpTarget)
+
+	var findings []report.Finding
+	if err := client.SetLogLevel(mcpLogLevel); err != nil {
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			"MCP logging/setLevel rejected", report.SeverityInfo,
+			fmt.Sprintf("The server refused to set the log level to %q: %v", mcpLogLevel, outcomeAnnotate(err)),
+			map[string]interface{}{
+				"module": "mcp", "action": "logging", "mutating": false,
+				"provider": "mcp", "transport": transport,
+			})
+		f.Metadata = applyStageLanded(f.Metadata, "recon", "reachable", "mcp-logging", "endpoint")
+		return writeExploitFindingsWithSummary(append(findings, f), &exploitSummary{
+			Module: "mcp", Action: "logging", Mutating: false,
+		})
+	}
+
+	accepted := newExploitFinding(report.SourceMCP, mcpTarget,
+		fmt.Sprintf("MCP server accepted an unauthenticated log-level change to %q", mcpLogLevel),
+		report.SeverityMedium,
+		fmt.Sprintf("logging/setLevel(%q) was accepted, so a client can raise the server's verbosity at will — the precondition for harvesting whatever its debug logs emit.", mcpLogLevel),
+		map[string]interface{}{
+			"module": "mcp", "action": "logging", "mutating": true,
+			"provider": "mcp", "transport": transport, "log_level": mcpLogLevel,
+		})
+	accepted.Metadata = applyStageLanded(accepted.Metadata, "access", "influenced", "mcp-logging", "logging")
+	findings = append(findings, accepted)
+
+	// Invoke tools and capture whatever the raised level actually pushes.
+	tools, _ := client.ListTools()
+	if strings.TrimSpace(mcpSamplingTool) != "" {
+		tools = filterToolsByName(tools, mcpSamplingTool)
+	}
+	leaks := 0
+	for _, t := range tools {
+		probeArgs := mcp.BuildToolArguments(t, "aipostex logging probe", []string{"input", "prompt", "query", "text", "message", "content", "q"})
+		obs, _ := client.ProbeToolLogLeak(t.Name, probeArgs)
+		if !obs.Observed {
+			continue
+		}
+		leaks++
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			fmt.Sprintf("MCP log notification leaked server internals via %s", t.Name),
+			report.SeverityMedium,
+			fmt.Sprintf("With the log level raised, invoking tool %s pushed a logging notification to the client. Server log output is operator-facing detail (paths, arguments, identifiers, sometimes secrets) that the protocol surface does not otherwise expose.", t.Name),
+			map[string]interface{}{
+				"module": "mcp", "action": "logging", "mutating": false,
+				"provider": "mcp", "transport": transport, "tool": t.Name, "log_level": mcpLogLevel,
+			})
+		f.Evidence = obs.Request
+		f.Metadata = applyStageLanded(f.Metadata, "access", "read-confirmed", "mcp-logging", "logging")
+		findings = append(findings, f)
+	}
+
+	infof("Set log level %q and probed %d tool(s) for log leakage on %s", mcpLogLevel, len(tools), mcpTarget)
+	return writeExploitFindingsWithSummary(findings, &exploitSummary{
+		Module: "mcp", Action: "logging", ResourcesEnumerated: len(tools), Mutating: true,
+	})
+}
+
+// runMCPSubscribe establishes a resources/subscribe push channel. Subscribing is
+// server-side state, so it is gated.
+func runMCPSubscribe(cmd *cobra.Command, args []string) error {
+	if err := requireForceExploit("mcp subscribe"); err != nil {
+		return err
+	}
+	if strings.TrimSpace(mcpTarget) == "" && !strings.EqualFold(mcpTransport, "stdio") {
+		return missingFlagError("target", formatCommandExample("mcp --target http://127.0.0.1:3000 subscribe --force-exploit"))
+	}
+	client, err := mcpClientFactory()
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	if err := client.Initialize(); err != nil {
+		return fmt.Errorf("initializing MCP session: %w", err)
+	}
+	resources, _ := client.ListResources()
+	if strings.TrimSpace(mcpResourceURI) != "" {
+		resources = []mcp.Resource{{Name: mcpResourceURI, URI: mcpResourceURI}}
+	}
+	if len(resources) == 0 {
+		return fmt.Errorf("no resources to subscribe to (pass --uri to target one explicitly)")
+	}
+	transport := mcp.InferTransport(mcpTarget)
+
+	var findings []report.Finding
+	accepted := 0
+	for _, r := range resources {
+		if err := client.SubscribeResource(r.URI); err != nil {
+			warnf("subscribing to %s: %v", r.URI, outcomeAnnotate(err))
+			continue
+		}
+		accepted++
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			fmt.Sprintf("MCP resource subscription accepted: %s", r.URI),
+			report.SeverityMedium,
+			fmt.Sprintf("resources/subscribe was accepted for %s. The server now pushes an update notification on every change to that resource — a standing read channel that survives the original request and needs no repeated polling.", r.URI),
+			map[string]interface{}{
+				"module": "mcp", "action": "subscribe", "mutating": true,
+				"provider": "mcp", "transport": transport, "resource": r.URI,
+			})
+		// The subscription is established (server accepted it); we did not observe
+		// a pushed update in this run, so this stays influenced, not read-confirmed.
+		f.Metadata = applyStageLanded(f.Metadata, "access", "influenced", "mcp-subscribe", "resource")
+		findings = append(findings, f)
+	}
+
+	summary := newExploitFinding(report.SourceMCP, mcpTarget,
+		"MCP subscription probe complete", report.SeverityInfo,
+		fmt.Sprintf("Attempted %d resource subscription(s); %d accepted.", len(resources), accepted),
+		map[string]interface{}{
+			"module": "mcp", "action": "subscribe", "mutating": true,
+			"provider": "mcp", "transport": transport,
+			"subscriptions_attempted": len(resources), "subscriptions_accepted": accepted,
+		})
+	summary.Metadata = applyStageLanded(summary.Metadata, "recon", "reachable", "mcp-subscribe", "endpoint")
+	findings = append(findings, summary)
+
+	infof("Attempted %d resource subscription(s) on %s", len(resources), mcpTarget)
+	return writeExploitFindingsWithSummary(findings, &exploitSummary{
+		Module: "mcp", Action: "subscribe", ResourcesEnumerated: len(resources), Mutating: true,
 	})
 }
 

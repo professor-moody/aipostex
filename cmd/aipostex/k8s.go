@@ -51,8 +51,17 @@ movement). k3s and most clusters serve a self-signed apiserver cert — pass --i
 }
 
 var k8sEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate Kubernetes workloads and custom resources",
+	Use:   "enum",
+	Short: "Enumerate Kubernetes workloads and custom resources",
+	Long: `Enumerate cluster workloads (pods, deployments, services, configmaps) and
+custom resources.
+
+Maps what is actually running, and on an ML cluster the custom resources are the
+prize: InferenceServices, notebooks, and pipeline objects that name models,
+image registries, and storage. Use --all-namespaces for a cluster-wide view.
+ConfigMaps are read here too, and frequently carry configuration secrets.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("k8s --target https://127.0.0.1:6443 --insecure enum --namespace ml-prod"),
 	RunE:    runK8SEnum,
 }

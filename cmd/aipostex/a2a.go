@@ -95,8 +95,17 @@ Destructive or exploit-adjacent actions require --force-exploit.`,
 }
 
 var a2aEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Fetch and parse the public A2A agent card",
+	Use:   "enum",
+	Short: "Fetch and parse the public A2A agent card",
+	Long: `Fetch and parse the agent's public Agent Card (the A2A discovery document).
+
+The card is the agent's self-description: declared identity, endpoints,
+capabilities, and authentication scheme. It is served without credentials by
+design, so it is the first thing an attacker reads — it names the skills worth
+abusing and the auth the agent *claims* to require, which ` + "`auth-probe`" + ` then
+tests for real.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("a2a --target http://127.0.0.1:8000 enum"),
 	RunE:    runA2AEnum,
 }
@@ -174,8 +183,16 @@ default /agents) corroborates it. Mutates the orchestrator's registry; requires 
 }
 
 var a2aSkillsCmd = &cobra.Command{
-	Use:     "skills",
-	Short:   "Enumerate advertised agent skills with I/O modes",
+	Use:   "skills",
+	Short: "Enumerate advertised agent skills with I/O modes",
+	Long: `Enumerate the skills the agent advertises, with their input and output modes.
+
+Skills are the agent's callable surface — what it will do on request, and in
+which content types. Enumerating them maps the reachable actions before any task
+is submitted, and the I/O modes show which skills accept free-form text (the
+ones worth probing for injection).
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("a2a --target http://127.0.0.1:8000 skills"),
 	RunE:    runA2ASkills,
 }
@@ -191,8 +208,15 @@ authentication.`,
 }
 
 var a2aTaskStatusCmd = &cobra.Command{
-	Use:     "task-status",
-	Short:   "Poll A2A task state",
+	Use:   "task-status",
+	Short: "Poll A2A task state",
+	Long: `Poll the state of a submitted A2A task by id.
+
+Task state separates "the agent accepted my task" from "the agent actually ran
+it" — the confirmation step behind an honest execution claim. It is also how you
+observe other tasks when task ids turn out to be predictable.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("a2a --target http://127.0.0.1:8000 task-status --task-id probe-1"),
 	RunE:    runA2ATaskStatus,
 }

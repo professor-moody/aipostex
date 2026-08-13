@@ -2,6 +2,44 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.10.0] — 2026-08-13
+
+**The remaining MCP protocol surfaces + a documented CLI** — completes MCP coverage and gives
+every command a real explanation.
+
+### Added
+
+- **`mcp roots`** (gated) — detects a server harvesting the *client* machine's filesystem layout
+  via a server-initiated `roots/list`. The third server→client abuse primitive, alongside
+  `sampling` and `elicitation`. Medium, `access`/`influenced`: aipostex advertises the capability
+  but never answers, so no path is disclosed.
+- **`mcp complete`** — enumerates server-side values through `completion/complete`. A server that
+  answers completions discloses account ids, ticket numbers, usernames, and paths that no
+  `resources/list` or `prompts/list` call exposes. Medium, `access`/`read-confirmed`.
+- **`mcp logging`** (gated) — raises the server's verbosity with `logging/setLevel`, then captures
+  the `notifications/message` output it pushes to a connected client. An accepted level change is
+  `influenced`; a captured log is `read-confirmed`, and any secret in it reaches the credential
+  index.
+- **`mcp subscribe`** (gated) — establishes a `resources/subscribe` push channel, a standing read
+  on a resource that needs no repeated polling. Accepted => `influenced`; a pushed update is never
+  claimed unless observed, and servers that do not implement the method are reported honestly.
+- **Resource templates** — `Client.ListResourceTemplates` (`resources/templates/list`).
+  `resources/list` omits parameterized resources, so an entire templated data surface
+  (`records://customers/{account_id}`) was invisible to enumeration. `enum` now lists templates and
+  `complete` probes their arguments.
+
+### Changed
+
+- **Every command now documents itself.** 82 commands carried only a one-line `Short`, so `--help`
+  named a verb without saying what it does or why the result matters. Each now has a `Long`
+  covering what it does, what the returned data is worth to an operator, and whether it is
+  read-only or gated — across a2a, agent, bentoml, gradio, huggingface, jupyter, k8s, kubeflow,
+  litellm, mlflow, ollama, openai-compat, rag, ray, tfserving, torchserve, triton, vectordb, wandb,
+  sessions, templates, version, and the six top-level workflow groups (which also gained examples).
+  220 non-hidden commands, none missing an explanation.
+- `docs/modules/mcp.md` documents the `--level`, `--uri`, and `--tool` flags; the coverage matrix
+  now reflects the module's full verb set.
+
 ## [v1.9.0] — 2026-08-13
 
 **MCP elicitation phishing + authorization probing** — completes the server→client abuse coverage

@@ -29,6 +29,10 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | `ssti` | Probe an MCP rendering/formatting tool for server-side template injection (Jinja2) |
 | `sampling` | Advertise the `sampling` capability and detect a server that drives the client's LLM (server-initiated `sampling/createMessage`) |
 | `elicitation` | Advertise the `elicitation` capability and detect a server that phishes the client's user (server-initiated `elicitation/create`) |
+| `roots` | Advertise the `roots` capability and detect a server harvesting the client machine's filesystem roots (server-initiated `roots/list`) |
+| `complete` | Enumerate server-side values through `completion/complete` (prompt + resource-template arguments) |
+| `logging` | Raise the server log level (`logging/setLevel`) and capture the log output it pushes to clients |
+| `subscribe` | Establish a `resources/subscribe` push channel onto a resource |
 | `auth` | Probe the endpoint's authorization posture: anonymous access, OAuth metadata discovery, and open dynamic client registration |
 
 ## Flags
@@ -41,6 +45,9 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | `--header` | No | Custom HTTP headers. Repeatable. |
 | `--config` | For `analyze`, `config-hijack` | Path to MCP config file |
 | `--read` | No (`enum`) | Also **retrieve** each resource (`resources/read`) and prompt (`prompts/get`), not just list them |
+| `--tool` | No (`sampling`, `elicitation`, `roots`, `logging`, `env-extract`) | Probe a single named tool instead of every enumerated one |
+| `--level` | No (`logging`) | Log level to request: `debug` (default), `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency` |
+| `--uri` | No (`subscribe`) | Resource URI to subscribe to (default: every listed resource) |
 
 ### Config-Hijack Flags
 
@@ -174,6 +181,48 @@ The `elicitation` subcommand (gated) advertises the `elicitation` client capabil
 
 ```bash
 aipostex mcp --target http://127.0.0.1:3000 elicitation --force-exploit
+```
+
+## Roots Harvesting
+
+MCP **roots** let a client tell a server which local directories it may work in. A malicious server flips that around: it issues `roots/list` to make the connected client disclose its filesystem layout — project directories, mounted shares, home paths. That is reconnaissance of the **client machine**, and like sampling and elicitation it only fires when a tool is invoked.
+
+`roots` (gated) advertises the capability, invokes each tool (or `--tool`), and captures a server-initiated `roots/list` off the event stream. A hit → **Medium**, `access` / `influenced` — the server's harvesting behavior is confirmed, but aipostex never answers, so no path is actually disclosed.
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 roots --force-exploit
+```
+
+## Completion Enumeration
+
+`completion/complete` powers argument autocomplete for prompts and resource templates. A server that answers it will happily enumerate **server-side values** — account IDs, ticket numbers, usernames, file paths — that no `resources/list` or `prompts/list` call exposes. Autocomplete becomes a quiet enumeration primitive.
+
+`complete` (read-only, no tool invoked) asks for the unfiltered value set of every declared prompt argument **and every resource-template argument**. Templates matter: they are served from `resources/templates/list`, which `resources/list` does not include, so a whole parameterized data surface (`records://customers/{account_id}`) is invisible to a plain enumeration — `enum` now lists them too. Values returned → **Medium**, `access` / `read-confirmed`, with the values as evidence.
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 complete
+```
+
+## Log Harvesting
+
+`logging/setLevel` lets a client choose how verbose the server is. If the server accepts it unauthenticated, an attacker turns the verbosity up and then reads whatever the server's debug output contains — backend URLs, arguments, identifiers, and not infrequently tokens.
+
+`logging` (gated — it changes server state) sets the level (`--level`, default `debug`), then invokes tools and captures any `notifications/message` the server pushes. The level change being accepted → **Medium**, `access` / `influenced`; a captured log notification → **Medium**, `access` / `read-confirmed`, with the raw notification as evidence so any secret in it reaches the credential index.
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 logging --force-exploit
+aipostex mcp --target http://127.0.0.1:3000 logging --level debug --tool lookup_ticket --force-exploit
+```
+
+## Resource Subscription
+
+`resources/subscribe` establishes a standing push channel: the server notifies on every change to a resource, with no repeated polling and no new request. Accepted without authorization, it is durable read access to changing internal data.
+
+`subscribe` (gated — it writes server-side state) subscribes to every listed resource, or one given by `--uri`. Accepted → **Medium**, `access` / `influenced` (the subscription exists; a pushed update is not claimed unless observed). A server that does not implement the method is reported honestly as unsupported rather than as a failure.
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 subscribe --force-exploit
+aipostex mcp --target http://127.0.0.1:3000 subscribe --uri internal://ops/runbook --force-exploit
 ```
 
 ## Authorization Posture

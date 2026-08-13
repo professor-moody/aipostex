@@ -202,6 +202,12 @@ func init() {
 var versionCmd = &cobra.Command{
 	Use:     "version",
 	Short:   "Print version information",
+	Example: formatCommandExample("version"),
+	Long: `Print version information.
+
+Reports the aipostex version and build time. Add --verbose to include the Go
+toolchain version and target os/arch — useful when reporting an issue or
+confirming which build is deployed on an operator box.`,
 	GroupID: utilitiesGroupID,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("aipostex %s (built %s)\n", config.Version, config.BuildTime)

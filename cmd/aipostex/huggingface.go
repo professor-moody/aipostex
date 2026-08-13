@@ -57,22 +57,45 @@ Examples:
 }
 
 var hfEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate HuggingFace TGI/TEI service type and model info",
+	Use:   "enum",
+	Short: "Enumerate HuggingFace TGI/TEI service type and model info",
+	Long: `Auto-detect the service type (TGI text-generation vs TEI embeddings) and
+enumerate the model id, version, and service metadata.
+
+Type detection decides what is attackable: a TGI endpoint exposes text
+generation (prompt injection, system-prompt extraction), while TEI exposes
+embeddings (corpus inference). The model id also names the weights worth
+pursuing.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("huggingface --target http://127.0.0.1:8080 enum"),
 	RunE:    runHFEnum,
 }
 
 var hfModelsCmd = &cobra.Command{
-	Use:     "models",
-	Short:   "List models served by a TGI instance via /v1/models",
+	Use:   "models",
+	Short: "List models served by a TGI instance via /v1/models",
+	Long: `List the models served through the /v1/models endpoint (TGI only).
+
+Confirms which model ids the endpoint accepts in a generation request — the
+names needed for any follow-on inference, and evidence of which weights are
+deployed.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("huggingface --target http://127.0.0.1:8080 models"),
 	RunE:    runHFModels,
 }
 
 var hfMetricsCmd = &cobra.Command{
-	Use:     "metrics",
-	Short:   "Extract Prometheus metrics from the /metrics endpoint",
+	Use:   "metrics",
+	Short: "Extract Prometheus metrics from the /metrics endpoint",
+	Long: `Retrieve raw Prometheus metrics from the /metrics endpoint.
+
+Serving metrics expose queue depth, request volume, and token throughput to any
+unauthenticated caller — operational detail showing whether the endpoint carries
+production traffic or sits idle.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("huggingface --target http://127.0.0.1:8080 metrics"),
 	RunE:    runHFMetrics,
 }

@@ -38,29 +38,59 @@ Compromising a LiteLLM instance often unlocks access to every upstream provider.
 }
 
 var litellmEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate models and backend topology",
+	Use:   "enum",
+	Short: "Enumerate models and backend topology",
+	Long: `Enumerate the proxy's models and backend topology.
+
+Reads readiness, health, the model list, and model info. LiteLLM sits in front of
+real providers, so its model info is where upstream detail concentrates — base
+URLs and, in misconfigured deployments, embedded provider credentials, which are
+extracted into the credential index.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("litellm --target http://127.0.0.1:4000 enum"),
 	RunE:    runLiteLLMEnum,
 }
 
 var litellmConfigExtractCmd = &cobra.Command{
-	Use:     "config-extract",
-	Short:   "Extract configuration keys from health and model-info endpoints",
+	Use:   "config-extract",
+	Short: "Extract configuration keys from health and model-info endpoints",
+	Long: `Flatten the per-model litellm_params from the proxy's model-info endpoint.
+
+Those params are the proxy's own configuration: which upstream each alias maps
+to, the api_base it calls, and any keys carried alongside. Recovering them turns
+an opaque gateway into a documented map of the backends behind it.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("litellm --target http://127.0.0.1:4000 config-extract"),
 	RunE:    runLiteLLMConfigExtract,
 }
 
 var litellmBudgetProbeCmd = &cobra.Command{
-	Use:     "budget-probe",
-	Short:   "Enumerate spend limits and usage information",
+	Use:   "budget-probe",
+	Short: "Enumerate spend limits and usage information",
+	Long: `Enumerate spend limits and usage information exposed by the proxy.
+
+Budget, TPM, and RPM fields quantify what an abused key is worth and how much
+headroom exists before anyone notices — the practical measure of an LLMjacking
+opportunity.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("litellm --target http://127.0.0.1:4000 budget-probe"),
 	RunE:    runLiteLLMBudgetProbe,
 }
 
 var litellmProxyChainCmd = &cobra.Command{
-	Use:     "proxy-chain",
-	Short:   "Trace inference through the proxy to identify backend providers",
+	Use:   "proxy-chain",
+	Short: "Trace inference through the proxy to identify backend providers",
+	Long: `Group the proxy's models by inferred upstream provider, attaching each api_base
+where present.
+
+Turns a flat model list into the provider topology behind it: which aliases reach
+OpenAI, Anthropic, or a self-hosted backend, and at which addresses. That is the
+map you need to know what a stolen proxy key actually grants.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("litellm --target http://127.0.0.1:4000 proxy-chain"),
 	RunE:    runLiteLLMProxyChain,
 }

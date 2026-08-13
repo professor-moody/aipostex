@@ -39,15 +39,31 @@ Examples:
 }
 
 var bentoEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate BentoML service metadata",
+	Use:   "enum",
+	Short: "Enumerate BentoML service metadata",
+	Long: `Enumerate a BentoML service: metadata, health, and API routes.
+
+Identifies the service and the model it wraps, and establishes whether the
+inference surface answers unauthenticated — BentoML deployments frequently
+expose the full serving API to anyone who can reach the port.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("bentoml --target http://127.0.0.1:3000 enum"),
 	RunE:    runBentoEnum,
 }
 
 var bentoRoutesCmd = &cobra.Command{
-	Use:     "routes",
-	Short:   "List prediction endpoints from OpenAPI spec",
+	Use:   "routes",
+	Short: "List prediction endpoints from OpenAPI spec",
+	Long: `Parse the service's OpenAPI spec to list every prediction endpoint with its
+input schema.
+
+The spec is the map of the serving surface: which routes accept input, and the
+exact shape each expects. Because the schema is recovered, aipostex emits
+schema-shaped predict follow-ons — the difference between guessing a payload and
+sending one the service will actually accept.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("bentoml --target http://127.0.0.1:3000 routes"),
 	RunE:    runBentoRoutes,
 }
@@ -63,8 +79,15 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var bentoMetricsCmd = &cobra.Command{
-	Use:     "metrics",
-	Short:   "Extract Prometheus metrics from BentoML",
+	Use:   "metrics",
+	Short: "Extract Prometheus metrics from BentoML",
+	Long: `Retrieve the service's Prometheus metrics.
+
+Metrics hand an unauthenticated caller operational detail: request counts,
+latencies, and per-model performance. That shows which models are actually in
+use and how heavily, so effort goes to the live model rather than an idle one.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("bentoml --target http://127.0.0.1:3000 metrics"),
 	RunE:    runBentoMetrics,
 }

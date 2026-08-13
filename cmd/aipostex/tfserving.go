@@ -46,22 +46,45 @@ Examples:
 }
 
 var tfservingEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate TF Serving reachability and metrics",
+	Use:   "enum",
+	Short: "Enumerate TF Serving reachability and metrics",
+	Long: `Probe TensorFlow Serving reachability and detect whether the monitoring
+endpoint is exposed.
+
+Establishes that the serving port answers, and where its surfaces are, before
+model discovery. TF Serving ships no authentication of its own, so network
+reachability is usually the only control between a caller and the served models.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("tfserving --target http://127.0.0.1:8501 enum"),
 	RunE:    runTFServingEnum,
 }
 
 var tfservingModelsCmd = &cobra.Command{
-	Use:     "models",
-	Short:   "Probe for served models by name",
+	Use:   "models",
+	Short: "Probe for served models by name",
+	Long: `Discover served models by probing common model names.
+
+TF Serving exposes no endpoint that lists models, so the name space is probed
+directly: a hit proves the model exists and is being served. Model names are the
+prerequisite for metadata extraction and any inference request.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("tfserving --target http://127.0.0.1:8501 models"),
 	RunE:    runTFServingModels,
 }
 
 var tfservingMetadataCmd = &cobra.Command{
-	Use:     "metadata",
-	Short:   "Extract model signature and tensor specs",
+	Use:   "metadata",
+	Short: "Extract model signature and tensor specs",
+	Long: `Retrieve a model's signature definitions and tensor specs.
+
+The signature is the model's calling convention — input and output tensor names,
+dtypes, and shapes. Recovering it turns a blind endpoint into a callable one, so
+aipostex emits a shape-aware predict follow-on built from the real signature
+rather than a guessed payload.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("tfserving --target http://127.0.0.1:8501 metadata --model default"),
 	RunE:    runTFServingMetadata,
 }
@@ -77,8 +100,14 @@ This is an active exploit action and requires --force-exploit.`,
 }
 
 var tfservingMetricsCmd = &cobra.Command{
-	Use:     "metrics",
-	Short:   "Extract Prometheus metrics",
+	Use:   "metrics",
+	Short: "Extract Prometheus metrics",
+	Long: `Retrieve Prometheus metrics from the monitoring endpoint.
+
+Exposes per-model request counts and latency to an unauthenticated caller,
+identifying which served models are actually in use.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("tfserving --target http://127.0.0.1:8501 metrics"),
 	RunE:    runTFServingMetrics,
 }

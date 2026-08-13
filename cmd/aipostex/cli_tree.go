@@ -16,12 +16,28 @@ const (
 var discoverCmd = &cobra.Command{
 	Use:     "discover",
 	Short:   "Discover AI services and artifacts",
+	Example: formatCommandExample("discover network 10.0.0.0/24"),
+	Long: `Discover AI services and artifacts.
+
+The reconnaissance entry point: find what AI infrastructure exists on a network
+or host before touching any of it. Subcommands sweep network ranges for AI
+service fingerprints and search local filesystems for models, notebooks, and
+configuration artifacts.
+
+Read-only.`,
 	GroupID: workflowGroupID,
 }
 
 var scanCmd = &cobra.Command{
 	Use:     "scan",
 	Short:   "Run targeted vulnerability scanning workflows",
+	Example: formatCommandExample("scan targets http://127.0.0.1:11434"),
+	Long: `Run targeted vulnerability scanning workflows.
+
+Applies the vulnerability template corpus to discovered services — the step
+between "an AI service is here" and "this specific weakness is present on it".
+Scanning is detection-oriented; anything that mutates a target lives behind a
+module verb and --force-exploit.`,
 	GroupID: workflowGroupID,
 	RunE:    subcommandRequired("aipostex scan", "aipostex scan targets http://127.0.0.1:11434"),
 }
@@ -29,12 +45,25 @@ var scanCmd = &cobra.Command{
 var assessCmd = &cobra.Command{
 	Use:     "assess",
 	Short:   "Run full assessment workflows",
+	Example: formatCommandExample("assess targets http://127.0.0.1:11434"),
+	Long: `Run full assessment workflows.
+
+Chains discovery, fingerprinting, and template scanning into one pass over a
+target set, so a whole estate is covered without driving each stage by hand.
+Assess finds more than discover alone because it enumerates each identified
+service's own surface rather than stopping at the port.`,
 	GroupID: workflowGroupID,
 }
 
 var templatesCmd = &cobra.Command{
 	Use:     "templates",
 	Short:   "List and inspect vulnerability templates",
+	Example: formatCommandExample("templates list"),
+	Long: `List and inspect the vulnerability template corpus.
+
+Templates are the declarative detection rules aipostex applies during scanning.
+Use these subcommands to see what is available, filter by tag, and lint the
+corpus for safety and advisory metadata.`,
 	GroupID: utilitiesGroupID,
 	RunE:    subcommandRequired("aipostex templates", "aipostex templates list"),
 }
@@ -42,6 +71,13 @@ var templatesCmd = &cobra.Command{
 var reportCmd = &cobra.Command{
 	Use:     "report",
 	Short:   "Render and analyze engagement outputs",
+	Example: formatCommandExample("report view findings.jsonl --credentials"),
+	Long: `Render and analyze engagement outputs.
+
+Turns raw findings into an operator-facing deliverable: rendered reports, the
+credential index, the attack-chain board, the threat model, and the handoff
+dossier. This is where a JSONL of findings becomes something you can act on or
+hand to a client.`,
 	GroupID: utilitiesGroupID,
 	RunE:    subcommandRequired("aipostex report", "aipostex report render findings.json"),
 }
@@ -49,6 +85,12 @@ var reportCmd = &cobra.Command{
 var engagementCmd = &cobra.Command{
 	Use:     "engagement",
 	Short:   "Combine and package engagement artifacts",
+	Example: formatCommandExample("engagement combine run-a.jsonl run-b.jsonl -o combined.jsonl"),
+	Long: `Combine and package engagement artifacts.
+
+Merges findings captured across separate runs and hosts into a single engagement
+set, so a multi-day or multi-operator effort produces one coherent body of
+evidence rather than scattered output files.`,
 	GroupID: utilitiesGroupID,
 }
 

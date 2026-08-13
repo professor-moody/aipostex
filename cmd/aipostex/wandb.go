@@ -41,29 +41,56 @@ and scan run configs for embedded secrets.`,
 }
 
 var wandbEnumCmd = &cobra.Command{
-	Use:     "enum",
-	Short:   "Enumerate W&B server metadata and viewer identity",
+	Use:   "enum",
+	Short: "Enumerate W&B server metadata and viewer identity",
+	Long: `Enumerate the W&B server's metadata and the authenticated viewer identity.
+
+The viewer identity answers the question that governs everything else: whose
+account does this key belong to, and what does it see. Combined with server
+metadata it establishes whether you are anonymous or acting as a real user.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("wandb --target http://127.0.0.1:8080 enum"),
 	RunE:    runWandbEnum,
 }
 
 var wandbProjectsCmd = &cobra.Command{
-	Use:     "projects",
-	Short:   "List projects for an entity",
+	Use:   "projects",
+	Short: "List projects for an entity",
+	Long: `List the projects belonging to an entity.
+
+Projects are the organizational unit of W&B and their names map the teams and
+products doing ML work. This is the index every other W&B verb drills into.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("wandb --target http://127.0.0.1:8080 projects --entity default"),
 	RunE:    runWandbProjects,
 }
 
 var wandbRunsCmd = &cobra.Command{
-	Use:     "runs",
-	Short:   "List runs for a project",
+	Use:   "runs",
+	Short: "List runs for a project",
+	Long: `List the runs recorded for a project.
+
+Run configs and summaries capture training parameters, dataset references, and
+result metrics — the detailed record of how a model was built, and a recurring
+place for credentials pasted into configuration.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("wandb --target http://127.0.0.1:8080 runs --entity default --project my-project"),
 	RunE:    runWandbRuns,
 }
 
 var wandbArtifactsCmd = &cobra.Command{
-	Use:     "artifacts",
-	Short:   "List artifacts for a project",
+	Use:   "artifacts",
+	Short: "List artifacts for a project",
+	Long: `List the artifacts belonging to a project.
+
+Artifacts are versioned datasets and model files. Listing them shows what
+training data and weights are stored, and their versioning exposes the lineage
+of a deployed model.
+
+This is a read-only probing operation.`,
 	Example: formatCommandExample("wandb --target http://127.0.0.1:8080 artifacts --entity default --project my-project --type model"),
 	RunE:    runWandbArtifacts,
 }
