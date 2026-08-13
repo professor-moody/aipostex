@@ -145,6 +145,43 @@ it invokes tools, this is an active action and requires --force-exploit.`,
 	RunE:    runMCPSampling,
 }
 
+var mcpAuthCmd = &cobra.Command{
+	Use:   "auth",
+	Short: "Probe the MCP endpoint's authorization posture (OAuth)",
+	Long: `Assess how (or whether) the MCP endpoint is protected:
+
+  1. Enforcement — send an unauthenticated initialize. If it succeeds, the
+     endpoint is anonymously reachable (anyone who can reach it can drive its
+     tools); if it 401s, read the WWW-Authenticate challenge.
+  2. Discovery — fetch the OAuth protected-resource metadata (RFC 9728) and the
+     referenced authorization server's metadata (RFC 8414), enumerating the
+     issuer, endpoints, scopes, and any dynamic-registration endpoint.
+  3. Open registration — if a registration endpoint is advertised, attempt an
+     unauthenticated RFC 7591 client registration (open DCR lets an attacker
+     mint client credentials). This step submits a registration and requires
+     --force-exploit.
+
+Enforcement and discovery are read-only.`,
+	Example: formatCommandExample("mcp --target http://127.0.0.1:3000 auth"),
+	RunE:    runMCPAuth,
+}
+
+var mcpElicitationCmd = &cobra.Command{
+	Use:   "elicitation",
+	Short: "Probe for server->client elicitation phishing (requires --force-exploit)",
+	Long: `Advertise the MCP ` + "`elicitation`" + ` client capability, then invoke the server's
+tools and watch for a server-initiated elicitation/create request — the server
+prompting the connected client's USER for input mid-tool-call. A malicious
+server abuses it to phish for credentials/secrets or to inject an approval, and
+it is invisible to a tools/list enumeration.
+
+aipostex advertises elicitation but never answers the request, so a positive
+result confirms the server's abuse behavior, not that any user was prompted.
+Because it invokes tools, this is an active action and requires --force-exploit.`,
+	Example: formatCommandExample("mcp --target http://127.0.0.1:3000 elicitation --force-exploit"),
+	RunE:    runMCPElicitation,
+}
+
 // mcpSchemaAliasCmd catches the intuitive-but-nonexistent `mcp schema` and points at the
 // real schema-poisoning path (poison modes) instead of cobra's bare "unknown command".
 var mcpSchemaAliasCmd = &cobra.Command{
@@ -190,8 +227,9 @@ func init() {
 	mcpChainCmd.Flags().StringVar(&mcpChainCloud, "cloud", "all", "Cloud provider to probe: aws, gcp, azure, all")
 	mcpChainCmd.Flags().BoolVar(&mcpSkipMetadata, "skip-metadata", false, "Skip cloud metadata probing")
 	mcpSamplingCmd.Flags().StringVar(&mcpSamplingTool, "tool", "", "Specific tool to invoke (empty = every enumerated tool)")
+	mcpElicitationCmd.Flags().StringVar(&mcpSamplingTool, "tool", "", "Specific tool to invoke (empty = every enumerated tool)")
 
-	mcpCmd.AddCommand(mcpAnalyzeCmd, mcpConfigHijackCmd, mcpEnumCmd, mcpPoisonCmd, mcpEnvExtractCmd, mcpChainCmd, mcpSamplingCmd, mcpSchemaAliasCmd)
+	mcpCmd.AddCommand(mcpAnalyzeCmd, mcpConfigHijackCmd, mcpEnumCmd, mcpPoisonCmd, mcpEnvExtractCmd, mcpChainCmd, mcpSamplingCmd, mcpElicitationCmd, mcpAuthCmd, mcpSchemaAliasCmd)
 }
 
 func runMCPEnum(cmd *cobra.Command, args []string) error {
@@ -457,24 +495,31 @@ func runMCPEnum(cmd *cobra.Command, args []string) error {
 	})
 }
 
-// runMCPSampling advertises the sampling client capability and invokes each tool
-// (or a single --tool) to see whether the server responds with a server-initiated
-// sampling/createMessage — server->client LLM abuse. The request bytes are kept
-// as raw evidence; credchain surfaces anything sensitive the server tried to feed
-// the client's model.
-func runMCPSampling(cmd *cobra.Command, args []string) error {
-	if err := requireForceExploit("mcp sampling"); err != nil {
+// serverRequestProbeConfig parameterizes the two server->client request probes
+// (sampling and elicitation), which share the same GET-stream capture machinery.
+type serverRequestProbeConfig struct {
+	action     string                                                                 // "sampling" / "elicitation"
+	capLabel   string                                                                 // capability label on findings
+	advertise  func(*mcp.Client)                                                      // set the client capability before Initialize
+	probe      func(*mcp.Client, string, map[string]any) (mcp.ServerRequestObservation, error)
+	title      func(tool string) string                                               // finding title
+	desc       func(tool string) string                                               // finding description
+	summaryFmt string                                                                 // Sprintf(count-probed, count-observed)
+}
+
+func runMCPServerRequestProbe(cfg serverRequestProbeConfig) error {
+	if err := requireForceExploit("mcp " + cfg.action); err != nil {
 		return err
 	}
 	if strings.TrimSpace(mcpTarget) == "" && !strings.EqualFold(mcpTransport, "stdio") {
-		return missingFlagError("target", formatCommandExample("mcp --target http://127.0.0.1:3000 sampling --force-exploit"))
+		return missingFlagError("target", formatCommandExample("mcp --target http://127.0.0.1:3000 "+cfg.action+" --force-exploit"))
 	}
 	client, err := mcpClientFactory()
 	if err != nil {
 		return err
 	}
 	defer client.Close()
-	client.AdvertiseSampling = true // must be set before Initialize so the offer is sent
+	cfg.advertise(client) // must run before Initialize so the capability offer is sent
 	if err := client.Initialize(); err != nil {
 		return fmt.Errorf("initializing MCP session: %w", err)
 	}
@@ -494,8 +539,8 @@ func runMCPSampling(cmd *cobra.Command, args []string) error {
 	var findings []report.Finding
 	observedCount := 0
 	for _, t := range tools {
-		probeArgs := mcp.BuildToolArguments(t, "aipostex sampling probe", []string{"input", "prompt", "query", "text", "message", "content", "q"})
-		obs, probeErr := client.ProbeToolSampling(t.Name, probeArgs)
+		probeArgs := mcp.BuildToolArguments(t, "aipostex "+cfg.action+" probe", []string{"input", "prompt", "query", "text", "message", "content", "q"})
+		obs, probeErr := cfg.probe(client, t.Name, probeArgs)
 		if probeErr != nil && !obs.Observed {
 			warnf("probing tool %s: %v", t.Name, outcomeAnnotate(probeErr))
 		}
@@ -506,44 +551,203 @@ func runMCPSampling(cmd *cobra.Command, args []string) error {
 		f := newExploitFinding(
 			report.SourceMCP,
 			mcpTarget,
-			fmt.Sprintf("MCP sampling abuse: server drives client LLM via %s", t.Name),
+			cfg.title(t.Name),
 			report.SeverityHigh,
-			fmt.Sprintf("Invoking tool %s produced a server-initiated sampling/createMessage request. The server attempts to invoke the connected client's LLM (server->client abuse: client-context exfiltration, or using the victim's model as a proxy). aipostex advertised sampling but did not answer the request, so client-side impact was not exercised.", t.Name),
+			cfg.desc(t.Name),
 			map[string]interface{}{
-				"module": "mcp", "action": "sampling", "mutating": false,
+				"module": "mcp", "action": cfg.action, "mutating": false,
 				"provider": "mcp", "transport": transport, "tool": t.Name,
 			},
 		)
 		f.Evidence = obs.Request
 		// Confirmed the server's abuse behavior (it issued the client-directed
-		// request); we did NOT run the client LLM, so this is access/influenced,
-		// never execution-confirmed.
-		f.Metadata = applyStageLanded(f.Metadata, "access", "influenced", "mcp-sampling", "sampling")
+		// request); we did NOT fulfill it, so this is access/influenced, never
+		// execution-confirmed.
+		f.Metadata = applyStageLanded(f.Metadata, "access", "influenced", "mcp-"+cfg.action, cfg.capLabel)
 		findings = append(findings, f)
 	}
 
 	summary := newExploitFinding(
 		report.SourceMCP,
 		mcpTarget,
-		"MCP sampling probe complete",
+		fmt.Sprintf("MCP %s probe complete", cfg.action),
 		report.SeverityInfo,
-		fmt.Sprintf("Advertised the sampling capability and invoked %d tool(s); %d issued a server-initiated sampling/createMessage request.", len(tools), observedCount),
+		fmt.Sprintf(cfg.summaryFmt, len(tools), observedCount),
 		map[string]interface{}{
-			"module": "mcp", "action": "sampling", "mutating": false,
+			"module": "mcp", "action": cfg.action, "mutating": false,
 			"provider": "mcp", "transport": transport,
-			"tools_probed": len(tools), "sampling_observed": observedCount,
+			"tools_probed": len(tools), "server_requests_observed": observedCount,
 		},
 	)
-	summary.Metadata = applyStageLanded(summary.Metadata, "recon", "reachable", "mcp-sampling", "endpoint")
+	summary.Metadata = applyStageLanded(summary.Metadata, "recon", "reachable", "mcp-"+cfg.action, "endpoint")
 	findings = append(findings, summary)
 
-	infof("Probed %d MCP tool(s) for sampling abuse on %s", len(tools), mcpTarget)
+	infof("Probed %d MCP tool(s) for %s abuse on %s", len(tools), cfg.action, mcpTarget)
 	return writeExploitFindingsWithSummary(findings, &exploitSummary{
 		Module:              "mcp",
-		Action:              "sampling",
+		Action:              cfg.action,
 		ResourcesEnumerated: len(tools),
 		PartialFailures:     countNonNilErrors(toolsErr),
 		Mutating:            false,
+	})
+}
+
+// runMCPAuth probes the MCP endpoint's authorization posture: enforcement (is an
+// anonymous request accepted), OAuth infrastructure discovery, and open dynamic
+// client registration (gated).
+func runMCPAuth(cmd *cobra.Command, args []string) error {
+	if strings.TrimSpace(mcpTarget) == "" && !strings.EqualFold(mcpTransport, "stdio") {
+		return missingFlagError("target", formatCommandExample("mcp --target http://127.0.0.1:3000 auth"))
+	}
+	if strings.EqualFold(mcpTransport, "stdio") {
+		return fmt.Errorf("mcp auth probes HTTP authorization; it does not apply to the stdio transport")
+	}
+	client, err := mcpClientFactory()
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	transport := mcp.InferTransport(mcpTarget)
+
+	var findings []report.Finding
+
+	// 1. Enforcement.
+	enf, err := client.ProbeAuthEnforcement()
+	if err != nil {
+		return fmt.Errorf("probing auth enforcement: %w", err)
+	}
+	switch {
+	case enf.AnonymousAccess:
+		// Confirm impact: how many tools are reachable with no token.
+		anonTools := 0
+		if err := client.Initialize(); err == nil {
+			if tools, _ := client.ListTools(); tools != nil {
+				anonTools = len(tools)
+			}
+		}
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			"MCP endpoint requires no authorization (anonymous access)",
+			report.SeverityMedium,
+			fmt.Sprintf("An unauthenticated initialize was accepted (HTTP %d) — the endpoint enforces no OAuth. %d tool(s) are reachable and callable without any credential.", enf.StatusCode, anonTools),
+			map[string]interface{}{
+				"module": "mcp", "action": "auth", "mutating": false,
+				"provider": "mcp", "transport": transport, "auth_enforced": false, "tool_count": anonTools,
+			})
+		f.Metadata = applyStageLanded(f.Metadata, "access", "read-confirmed", "mcp-auth", "endpoint")
+		findings = append(findings, f)
+	case enf.Enforced:
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			"MCP endpoint enforces authorization",
+			report.SeverityInfo,
+			fmt.Sprintf("An unauthenticated request was rejected (HTTP %d). Authorization is required.", enf.StatusCode),
+			map[string]interface{}{
+				"module": "mcp", "action": "auth", "mutating": false,
+				"provider": "mcp", "transport": transport, "auth_enforced": true,
+			})
+		if enf.WWWAuthenticate != "" {
+			f.Evidence = "WWW-Authenticate: " + enf.WWWAuthenticate
+		}
+		f.Metadata = applyStageLanded(f.Metadata, "recon", "reachable", "mcp-auth", "endpoint")
+		findings = append(findings, f)
+	default:
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			"MCP endpoint authorization posture unclear",
+			report.SeverityInfo,
+			fmt.Sprintf("The unauthenticated initialize returned HTTP %d without a clear accept/reject.", enf.StatusCode),
+			map[string]interface{}{
+				"module": "mcp", "action": "auth", "mutating": false,
+				"provider": "mcp", "transport": transport,
+			})
+		f.Metadata = applyStageLanded(f.Metadata, "recon", "reachable", "mcp-auth", "endpoint")
+		findings = append(findings, f)
+	}
+
+	// 2. Discovery.
+	meta, _ := client.FetchAuthMetadata(enf.ResourceMetaURL)
+	if meta.Found {
+		desc := fmt.Sprintf("Discovered OAuth metadata. issuer=%q auth_endpoint=%q token_endpoint=%q registration_endpoint=%q scopes=%v",
+			meta.Issuer, meta.AuthorizationEndpoint, meta.TokenEndpoint, meta.RegistrationEndpoint, meta.ScopesSupported)
+		f := newExploitFinding(report.SourceMCP, mcpTarget,
+			"MCP OAuth infrastructure discovered",
+			report.SeverityInfo, desc,
+			map[string]interface{}{
+				"module": "mcp", "action": "auth", "mutating": false,
+				"provider": "mcp", "transport": transport,
+				"issuer": meta.Issuer, "registration_endpoint": meta.RegistrationEndpoint,
+			})
+		f.Evidence = meta.Raw
+		f.Metadata = applyStageLanded(f.Metadata, "recon", "reachable", "mcp-auth", "endpoint")
+		findings = append(findings, f)
+	}
+
+	// 3. Open dynamic client registration (gated — submits a registration).
+	if meta.RegistrationEndpoint != "" {
+		if cfg.ForceExploit {
+			dcr, dcrErr := client.ProbeOpenDCR(meta.RegistrationEndpoint)
+			if dcrErr != nil {
+				warnf("probing dynamic client registration: %v", outcomeAnnotate(dcrErr))
+			} else if dcr.Open {
+				f := newExploitFinding(report.SourceMCP, mcpTarget,
+					"Open Dynamic Client Registration (unauthenticated)",
+					report.SeverityHigh,
+					fmt.Sprintf("The authorization server minted an OAuth client without authentication (HTTP %d, client_id=%q). An attacker can self-provision clients to drive the OAuth flow.", dcr.StatusCode, dcr.ClientID),
+					map[string]interface{}{
+						"module": "mcp", "action": "auth", "mutating": true,
+						"provider": "mcp", "transport": transport, "client_id": dcr.ClientID,
+					})
+				f.Evidence = dcr.Raw
+				f.Metadata = applyStageLanded(f.Metadata, "access", "influenced", "mcp-auth", "endpoint")
+				findings = append(findings, f)
+			} else {
+				f := newExploitFinding(report.SourceMCP, mcpTarget,
+					"Dynamic Client Registration is not open",
+					report.SeverityInfo,
+					fmt.Sprintf("Unauthenticated registration was rejected (HTTP %d).", dcr.StatusCode),
+					map[string]interface{}{
+						"module": "mcp", "action": "auth", "mutating": false,
+						"provider": "mcp", "transport": transport,
+					})
+				f.Metadata = applyStageLanded(f.Metadata, "recon", "reachable", "mcp-auth", "endpoint")
+				findings = append(findings, f)
+			}
+		} else {
+			infof("registration endpoint advertised (%s) — re-run with --force-exploit to test for open registration", meta.RegistrationEndpoint)
+		}
+	}
+
+	infof("Probed MCP authorization posture on %s", mcpTarget)
+	return writeExploitFindingsWithSummary(findings, &exploitSummary{
+		Module:   "mcp",
+		Action:   "auth",
+		Mutating: cfg.ForceExploit && meta.RegistrationEndpoint != "",
+	})
+}
+
+func runMCPSampling(cmd *cobra.Command, args []string) error {
+	return runMCPServerRequestProbe(serverRequestProbeConfig{
+		action:    "sampling",
+		capLabel:  "sampling",
+		advertise: func(c *mcp.Client) { c.AdvertiseSampling = true },
+		probe:     (*mcp.Client).ProbeToolSampling,
+		title:     func(tool string) string { return fmt.Sprintf("MCP sampling abuse: server drives client LLM via %s", tool) },
+		desc: func(tool string) string {
+			return fmt.Sprintf("Invoking tool %s produced a server-initiated sampling/createMessage request. The server attempts to invoke the connected client's LLM (server->client abuse: client-context exfiltration, or using the victim's model as a proxy). aipostex advertised sampling but did not answer the request, so client-side impact was not exercised.", tool)
+		},
+		summaryFmt: "Advertised the sampling capability and invoked %d tool(s); %d issued a server-initiated sampling/createMessage request.",
+	})
+}
+
+func runMCPElicitation(cmd *cobra.Command, args []string) error {
+	return runMCPServerRequestProbe(serverRequestProbeConfig{
+		action:    "elicitation",
+		capLabel:  "elicitation",
+		advertise: func(c *mcp.Client) { c.AdvertiseElicitation = true },
+		probe:     (*mcp.Client).ProbeToolElicitation,
+		title:     func(tool string) string { return fmt.Sprintf("MCP elicitation abuse: server phishes client user via %s", tool) },
+		desc: func(tool string) string {
+			return fmt.Sprintf("Invoking tool %s produced a server-initiated elicitation/create request. The server attempts to prompt the connected client's USER for input mid-tool-call (server->client abuse: phishing for credentials/secrets, or injecting an approval). aipostex advertised elicitation but did not answer the request, so no user was actually prompted.", tool)
+		},
+		summaryFmt: "Advertised the elicitation capability and invoked %d tool(s); %d issued a server-initiated elicitation/create request.",
 	})
 }
 

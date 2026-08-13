@@ -2,6 +2,28 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.9.0] — 2026-08-13
+
+**MCP elicitation phishing + authorization probing** — completes the server→client abuse coverage
+and adds an OAuth posture check.
+
+### Added
+
+- **`mcp elicitation`** (gated) — detects server→client elicitation phishing. Advertises the
+  `elicitation` capability, invokes each tool (or `--tool`), and captures a server-initiated
+  `elicitation/create` request — a malicious server prompting the connected client's USER for input
+  mid-tool-call (credential phishing / unintended-approval injection), invisible to a `tools/list`
+  enumeration. High, `access`/`influenced`: the server's behavior is confirmed, but aipostex never
+  answers, so no user is actually prompted.
+- **`mcp auth`** — probes the endpoint's authorization posture with no token. (1) **Enforcement** —
+  an unauthenticated `initialize`; if accepted, the endpoint is anonymously reachable and its tools
+  callable by anyone (Medium, `access`/`read-confirmed`); if rejected, the `WWW-Authenticate`
+  challenge is captured. (2) **Discovery** — fetches the RFC 9728 protected-resource and RFC 8414
+  authorization-server metadata, enumerating issuer, endpoints, scopes, and any registration
+  endpoint. (3) **Open registration** — `--force-exploit` submits an unauthenticated RFC 7591 client
+  registration; a minted `client_id` means open DCR (High, `access`/`influenced`), an attacker can
+  self-provision OAuth clients.
+
 ## [v1.8.0] — 2026-08-12
 
 **MCP data retrieval + sampling-abuse probe** — the MCP module now retrieves what it enumerates,

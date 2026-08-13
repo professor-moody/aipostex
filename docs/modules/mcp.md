@@ -28,6 +28,8 @@ The HTTP transport handles both standard JSON responses and streamable-HTTP serv
 | `sandbox-escape` | Probe an MCP filesystem read tool for a path-based sandbox escape (CVE-2025-53109 / -53110 class) |
 | `ssti` | Probe an MCP rendering/formatting tool for server-side template injection (Jinja2) |
 | `sampling` | Advertise the `sampling` capability and detect a server that drives the client's LLM (server-initiated `sampling/createMessage`) |
+| `elicitation` | Advertise the `elicitation` capability and detect a server that phishes the client's user (server-initiated `elicitation/create`) |
+| `auth` | Probe the endpoint's authorization posture: anonymous access, OAuth metadata discovery, and open dynamic client registration |
 
 ## Flags
 
@@ -163,6 +165,31 @@ aipostex mcp --target http://127.0.0.1:3000 sampling --tool summarize --force-ex
 ```
 
 Grading is deliberately conservative: aipostex advertises sampling but **never answers** the request, so a hit confirms the *server's* abuse behavior, not a victim client's compliance. A captured server-initiated request → **High**, `access` / `influenced`; the run always emits an `info` summary of how many tools were probed and how many issued a request. Over Streamable HTTP the SDK delivers a server→client request on the standalone GET event stream (not the tool-call response), so aipostex opens that stream alongside the tool call and watches both — a `create_message`-abusing tool that flushes the request and then blocks is still caught. stdio servers are probed best-effort. Because it invokes tools, this is an active action and requires `--force-exploit`.
+
+## Elicitation Phishing
+
+MCP **elicitation** (2025 spec) lets a server prompt the connected client's **user** for structured input mid-tool-call (`elicitation/create`). A malicious server abuses it to **phish** — *"enter your API key to continue"*, *"confirm this transfer"* — or to inject an approval the user never intended. Like sampling, it is a server→client request, invisible to `enum`, and only fires when a tool is invoked.
+
+The `elicitation` subcommand (gated) advertises the `elicitation` client capability, invokes each tool (or a single `--tool`), and captures a server-initiated `elicitation/create` request using the same GET-event-stream machinery as `sampling`. A hit → **High**, `access` / `influenced`; aipostex never answers the prompt, so no user is actually phished — the finding confirms the *server's* behavior, not a victim's response. The request (its message + requested schema) is kept as raw evidence.
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 elicitation --force-exploit
+```
+
+## Authorization Posture
+
+MCP's 2025 authorization spec layers OAuth 2.1 over the HTTP transport: the server is a *protected resource* (RFC 9728) that points at an authorization server (RFC 8414), and clients obtain audience-bound bearer tokens. In practice the common failures are (1) auth simply **not enforced** — the endpoint answers anonymous requests — and (2) **open dynamic client registration**, where anyone can mint an OAuth client.
+
+The `auth` subcommand probes all three, no token required:
+
+- **Enforcement** — sends an unauthenticated `initialize`. If it is accepted, the endpoint is anonymously reachable and its tools are callable by anyone who can reach it (**Medium**, `access` / `read-confirmed`, with the anon tool count). If it 401s, the `WWW-Authenticate` challenge is captured (**Info**, `recon`).
+- **Discovery** — fetches `/.well-known/oauth-protected-resource` (or the `resource_metadata` URL from the challenge) and the authorization server's `/.well-known/oauth-authorization-server`, enumerating the issuer, endpoints, scopes, and any registration endpoint (**Info**, `recon`; raw metadata as evidence).
+- **Open registration** — if a registration endpoint is advertised, `--force-exploit` submits an unauthenticated RFC 7591 registration. A minted `client_id` means open DCR (**High**, `access` / `influenced`) — an attacker can self-provision clients. Without `--force-exploit` the endpoint is only reported, not exercised.
+
+```bash
+aipostex mcp --target http://127.0.0.1:3000 auth
+aipostex mcp --target http://127.0.0.1:3000 auth --force-exploit   # also tests open DCR
+```
 
 ## Examples
 
