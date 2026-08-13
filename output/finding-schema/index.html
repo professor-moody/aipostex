@@ -4566,7 +4566,7 @@ observed behavior — the tool never claims more than it saw.</p>
 </table>
 <div class="admonition note">
 <p class="admonition-title">Auto-badge behavior</p>
-<p>All <code>vulncheck</code> findings (template-based) automatically receive <code>stage: impact</code> and an appropriate <code>landed</code>. Detection templates get <code>read-confirmed</code>; exploit templates get <code>execution-confirmed</code>. If the template already sets explicit <code>stage</code>/<code>landed</code>, the explicit values are preserved. Findings with auto-set metadata also receive auto-generated evidence containing the HTTP request and response details.</p>
+<p>A <code>vulncheck</code> finding uses the template check's explicit <code>stage</code>/<code>landed</code> when set. When a template declares <strong>neither</strong>, the finding is graded at the <strong>conservative honesty floor — <code>stage: recon</code>, <code>landed: reachable</code></strong> — never inferred up from the detection-vs-exploit classification (a check that only observed a <code>2xx</code> is not <code>takeover-capable</code>). A template that genuinely reads, executes, or takes over <strong>must declare</strong> the earned <code>stage</code>/<code>landed</code> explicitly. Findings with auto-set metadata also receive auto-generated evidence containing the HTTP request and response details.</p>
 </div>
 <h3 id="auth-scoring-metadata-openai-compat">Auth &amp; Scoring Metadata (openai-compat)<a class="headerlink" href="#auth-scoring-metadata-openai-compat" title="Permanent link">&para;</a></h3>
 <table>
