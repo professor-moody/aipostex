@@ -40,6 +40,8 @@
         "bentoml",
         "wandb",
         "kubeflow",
+        "agent",
+        "rag",
         "listener",
         "request"
       ],

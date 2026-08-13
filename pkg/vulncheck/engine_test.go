@@ -899,8 +899,8 @@ func TestScanModeIncludedInFindingMetadata(t *testing.T) {
 	if !ok {
 		t.Fatal("expected landed auto-set in finding metadata")
 	}
-	if ps != "read-confirmed" {
-		t.Fatalf("expected landed 'read-confirmed' for detection template, got %q", ps)
+	if ps != "reachable" {
+		t.Fatalf("expected conservative default landed 'reachable' for a template with no explicit grading, got %q", ps)
 	}
 }
 
@@ -939,11 +939,11 @@ func TestAutoProofBadgeDetection(t *testing.T) {
 	if len(findings) == 0 {
 		t.Fatal("expected at least one finding")
 	}
-	if findings[0].Metadata["stage"] != "impact" {
-		t.Fatalf("expected stage 'proof', got %q", findings[0].Metadata["stage"])
+	if findings[0].Metadata["stage"] != "recon" {
+		t.Fatalf("expected conservative default stage 'recon', got %q", findings[0].Metadata["stage"])
 	}
-	if findings[0].Metadata["landed"] != "read-confirmed" {
-		t.Fatalf("expected landed 'read-confirmed', got %q", findings[0].Metadata["landed"])
+	if findings[0].Metadata["landed"] != "reachable" {
+		t.Fatalf("expected conservative default landed 'reachable', got %q", findings[0].Metadata["landed"])
 	}
 	if findings[0].Evidence == "" {
 		t.Fatal("expected auto-generated evidence for auto-badged finding")
@@ -989,11 +989,14 @@ func TestAutoProofBadgeExploit(t *testing.T) {
 	if len(findings) == 0 {
 		t.Fatal("expected at least one finding")
 	}
-	if findings[0].Metadata["stage"] != "impact" {
-		t.Fatalf("expected stage 'proof', got %q", findings[0].Metadata["stage"])
+	// Honesty floor: a template with no explicit stage/landed is graded at the
+	// conservative minimum, NEVER inferred up to takeover-capable from the exploit
+	// classification. A template must declare stage+landed to earn more.
+	if findings[0].Metadata["stage"] != "recon" {
+		t.Fatalf("expected conservative default stage 'recon', got %q", findings[0].Metadata["stage"])
 	}
-	if findings[0].Metadata["landed"] != "takeover-capable" {
-		t.Fatalf("expected landed 'takeover-capable', got %q", findings[0].Metadata["landed"])
+	if findings[0].Metadata["landed"] != "reachable" {
+		t.Fatalf("expected conservative default landed 'reachable', got %q", findings[0].Metadata["landed"])
 	}
 }
 

@@ -2,6 +2,27 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.7.1] — 2026-08-12
+
+**Honesty & correctness fixes** (from an external review; grading truthfulness).
+
+### Fixed
+
+- **Proof-level default no longer over-claims.** A `vulncheck` template check that declares
+  neither `stage` nor `landed` is now graded at the conservative honesty floor
+  `recon`/`reachable` — it is never inferred up to `impact`/`takeover-capable` (exploit) or
+  `impact`/`read-confirmed` (detection) from the template's classification. A bare `2xx` is
+  not takeover. Templates that read/execute/take over must declare their earned grade.
+- **Finding IDs are unique per target.** `vulncheck` IDs were `template-check` (not
+  per-target), so the same check against two hosts collided and the dossier's
+  `evidence/<ID>.txt` overwrote. IDs now include a deterministic target discriminator.
+- **Model fingerprint wording.** "verified by dated-event recall" → "observed dated
+  knowledge" — RAG/tool access can supply recent facts and a model can misreport, so the
+  cutoff bracket is a heuristic, not proof.
+- **`agent session-probe`** detects a constant/shared session ID (same every request) — the
+  worst case — instead of mislabeling a long constant token as opaque/secure.
+- `finding-schema.json`: added the missing `agent` and `rag` finding sources.
+
 ## [v1.7.0] — 2026-08-12
 
 **Advanced prompt-injection tradecraft + the threat-model view** — deepens the model/agent

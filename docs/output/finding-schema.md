@@ -123,7 +123,7 @@ observed behavior — the tool never claims more than it saw.
 | `takeover-capable` | Full system or service takeover possible |
 
 !!! note "Auto-badge behavior"
-    All `vulncheck` findings (template-based) automatically receive `stage: impact` and an appropriate `landed`. Detection templates get `read-confirmed`; exploit templates get `execution-confirmed`. If the template already sets explicit `stage`/`landed`, the explicit values are preserved. Findings with auto-set metadata also receive auto-generated evidence containing the HTTP request and response details.
+    A `vulncheck` finding uses the template check's explicit `stage`/`landed` when set. When a template declares **neither**, the finding is graded at the **conservative honesty floor — `stage: recon`, `landed: reachable`** — never inferred up from the detection-vs-exploit classification (a check that only observed a `2xx` is not `takeover-capable`). A template that genuinely reads, executes, or takes over **must declare** the earned `stage`/`landed` explicitly. Findings with auto-set metadata also receive auto-generated evidence containing the HTTP request and response details.
 
 ### Auth & Scoring Metadata (openai-compat)
 

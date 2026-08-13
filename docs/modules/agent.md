@@ -122,6 +122,7 @@ Against a **stateful** agent the transcript flattening is mildly redundant but s
 | `sequential` | **Yes** | integer IDs — adjacent sessions are directly guessable |
 | `timestamp` | **Yes** | epoch-scale increasing — a narrow, enumerable space |
 | `short` | **Yes** | short / low-entropy — brute-forceable |
+| `constant` | **Yes** | the same ID every request -- no per-session isolation (shared session) |
 | `opaque` | No | high-entropy non-UUID — no predictability proven |
 | `none` | — | the endpoint exposes no session identifier |
 

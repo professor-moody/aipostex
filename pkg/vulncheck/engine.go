@@ -3,6 +3,8 @@ package vulncheck
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -526,7 +528,11 @@ func (e *Engine) buildCheckFinding(check Check, tmpl *Template, target string, a
 	}
 
 	finding := &report.Finding{
-		ID:          fmt.Sprintf("%s-%s", tmpl.ID, sanitizeID(check.Name)),
+		// Include a short deterministic target discriminator so the SAME check run
+		// against DIFFERENT hosts does not collide on one ID (the dossier writes
+		// evidence/<ID>.txt; colliding IDs would overwrite each other). Re-running the
+		// same check on the same target is still stable.
+		ID:          fmt.Sprintf("%s-%s-%s", tmpl.ID, sanitizeID(check.Name), shortTargetHash(target)),
 		Timestamp:   time.Now().UTC(),
 		Source:      report.SourceVulnCheck,
 		TemplateID:  tmpl.ID,
@@ -568,12 +574,13 @@ func (e *Engine) buildCheckFinding(check Check, tmpl *Template, target string, a
 			finding.Metadata["landed"] = check.Landed
 		}
 	} else {
-		finding.Metadata["stage"] = report.StageImpact
-		if tmpl.IsExploit() {
-			finding.Metadata["landed"] = "takeover-capable"
-		} else {
-			finding.Metadata["landed"] = "read-confirmed"
-		}
+		// Honesty floor: a template that does not declare what it actually proved is
+		// graded at the conservative minimum — never inferred up from the
+		// detection-vs-exploit classification. A bare check that only observed a 2xx
+		// is `recon`/`reachable`, NOT `impact`/`takeover-capable`. Templates that
+		// genuinely read/execute/take over MUST declare stage+landed explicitly.
+		finding.Metadata["stage"] = report.StageRecon
+		finding.Metadata["landed"] = "reachable"
 	}
 	if finding.Evidence == "" {
 		finding.Evidence = buildAutoEvidence(evidenceMethod, evidenceURL, status, body)
@@ -743,6 +750,14 @@ func sanitizeID(name string) string {
 		return -1
 	}, name)
 	return strings.Trim(name, "-")
+}
+
+// shortTargetHash returns a short (8-hex) deterministic discriminator for a target,
+// so per-template-check finding IDs are unique across hosts while staying stable for
+// re-runs of the same check on the same target.
+func shortTargetHash(target string) string {
+	sum := sha256.Sum256([]byte(target))
+	return hex.EncodeToString(sum[:4])
 }
 
 func (e *Engine) requestContext() context.Context {

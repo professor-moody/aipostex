@@ -9,7 +9,7 @@
 //   - identity probe: ask directly, scan the reply for vendor/family signatures
 //   - contradiction probe: assert a FALSE vendor and see who the model corrects to
 //     (self-correction training tends to leak the true vendor even under a mask)
-//   - knowledge-cutoff probe: bracket the training cutoff from dated-event recall
+//   - knowledge-cutoff probe: bound OBSERVED dated knowledge from dated-event recall (heuristic, not a verified training cutoff)
 //
 // An optional needle-in-haystack context probe estimates the usable context
 // window when a multi-turn transport is supplied.
@@ -270,7 +270,7 @@ func probeCutoff(send SendFunc, res *Result) string {
 		res.Signals = append(res.Signals, Signal{Probe: "knowledge-cutoff", Prompt: cutoffPrompt, Errored: true, Note: "request failed: " + err.Error()})
 	} else {
 		claim = strings.TrimSpace(preview(reply))
-		res.Signals = append(res.Signals, Signal{Probe: "knowledge-cutoff", Prompt: cutoffPrompt, Reply: claim, Note: "self-reported cutoff (advisory; verified below)"})
+		res.Signals = append(res.Signals, Signal{Probe: "knowledge-cutoff", Prompt: cutoffPrompt, Reply: claim, Note: "self-reported cutoff (advisory; cross-checked against dated-event recall below)"})
 	}
 
 	// Verify with dated events: the highest event-year the model demonstrably
@@ -294,7 +294,10 @@ func probeCutoff(send SendFunc, res *Result) string {
 	}
 	switch {
 	case knownYear > 0:
-		return fmt.Sprintf("at or after %d (verified by dated-event recall); self-report: %q", knownYear, claim)
+		// "observed", not "verified": recalling a dated event bounds *observed* knowledge,
+		// not a training cutoff — RAG/tool access can supply recent facts, and a model can
+		// be trained to misreport. Treat as an identity-leak heuristic, not proof.
+		return fmt.Sprintf("observed dated knowledge at/after %d (recalled a dated event); self-report: %q", knownYear, claim)
 	case claim != "":
 		return fmt.Sprintf("self-reported %q; dated-event recall suggests an earlier bound", claim)
 	default:

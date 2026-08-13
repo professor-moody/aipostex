@@ -121,8 +121,8 @@ func TestIdentify_UnknownWhenNoSignal(t *testing.T) {
 func TestIdentify_CutoffBracketFromEventRecall(t *testing.T) {
 	known := persona{identity: "GPT model by OpenAI.", knows2024: true, cutoffClaim: "2023"}
 	res := Identify(Options{Send: known.send})
-	if !strings.Contains(res.CutoffHint, "at or after 2024") {
-		t.Errorf("cutoff hint = %q, want an 'at or after 2024' bracket", res.CutoffHint)
+	if !strings.Contains(res.CutoffHint, "at/after 2024") {
+		t.Errorf("cutoff hint = %q, want an observed-dated-knowledge 'at/after 2024' bracket", res.CutoffHint)
 	}
 
 	old := persona{identity: "Llama by Meta.", knows2024: false, cutoffClaim: "December 2023"}
