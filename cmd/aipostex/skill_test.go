@@ -25,8 +25,6 @@ import (
 //
 //	AIPOSTEX_UPDATE_SKILL=1 go test ./cmd/aipostex/ -run TestSkillReference
 
-const gatedAnnotation = "aipostex.gated"
-
 func isGated(cmd *cobra.Command) bool {
 	return cmd.Annotations[gatedAnnotation] == "true"
 }

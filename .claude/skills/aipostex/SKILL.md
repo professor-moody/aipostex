@@ -13,9 +13,8 @@ You may be driving it two ways:
 
 - **The CLI** — 201 verbs across 28 command groups. Full inventory in
   [reference/verbs.md](reference/verbs.md).
-- **`aipostex serve`** — an MCP server exposing 17 of those capabilities as MCP tools over
-  stdio (see [MCP server mode](#mcp-server-mode) below). It is a curated subset, not the
-  whole CLI.
+- **`aipostex serve`** — an MCP server exposing **every one of those verbs** as an MCP tool
+  (see [MCP server mode](#mcp-server-mode) below). Full parity with the CLI.
 
 ## Authorization comes first
 
@@ -137,16 +136,14 @@ Two modules deserve a note because they behave differently:
 `aipostex serve` runs aipostex as an MCP server over stdio, so an MCP client can call it.
 Wire it in as a stdio server running `aipostex serve`.
 
-It exposes **17 tools**, not the full CLI:
+It exposes **all 201 verbs** as tools, named `<module>_<verb>` — `mcp_enum`,
+`k8s_secret_read`, `vectordb_search_sensitive`, and so on. Each carries that verb's own flags
+as its schema and returns the CLI's own output, grades included.
 
-- **Model & agent layer** (read-only): `fingerprint_model`, `agent_probe`, `agent_enum`,
-  `agent_extract`, `agent_fingerprint`, `rag_query`, `rag_map`
-- **Infrastructure** (read-only): `mcp_enum`, `mcp_read`, `mcp_auth_posture`, `ollama_enum`,
-  `ollama_prompts`, `mlflow_experiments`, `mlflow_runs`, `ray_jobs`, `k8s_posture`
-- **Gated**: `rag_poison` — refuses unless called with `"confirm": true`
-
-`k8s_posture` takes `insecure: true` for clusters using a self-signed API-server certificate,
-and an optional `token` to act as a specific identity.
+Gating carries through: the 90 gated verbs are marked mutating and **refuse unless called
+with `"confirm": true`**. You cannot set `--force-exploit` as an argument — the server adds it
+once you confirm, so authorisation is an explicit act rather than a guessed flag. Output flags
+(`--output`, `--format`, `--quiet`) are withheld because the tool result is the channel.
 
 Two things to know when driving it: `stdout` is the protocol channel and `stderr` is the
 audit log (every call is logged there), and findings are **not** written to the report store —

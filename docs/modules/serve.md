@@ -31,43 +31,28 @@ aipostex serve
 
 ## Exposed tools
 
-### Read-only
+**Every CLI verb is a tool.** The surface is generated from the command tree, so all 201
+verbs across 28 modules are callable, named `<module>_<verb>` — `mcp_enum`, `k8s_secret_read`,
+`vectordb_search_sensitive`, `openai_compat_prompt_extract`, and so on. A verb added to the
+CLI becomes a tool the next time the server starts; there is no list to maintain and nothing
+to fall behind.
 
-| Tool | What it does |
-|---|---|
-| `fingerprint_model` | Behaviorally fingerprint the model family behind an OpenAI-compatible endpoint (identity, contradiction, knowledge-cutoff). Args: `target` (required), `model`. |
-| `agent_probe` | Send a benign message to a bespoke `/chat` agent and capture its reply. |
-| `agent_enum` | Ask a bespoke agent to list its tools/capabilities. |
-| `agent_extract` | Attempt system-prompt/config extraction against a bespoke agent, running the output-filter-bypass matrix. |
-| `agent_fingerprint` | Behaviorally fingerprint the model family behind a bespoke agent. |
-| `rag_query` | Query a black-box RAG app and return the answer plus source citations (and any leaked secrets). Args: `target`, `query` (required), `query_path`. |
-| `rag_map` | Map a black-box RAG knowledge base via a recon-query battery, flagging documents that leak secrets. |
+Each tool carries that verb's own flags as its input schema, its own documentation as its
+description, and its own gating. Positional arguments, where a verb takes them, arrive as a
+space-separated `args` string.
 
-The `agent_*` tools accept the configurable transport: `target` (required), optional `request_template` (JSON body with a `{{PROMPT}}` placeholder) and `response_field` (dot-path to the reply text).
+The tool returns exactly what the CLI printed — findings with their `stage`/`landed` grades,
+the summary, and any Next Actions — so a model reads the same output an operator would.
 
-### Read-only — infrastructure
+### Gating
 
-| Tool | What it does |
-|---|---|
-| `mcp_enum` | Enumerate an MCP server's tools, prompts, resources, and resource templates. Args: `target` (required). |
-| `mcp_read` | Retrieve resource bodies and prompt templates (`resources/read`, `prompts/get`) — actual data, so secrets in it are real. |
-| `mcp_auth_posture` | Whether an unauthenticated request is accepted, plus any advertised OAuth metadata. Does not attempt registration. |
-| `ollama_enum` | Models available and models currently loaded on an Ollama instance. |
-| `ollama_prompts` | The system prompts configured on those models. |
-| `mlflow_experiments` | Experiments on a tracking server. |
-| `mlflow_runs` | Runs for an experiment, with parameters and artifact URIs. Args: `target`, `experiment_id` (required). |
-| `ray_jobs` | Jobs on a Ray dashboard, with entrypoints and runtime environments. |
-| `k8s_posture` | Namespaces visible and what the identity may do (`SelfSubjectRulesReview`). Args: `target` (required), `token`, `namespace`, `insecure`. |
+Verbs that require `--force-exploit` are marked mutating (MCP `destructiveHint`) and **refuse
+unless called with `"confirm": true`**. 90 of the 201 tools are gated this way.
 
-`k8s_posture` needs `insecure: true` against clusters using a self-signed API-server
-certificate (k3s and most self-managed clusters), which is the equivalent of the CLI's
-`--insecure`.
-
-### Gated (mutating)
-
-| Tool | What it does |
-|---|---|
-| `rag_poison` | Ingest an attacker document into a RAG knowledge base and verify it surfaces on a trigger query. **Mutating** — refuses unless called with `"confirm": true`. Args: `target`, `title`, `content` (required), `trigger_query`, `confirm`. |
+`--force-exploit` is **not** a model-settable argument. The server appends it itself once
+`confirm` is present, so a model cannot authorise a mutating action by guessing a flag name.
+Output-plumbing flags (`--output`, `--format`, `--quiet`, `--width`, `--verbose`) are likewise
+withheld: the MCP result is the delivery channel.
 
 ## Wiring it into a client
 

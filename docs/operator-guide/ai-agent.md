@@ -103,10 +103,10 @@ automatically. Do not build a parallel secret scanner — use
 
 ## What `serve` exposes
 
-[`aipostex serve`](../modules/serve.md) exposes 17 tools — the model and agent layer plus the
-infrastructure surface (MCP servers, Ollama, MLflow, Ray, Kubernetes) — of which one
-(`rag_poison`) is mutating and refuses without `"confirm": true`.
+[`aipostex serve`](../modules/serve.md) exposes **every verb** — all 201, named
+`<module>_<verb>`, generated from the command tree. An agent driving the MCP server has the
+same reach as one with shell access.
 
-It is still a curated subset. An agent with shell access has the full 201-verb surface;
-an agent limited to the MCP server does not, and should say so rather than implying it
-assessed something it could not reach.
+Gating carries through: the 90 gated verbs refuse unless called with `"confirm": true`, and
+`--force-exploit` is not a settable argument — the server adds it once you confirm. That makes
+authorisation an explicit act rather than something a model can stumble into.

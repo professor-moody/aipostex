@@ -2,6 +2,34 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.14.0] — 2026-08-13
+
+**`serve` reaches full CLI parity — every verb is an MCP tool.**
+
+### Changed
+
+- **The MCP tool surface is generated from the command tree.** All 201 verbs across 28 modules
+  are exposed as tools named `<module>_<verb>` — `mcp_enum`, `k8s_secret_read`,
+  `vectordb_search_sensitive`, and so on — each carrying that verb's own flags as its input
+  schema, its own documentation as its description, and its own gating. A verb added to the CLI
+  becomes a tool the next time the server starts. Previously 17 tools were hand-written, which
+  meant an agent driving the MCP server could reach a slice of the tool while an agent with
+  shell access reached all of it.
+- Tools return exactly what the CLI printed — findings with their `stage`/`landed` grades, the
+  summary, and any Next Actions — so a model reads the same output an operator would.
+- Each call re-executes the binary as a subprocess. stdout is the MCP protocol channel, so an
+  in-process command printing findings would corrupt the stream; cobra's flag state is also
+  global, so in-process calls would leak arguments into each other.
+
+### Security
+
+- **`--force-exploit` is not a model-settable argument.** The 90 gated verbs refuse unless
+  called with `"confirm": true`, and the server appends the flag itself once confirmation is
+  present — so authorisation is an explicit act rather than a flag name a model can guess. A
+  test asserts this for every verb.
+- Gated tools are marked with the MCP `destructiveHint` annotation, and output-plumbing flags
+  (`--output`, `--format`, `--quiet`, `--width`, `--verbose`) are withheld from the schema.
+
 ## [v1.13.0] — 2026-08-13
 
 **Making aipostex usable *by* an AI, not just *for* one.**
