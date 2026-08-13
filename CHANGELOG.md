@@ -2,6 +2,24 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.12.0] — 2026-08-13
+
+**Examples that are guaranteed to run.**
+
+### Fixed
+
+- **Three `vectordb` examples were unrunnable.** They used a `--provider` flag that does not
+  exist — the flag is `--type` — and `--help` rendered them happily. The previous check
+  confirmed only that the *subcommand* resolved, but a wrong flag fails just as hard at the
+  prompt as a wrong verb.
+
+### Added
+
+- **Example validation.** Every command's `Example` block is now walked, resolved through
+  cobra (examples routinely place flags before the subcommand), and checked so that every long
+  flag it uses actually exists on the resolved command. 319 example invocations are validated
+  on each test run, so a documented command that could not run fails the build.
+
 ## [v1.11.0] — 2026-08-13
 
 **A single source of truth for module identity, enforced by tests.**

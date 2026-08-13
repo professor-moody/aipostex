@@ -84,7 +84,7 @@ counts. Counts matter offensively: they tell you which collection holds the
 corpus worth extracting, before you pull any records.
 
 This is a read-only probing operation.`,
-	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --provider weaviate enum"),
+	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --type weaviate enum"),
 	RunE:    runVDBEnum,
 }
 
@@ -97,7 +97,7 @@ built to answer from — so extraction reads the data itself, not just metadata.
 
 Use --collection to target one collection and --limit to bound the pull. This is
 a read-only operation; nothing is written to the target.`,
-	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --provider weaviate extract --collection Documents --limit 25"),
+	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --type weaviate extract --collection Documents --limit 25"),
 	RunE:    runVDBExtract,
 }
 
@@ -110,7 +110,7 @@ operator's attention. Matches are surfaced as findings with the raw value intact
 so anything credential-shaped reaches the credential index.
 
 This is a read-only operation.`,
-	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --provider weaviate search-sensitive --collection Documents"),
+	Example: formatCommandExample("vectordb --target http://127.0.0.1:8080 --type weaviate search-sensitive --collection Documents"),
 	RunE:    runVDBSearch,
 }
 
