@@ -2635,32 +2635,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#read-only" class="md-nav__link">
+  <a href="#gating" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Read-only
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#read-only-infrastructure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Read-only — infrastructure
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gated-mutating" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gated (mutating)
+        Gating
       
     </span>
   </a>
@@ -3956,32 +3934,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#read-only" class="md-nav__link">
+  <a href="#gating" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Read-only
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#read-only-infrastructure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Read-only — infrastructure
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gated-mutating" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gated (mutating)
+        Gating
       
     </span>
   </a>
@@ -4072,111 +4028,23 @@ or point a skill-aware client at the shipped skill in <code>.claude/skills/aipos
 </tbody>
 </table>
 <h2 id="exposed-tools">Exposed tools<a class="headerlink" href="#exposed-tools" title="Permanent link">&para;</a></h2>
-<h3 id="read-only">Read-only<a class="headerlink" href="#read-only" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Tool</th>
-<th>What it does</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>fingerprint_model</code></td>
-<td>Behaviorally fingerprint the model family behind an OpenAI-compatible endpoint (identity, contradiction, knowledge-cutoff). Args: <code>target</code> (required), <code>model</code>.</td>
-</tr>
-<tr>
-<td><code>agent_probe</code></td>
-<td>Send a benign message to a bespoke <code>/chat</code> agent and capture its reply.</td>
-</tr>
-<tr>
-<td><code>agent_enum</code></td>
-<td>Ask a bespoke agent to list its tools/capabilities.</td>
-</tr>
-<tr>
-<td><code>agent_extract</code></td>
-<td>Attempt system-prompt/config extraction against a bespoke agent, running the output-filter-bypass matrix.</td>
-</tr>
-<tr>
-<td><code>agent_fingerprint</code></td>
-<td>Behaviorally fingerprint the model family behind a bespoke agent.</td>
-</tr>
-<tr>
-<td><code>rag_query</code></td>
-<td>Query a black-box RAG app and return the answer plus source citations (and any leaked secrets). Args: <code>target</code>, <code>query</code> (required), <code>query_path</code>.</td>
-</tr>
-<tr>
-<td><code>rag_map</code></td>
-<td>Map a black-box RAG knowledge base via a recon-query battery, flagging documents that leak secrets.</td>
-</tr>
-</tbody>
-</table>
-<p>The <code>agent_*</code> tools accept the configurable transport: <code>target</code> (required), optional <code>request_template</code> (JSON body with a <code>{{PROMPT}}</code> placeholder) and <code>response_field</code> (dot-path to the reply text).</p>
-<h3 id="read-only-infrastructure">Read-only — infrastructure<a class="headerlink" href="#read-only-infrastructure" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Tool</th>
-<th>What it does</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>mcp_enum</code></td>
-<td>Enumerate an MCP server's tools, prompts, resources, and resource templates. Args: <code>target</code> (required).</td>
-</tr>
-<tr>
-<td><code>mcp_read</code></td>
-<td>Retrieve resource bodies and prompt templates (<code>resources/read</code>, <code>prompts/get</code>) — actual data, so secrets in it are real.</td>
-</tr>
-<tr>
-<td><code>mcp_auth_posture</code></td>
-<td>Whether an unauthenticated request is accepted, plus any advertised OAuth metadata. Does not attempt registration.</td>
-</tr>
-<tr>
-<td><code>ollama_enum</code></td>
-<td>Models available and models currently loaded on an Ollama instance.</td>
-</tr>
-<tr>
-<td><code>ollama_prompts</code></td>
-<td>The system prompts configured on those models.</td>
-</tr>
-<tr>
-<td><code>mlflow_experiments</code></td>
-<td>Experiments on a tracking server.</td>
-</tr>
-<tr>
-<td><code>mlflow_runs</code></td>
-<td>Runs for an experiment, with parameters and artifact URIs. Args: <code>target</code>, <code>experiment_id</code> (required).</td>
-</tr>
-<tr>
-<td><code>ray_jobs</code></td>
-<td>Jobs on a Ray dashboard, with entrypoints and runtime environments.</td>
-</tr>
-<tr>
-<td><code>k8s_posture</code></td>
-<td>Namespaces visible and what the identity may do (<code>SelfSubjectRulesReview</code>). Args: <code>target</code> (required), <code>token</code>, <code>namespace</code>, <code>insecure</code>.</td>
-</tr>
-</tbody>
-</table>
-<p><code>k8s_posture</code> needs <code>insecure: true</code> against clusters using a self-signed API-server
-certificate (k3s and most self-managed clusters), which is the equivalent of the CLI's
-<code>--insecure</code>.</p>
-<h3 id="gated-mutating">Gated (mutating)<a class="headerlink" href="#gated-mutating" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Tool</th>
-<th>What it does</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>rag_poison</code></td>
-<td>Ingest an attacker document into a RAG knowledge base and verify it surfaces on a trigger query. <strong>Mutating</strong> — refuses unless called with <code>"confirm": true</code>. Args: <code>target</code>, <code>title</code>, <code>content</code> (required), <code>trigger_query</code>, <code>confirm</code>.</td>
-</tr>
-</tbody>
-</table>
+<p><strong>Every CLI verb is a tool.</strong> The surface is generated from the command tree, so all 201
+verbs across 28 modules are callable, named <code>&lt;module&gt;_&lt;verb&gt;</code> — <code>mcp_enum</code>, <code>k8s_secret_read</code>,
+<code>vectordb_search_sensitive</code>, <code>openai_compat_prompt_extract</code>, and so on. A verb added to the
+CLI becomes a tool the next time the server starts; there is no list to maintain and nothing
+to fall behind.</p>
+<p>Each tool carries that verb's own flags as its input schema, its own documentation as its
+description, and its own gating. Positional arguments, where a verb takes them, arrive as a
+space-separated <code>args</code> string.</p>
+<p>The tool returns exactly what the CLI printed — findings with their <code>stage</code>/<code>landed</code> grades,
+the summary, and any Next Actions — so a model reads the same output an operator would.</p>
+<h3 id="gating">Gating<a class="headerlink" href="#gating" title="Permanent link">&para;</a></h3>
+<p>Verbs that require <code>--force-exploit</code> are marked mutating (MCP <code>destructiveHint</code>) and <strong>refuse
+unless called with <code>"confirm": true</code></strong>. 90 of the 201 tools are gated this way.</p>
+<p><code>--force-exploit</code> is <strong>not</strong> a model-settable argument. The server appends it itself once
+<code>confirm</code> is present, so a model cannot authorise a mutating action by guessing a flag name.
+Output-plumbing flags (<code>--output</code>, <code>--format</code>, <code>--quiet</code>, <code>--width</code>, <code>--verbose</code>) are likewise
+withheld: the MCP result is the delivery channel.</p>
 <h2 id="wiring-it-into-a-client">Wiring it into a client<a class="headerlink" href="#wiring-it-into-a-client" title="Permanent link">&para;</a></h2>
 <p>Register <code>aipostex serve</code> as a stdio MCP server. For example, in a Claude Desktop config:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>

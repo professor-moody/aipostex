@@ -4117,12 +4117,12 @@ automatically. Do not build a parallel secret scanner — use
 </tbody>
 </table>
 <h2 id="what-serve-exposes">What <code>serve</code> exposes<a class="headerlink" href="#what-serve-exposes" title="Permanent link">&para;</a></h2>
-<p><a href="../../modules/serve/"><code>aipostex serve</code></a> exposes 17 tools — the model and agent layer plus the
-infrastructure surface (MCP servers, Ollama, MLflow, Ray, Kubernetes) — of which one
-(<code>rag_poison</code>) is mutating and refuses without <code>"confirm": true</code>.</p>
-<p>It is still a curated subset. An agent with shell access has the full 201-verb surface;
-an agent limited to the MCP server does not, and should say so rather than implying it
-assessed something it could not reach.</p>
+<p><a href="../../modules/serve/"><code>aipostex serve</code></a> exposes <strong>every verb</strong> — all 201, named
+<code>&lt;module&gt;_&lt;verb&gt;</code>, generated from the command tree. An agent driving the MCP server has the
+same reach as one with shell access.</p>
+<p>Gating carries through: the 90 gated verbs refuse unless called with <code>"confirm": true</code>, and
+<code>--force-exploit</code> is not a settable argument — the server adds it once you confirm. That makes
+authorisation an explicit act rather than something a model can stumble into.</p>
 
 
 
