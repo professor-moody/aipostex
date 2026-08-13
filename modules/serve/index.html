@@ -2646,6 +2646,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#read-only-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read-only — infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gated-mutating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3205,6 +3216,8 @@
       
         
       
+        
+      
     
     
     
@@ -3351,6 +3364,34 @@
     
   
     Network Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operator-guide/ai-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driving From an AI Agent
   
 
     
@@ -3926,6 +3967,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#read-only-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read-only — infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gated-mutating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3986,8 +4038,14 @@
 <h1 id="mcp-server-serve">MCP Server (<code>serve</code>)<a class="headerlink" href="#mcp-server-serve" title="Permanent link">&para;</a></h1>
 <p>Run aipostex as an MCP server so an LLM or agent can drive it.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p><code>serve</code> exposes a curated set of aipostex capabilities as <a href="../mcp/">Model Context Protocol</a> tools over <strong>stdio</strong>, so an LLM or agent framework can drive reconnaissance and bounded exploitation. It speaks newline-delimited JSON-RPC 2.0 on stdin/stdout (the MCP stdio transport) with <strong>no SDK dependency</strong> — a small in-tree server handles the core methods (<code>initialize</code>, <code>tools/list</code>, <code>tools/call</code>, <code>ping</code>).</p>
+<p><code>serve</code> exposes 17 curated aipostex capabilities as <a href="../mcp/">Model Context Protocol</a> tools over <strong>stdio</strong>, so an LLM or agent framework can drive reconnaissance and bounded exploitation. It speaks newline-delimited JSON-RPC 2.0 on stdin/stdout (the MCP stdio transport) with <strong>no SDK dependency</strong> — a small in-tree server handles the core methods (<code>initialize</code>, <code>tools/list</code>, <code>tools/call</code>, <code>ping</code>).</p>
 <p>Wire it into an MCP client (e.g. Claude) as a stdio server running <code>aipostex serve</code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Give the model doctrine, not just schemas</p>
+<p>Tool schemas tell a model <em>what it can call</em>; they do not tell it what a result is
+allowed to claim. See <a href="../../operator-guide/ai-agent/">Driving aipostex from an AI Agent</a>,
+or point a skill-aware client at the shipped skill in <code>.claude/skills/aipostex/</code>.</p>
+</div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aipostex<span class="w"> </span>serve
 </code></pre></div>
 <h2 id="safety-model">Safety model<a class="headerlink" href="#safety-model" title="Permanent link">&para;</a></h2>
@@ -4054,6 +4112,56 @@
 </tbody>
 </table>
 <p>The <code>agent_*</code> tools accept the configurable transport: <code>target</code> (required), optional <code>request_template</code> (JSON body with a <code>{{PROMPT}}</code> placeholder) and <code>response_field</code> (dot-path to the reply text).</p>
+<h3 id="read-only-infrastructure">Read-only — infrastructure<a class="headerlink" href="#read-only-infrastructure" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mcp_enum</code></td>
+<td>Enumerate an MCP server's tools, prompts, resources, and resource templates. Args: <code>target</code> (required).</td>
+</tr>
+<tr>
+<td><code>mcp_read</code></td>
+<td>Retrieve resource bodies and prompt templates (<code>resources/read</code>, <code>prompts/get</code>) — actual data, so secrets in it are real.</td>
+</tr>
+<tr>
+<td><code>mcp_auth_posture</code></td>
+<td>Whether an unauthenticated request is accepted, plus any advertised OAuth metadata. Does not attempt registration.</td>
+</tr>
+<tr>
+<td><code>ollama_enum</code></td>
+<td>Models available and models currently loaded on an Ollama instance.</td>
+</tr>
+<tr>
+<td><code>ollama_prompts</code></td>
+<td>The system prompts configured on those models.</td>
+</tr>
+<tr>
+<td><code>mlflow_experiments</code></td>
+<td>Experiments on a tracking server.</td>
+</tr>
+<tr>
+<td><code>mlflow_runs</code></td>
+<td>Runs for an experiment, with parameters and artifact URIs. Args: <code>target</code>, <code>experiment_id</code> (required).</td>
+</tr>
+<tr>
+<td><code>ray_jobs</code></td>
+<td>Jobs on a Ray dashboard, with entrypoints and runtime environments.</td>
+</tr>
+<tr>
+<td><code>k8s_posture</code></td>
+<td>Namespaces visible and what the identity may do (<code>SelfSubjectRulesReview</code>). Args: <code>target</code> (required), <code>token</code>, <code>namespace</code>, <code>insecure</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>k8s_posture</code> needs <code>insecure: true</code> against clusters using a self-signed API-server
+certificate (k3s and most self-managed clusters), which is the equivalent of the CLI's
+<code>--insecure</code>.</p>
 <h3 id="gated-mutating">Gated (mutating)<a class="headerlink" href="#gated-mutating" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
