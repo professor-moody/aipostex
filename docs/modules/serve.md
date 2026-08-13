@@ -44,6 +44,20 @@ space-separated `args` string.
 The tool returns exactly what the CLI printed — findings with their `stage`/`landed` grades,
 the summary, and any Next Actions — so a model reads the same output an operator would.
 
+### Legacy tool names
+
+Generating the surface renamed four tools that existed when it was hand-written. Those names
+still resolve, as **deprecated aliases** that redirect to the generated tool — a model that
+learned an old name gets a redirect rather than "unknown tool" — but new callers should use
+the generated name:
+
+| Deprecated | Use |
+|---|---|
+| `fingerprint_model` | `openai_compat_fingerprint` |
+| `mcp_read` | `mcp_enum` with `read: true` |
+| `mcp_auth_posture` | `mcp_auth` |
+| `k8s_posture` | `k8s_rbac_probe` (or `k8s_access_review` / `k8s_enum`) |
+
 ### Gating
 
 Verbs that require `--force-exploit` are marked mutating (MCP `destructiveHint`) and **refuse

@@ -68,6 +68,16 @@ func (s *Server) ToolNames() []string {
 	return names
 }
 
+// Tools returns a copy of the registered tools, so callers can build aliases or
+// assert on the exposed surface without reaching into the server.
+func (s *Server) Tools() []Tool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]Tool, len(s.tools))
+	copy(out, s.tools)
+	return out
+}
+
 // Register adds a tool (last registration of a name wins).
 func (s *Server) Register(t Tool) {
 	s.mu.Lock()

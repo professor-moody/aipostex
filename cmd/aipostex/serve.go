@@ -47,6 +47,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "[aipostex-mcp] "+format+"\n", a...)
 	}
 	registerAllVerbTools(srv)
+	registerLegacyAliases(srv)
 	fmt.Fprintln(os.Stderr, "[aipostex-mcp] serving on stdio; tools registered. Ctrl-C to stop.")
 	return srv.Serve(currentContext(), os.Stdin, os.Stdout)
 }

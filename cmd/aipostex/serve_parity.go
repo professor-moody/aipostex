@@ -251,6 +251,55 @@ func registerAllVerbTools(srv *mcpserver.Server) {
 	}
 }
 
+// legacyToolAliases keep tool names that existed before the surface was generated
+// working. `fingerprint_model` in particular shipped publicly for several releases,
+// and a model that learned the old name should not meet "unknown tool".
+//
+// These are thin redirects to a generated tool, not second implementations — the
+// behaviour lives in one place.
+var legacyToolAliases = map[string]struct {
+	target string
+	extra  map[string]interface{}
+}{
+	"fingerprint_model": {target: "openai_compat_fingerprint"},
+	"mcp_auth_posture":  {target: "mcp_auth"},
+	"mcp_read":          {target: "mcp_enum", extra: map[string]interface{}{"read": true}},
+	"k8s_posture":       {target: "k8s_rbac_probe"},
+}
+
+// registerLegacyAliases adds the pre-parity tool names as deprecated redirects.
+func registerLegacyAliases(srv *mcpserver.Server) {
+	byName := map[string]mcpserver.Tool{}
+	for _, t := range srv.Tools() {
+		byName[t.Name] = t
+	}
+	for alias, spec := range legacyToolAliases {
+		target, ok := byName[spec.target]
+		if !ok {
+			continue // the verb it pointed at no longer exists; nothing to alias
+		}
+		extra := spec.extra
+		inner := target.Handler
+		srv.Register(mcpserver.Tool{
+			Name: alias,
+			Description: fmt.Sprintf("DEPRECATED alias for %s — use that name instead. %s",
+				spec.target, target.Description),
+			InputSchema: target.InputSchema,
+			Mutating:    target.Mutating,
+			Handler: func(ctx context.Context, a map[string]interface{}) (string, bool) {
+				merged := make(map[string]interface{}, len(a)+len(extra))
+				for k, v := range a {
+					merged[k] = v
+				}
+				for k, v := range extra {
+					merged[k] = v
+				}
+				return inner(ctx, merged)
+			},
+		})
+	}
+}
+
 func exitCodeOf(err error) (int, bool) {
 	var ee *exec.ExitError
 	if errors.As(err, &ee) {

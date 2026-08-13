@@ -2,6 +2,25 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.14.1] — 2026-08-13
+
+### Fixed
+
+- **Four MCP tool names removed in v1.14.0 resolve again.** Generating the tool surface from
+  the command tree renamed them, and the v1.14.0 entry did not say so — a breaking change for
+  any client that had learned the old names. They are restored as **deprecated aliases** that
+  redirect to the generated tool:
+
+  | Deprecated | Use instead |
+  |---|---|
+  | `fingerprint_model` | `openai_compat_fingerprint` |
+  | `mcp_read` | `mcp_enum` with `read: true` |
+  | `mcp_auth_posture` | `mcp_auth` |
+  | `k8s_posture` | `k8s_rbac_probe` |
+
+  The aliases are thin redirects sharing the generated handler, not second implementations, so
+  the behaviour still lives in one place.
+
 ## [v1.14.0] — 2026-08-13
 
 **`serve` reaches full CLI parity — every verb is an MCP tool.**

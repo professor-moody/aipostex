@@ -139,3 +139,30 @@ func TestToolNameFor(t *testing.T) {
 		}
 	}
 }
+
+// TestLegacyAliasesStillResolve guards the compatibility promise: generating the tool
+// surface renamed four tools that existed before it, and a model that learned an old
+// name should get a redirect rather than "unknown tool".
+func TestLegacyAliasesStillResolve(t *testing.T) {
+	srv := parityServer(t)
+	registerLegacyAliases(srv)
+	names := map[string]bool{}
+	for _, n := range srv.ToolNames() {
+		names[n] = true
+	}
+	for alias, spec := range legacyToolAliases {
+		if !names[alias] {
+			t.Errorf("legacy tool name %q no longer resolves", alias)
+		}
+		if !names[spec.target] {
+			t.Errorf("%q aliases %q, which does not exist", alias, spec.target)
+		}
+	}
+	for _, tool := range srv.Tools() {
+		if _, isAlias := legacyToolAliases[tool.Name]; isAlias {
+			if !strings.Contains(tool.Description, "DEPRECATED") {
+				t.Errorf("alias %q should be marked DEPRECATED so callers migrate", tool.Name)
+			}
+		}
+	}
+}
