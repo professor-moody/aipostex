@@ -1,6 +1,6 @@
 module github.com/professor-moody/aipostex
 
-go 1.25.12
+go 1.25.13
 
 require (
 	github.com/fatih/color v1.18.0
@@ -10,7 +10,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/tidwall/gjson v1.18.0
-	golang.org/x/net v0.53.0
+	golang.org/x/net v0.55.0
 	golang.org/x/term v0.44.0
 	golang.org/x/text v0.39.0
 	gopkg.in/yaml.v3 v3.0.1

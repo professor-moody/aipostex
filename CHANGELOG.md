@@ -2,6 +2,17 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.14.3] — 2026-08-14
+
+### Fixed
+
+- **Release artifacts.** The v1.14.2 release produced no binaries: `govulncheck` gates both CI
+  and Release, and Go 1.25.13 was published between v1.14.1 and v1.14.2, so the vulnerability
+  database began reporting six advisories against the 1.25.12 toolchain the workflows pinned
+  (GO-2026-5026, -5972, -6088, -6089, -6090, -6218 across `crypto/tls`, `net/http`, `net/url`,
+  `encoding/xml`, `encoding/asn1`, plus one needing `golang.org/x/net` v0.55.0). Pins bumped to
+  Go 1.25.13 and x/net v0.55.0; `v1.14.2` has no downloadable binaries, so **use v1.14.3**.
+
 ## [v1.14.2] — 2026-08-13
 
 ### Added

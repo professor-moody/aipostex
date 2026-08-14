@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.12"
+          go-version: "1.25.13"
 
       # Gate the release on the same checks CI enforces on every push, so a
       # tag can never publish binaries that fail tests, vet, or vuln scanning.
