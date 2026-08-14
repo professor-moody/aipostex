@@ -2,6 +2,15 @@
 
 All notable changes to aipostex are documented in this file.
 
+## [v1.14.2] — 2026-08-13
+
+### Added
+
+- **A cloned repository wires itself to an agent.** A project-scoped `.mcp.json` ships in the
+  repo, so `git clone … && cd aipostex && claude` offers the aipostex MCP server for approval
+  and picks up the skill from `.claude/skills/` in the same directory — no config file to find
+  and no path to type. The binary just needs to be on `PATH` as `aipostex`.
+
 ## [v1.14.1] — 2026-08-13
 
 ### Fixed

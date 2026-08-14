@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aipostex": {
+      "command": "aipostex",
+      "args": ["serve"]
+    }
+  }
+}

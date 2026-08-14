@@ -68,6 +68,21 @@ unless called with `"confirm": true`**. 90 of the 201 tools are gated this way.
 Output-plumbing flags (`--output`, `--format`, `--quiet`, `--width`, `--verbose`) are likewise
 withheld: the MCP result is the delivery channel.
 
+## Quickest setup
+
+Clone the repository and start your agent inside it. The repo ships a project-scoped
+`.mcp.json`, so the server is offered automatically, and the skill in `.claude/skills/aipostex/`
+is picked up from the same directory:
+
+```bash
+git clone https://github.com/professor-moody/aipostex.git
+cd aipostex
+claude          # approve the "aipostex" MCP server when prompted
+```
+
+The binary must be on `PATH` as `aipostex` — install a release binary, or
+`go build -o /usr/local/bin/aipostex ./cmd/aipostex`.
+
 ## Wiring it into a client
 
 Register `aipostex serve` as a stdio MCP server. For example, in a Claude Desktop config:
